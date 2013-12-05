@@ -1,0 +1,12 @@
+[submodule "include/program_options"]
+	path = include/program_options
+	url = git@github.com:boostorg/program_options.git
+	ignore = dirty
+[submodule "include/bamtools"]
+	path = include/bamtools
+	url = git@github.com:pezmaster31/bamtools.git
+	ignore = dirty
+[submodule "include/cu"]
+	path = include/cu
+	url = git@github.com:danfis/cu.git
+	ignore = dirty

@@ -1,5 +1,5 @@
 # Location of Bamtools on your machine. 
-BAMTOOLS = bamtools
+BAMTOOLS = include/bamtools
 
 CXXFLAGS =	-O2 -g -Wall -fmessage-length=0 -I$(BAMTOOLS)/src -I$(BAMTOOLS)
 LIBS = -L$(BAMTOOLS)/lib -lbamtools
@@ -10,11 +10,12 @@ TARGET =	DDiMAP
 $(TARGET):	$(OBJS)
 	$(CXX) -o $(TARGET) $(OBJS) $(LIBS)
 
-all: $(TARGET)
+all: install $(TARGET)
 	
 install:
-	git clone git@github.com:pezmaster31/bamtools.git
-	cd bamtools && mkdir -p build && cd build && cmake .. && make
+	git submodule update --init --recursive 
+	cd include/bamtools && mkdir -p build && cd build && cmake .. && make && cd ../../..
+	make -C include/cu
 
 clean:
 	rm -f $(OBJS) $(TARGET)
