@@ -29,11 +29,24 @@ int main(void) {
 	while(br->GetNextAlignment(ba))
 		if(ba.Position > 0)
 		{
+
+			string word;
+			int position = ba.Position;
+			int offset	 = 0;
+
+			if(ba.IsReverseStrand())
+				offset = ba.AlignedBases.length()-34;
+
+			position += offset;
+			word = ba.AlignedBases.substr(offset, 34);
+
+
 			// Increment counter for the observed sequence
-			int count = reads[ba.Position][ba.AlignedBases];
-			reads[ba.Position][ba.AlignedBases] = ( count ) ? count + 1 : 1;
+			int count = reads[position][word];
+			reads[position][word] = ( count ) ? count + 1 : 1;
 			actual_count++;
 		}
+
 
 
 	long count 	 = 0;
@@ -45,9 +58,8 @@ int main(void) {
 		unordered_map<string, int>::iterator ROA = (*It).second.begin();
 		for (; ROA != (*It).second.end(); ++ROA)
 		{
-			if((*ROA).second > 1)
-				// Print both the key and the value of that key
-				// First = Key (Int), Second = Value of that key (String)
+			// Print [ROA][COUNT][Seq]
+			if((*ROA).second > 40)
 				cout << " [" << (*It).first << "][" << (*ROA).second << "] "  << (*ROA).first <<endl;
 
 			count += (*ROA).second;
