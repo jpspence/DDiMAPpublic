@@ -4,16 +4,16 @@ High Performance DDiMAP
 DDiMAP in C and CUDA. 
 
 ### Running the code
+Compiled code is placed in bin/.
 ```bash
-# TODO
+make 
+./bin/DDiMAP
 ```
 
 ### Installing 
 ```bash
-git clone git@github.com:androwis/DDiMAP.git
 make install
 make
-./DDiMAP
 ```
 
 
@@ -30,9 +30,9 @@ make clean      # Removes everything
 
 ### Submodules 
 
-```bash
 https://github.com/pezmaster31/bamtools     # Tools for accessing BAM files in C
+
 https://github.com/danfis/cu                # Unit testing in C | http://cu.danfis.cz/
+
 https://github.com/boostorg/program_options # Library used to parse command line arguments.
-```
 
