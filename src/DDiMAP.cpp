@@ -11,7 +11,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <getopt.h>
-#include <unordered_map>
+#include <map>
 #include <time.h>
 
 #include "../include/bamtools/src/api/BamReader.h"
@@ -22,25 +22,65 @@ using namespace std;
 
 
 // Default file.
-char *file = "data/128test_Gen1_example_sorted.bam";
+// char *file = "data/Burack_128F/128F_Gen1_Frag_WithBcl2Sanger_sorted.bam";
+string file  = "data/128test_Gen1_example_sorted.bam";
 
+void func ( map<string , map<int, map<string, int> > > reads,  void (*f)(string, int, string, int) );
+void func ( map<string , map<int, map<string, int> > > reads,  void (*f)(string, int, string, int) )
+{
+
+	long count 	 = 0;
+	long uniques = 0;
+
+	map<string , map<int, map<string, int> > >::iterator genes = reads.begin();
+	for(; genes != reads.end(); ++genes)
+	{
+		map<int, map<string, int> >::iterator ROAs = (*genes).second.begin();
+		for (; ROAs != (*genes).second.end(); ++ROAs)
+		{
+			map<string, int>::iterator sequences = (*ROAs).second.begin();
+			for (; sequences != (*ROAs).second.end(); ++sequences)
+			{
+				(*f)((*genes).first, (*ROAs).first, (*sequences).first, (*sequences).second);
+				count += (*sequences).second;
+				uniques++;
+
+			}
+		}
+	}
+
+	cout << " We read : " << count << endl;
+	cout << " with " << uniques  << endl;
+	puts("Boom.");
+
+}
+
+
+void print (string gene, int roa, string seq, int count){
+
+	// Print [gene][ROA][COUNT][Seq]
+	if((count) > 20)
+		cout << gene << " [" << roa << "][" << count << "] "  << seq << endl;
+
+}
 
 
 void read(){
 
 	BamReader *br = new BamReader();
 	BamAlignment ba;
-	unordered_map<int, unordered_map<string, int> > reads;
 
-	//	br->Open("data/Burack_128F/128F_Gen1_Frag_WithBcl2Sanger_sorted.bam");
+	// [gene-name [ roa [ seq count ] ] ]
+	map<string , map<int, map<string, int> > > reads;
 	br->Open(file);
 
-	long actual_count = 0;
+
 	while(br->GetNextAlignment(ba))
 		if(ba.Position > 0)
 		{
 
-			string word;
+			string word, name;
+			name =  "test";
 			int position = ba.Position;
 			int offset	 = 0;
 
@@ -52,34 +92,11 @@ void read(){
 
 
 			// Increment counter for the observed sequence
-			int count = reads[position][word];
-			reads[position][word] = ( count ) ? count + 1 : 1;
-			actual_count++;
+			int count = reads[name][position][word];
+			reads[name][position][word] = ( count ) ? count + 1 : 1;
 		}
 
-
-	long count 	 = 0;
-	long uniques = 0;
-
-	// Let's print out the map
-	for (unordered_map<int, unordered_map<string, int> >::iterator It = reads.begin(); It != reads.end(); ++It)
-	{
-		unordered_map<string, int>::iterator ROA = (*It).second.begin();
-		for (; ROA != (*It).second.end(); ++ROA)
-		{
-			// Print [ROA][COUNT][Seq]
-//			if((*ROA).second > 40)
-//				cout << " [" << (*It).first << "][" << (*ROA).second << "] "  << (*ROA).first <<endl;
-
-			count += (*ROA).second;
-			uniques++;
-
-		}
-	}
-
-//	cout << " We read : " << count << endl;
-//	cout << " with " << uniques << " | " << actual_count << endl;
-//	puts("Boom.");
+	func(reads, print);
 
 }
 
@@ -123,12 +140,12 @@ int main (int argc, char **argv) {
 	// ------------------------------------------------------------------------
 	// DDiMAP
 	// ------------------------------------------------------------------------
-	  clock_t t;
-	  int f;
-	  t = clock();
-	  read();
-	  t = clock() - t;
-	  printf ("It took me %d ticks (%f seconds).\n",t,((float)t)/CLOCKS_PER_SEC);
+	clock_t t;
+	int f;
+	t = clock();
+	read();
+	t = clock() - t;
+	printf ("It took me %d ticks (%f seconds).\n",t,((float)t)/CLOCKS_PER_SEC);
 
 
 	return EXIT_SUCCESS;
