@@ -1,8 +1,8 @@
 # Location of Bamtools on your machine. 
 BAMTOOLS = include/bamtools
 
-CXXFLAGS =	-O2 -g -Wall -fmessage-length=0 -I$(BAMTOOLS)/src -I$(BAMTOOLS)
-LIBS = -L$(BAMTOOLS)/lib -lbamtools
+CXXFLAGS =	-O2 -g -Wall -fmessage-length=0 -I$(BAMTOOLS)/src -I$(BAMTOOLS) 
+LIBS = -L$(BAMTOOLS)/lib -lbamtools 
 OBJS =		bin/DDiMAP.o
 TARGET =	DDiMAP
 
