@@ -12,10 +12,22 @@ namespace BamTools {
 using namespace BamTools;
 using namespace std;
 
-void iterate(void (*f)(int, int, string, int) );
+struct Read {
+	// Each half of a read encodes for up to 32 base pairs
+	uint64_t right_sequence_half;
+	uint64_t  left_sequence_half;
+	unsigned int count;
+	unsigned int verification_flags;
+};
 
-void print(int gene, int roa, string seq, int count);
+
+void iterate ( void (*f)(int, int, string, Read) );
+
+void print (int gene, int roa, string seq, Read read);
 
 void read( BamAlignment ba, int length );
+
+Read buildRead(BamAlignment ba, string word);
+
 
 #endif

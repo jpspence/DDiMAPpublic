@@ -27,9 +27,7 @@ using namespace std;
 // char *file = "data/Burack_128F/128F_Gen1_Frag_WithBcl2Sanger_sorted.bam";
 string file  = "data/128test_Gen1_example_sorted.bam";
 
-
 int main (int argc, char **argv) {
-
 
 	// ------------------------------------------------------------------------
 	// Parameters
@@ -40,6 +38,7 @@ int main (int argc, char **argv) {
 			{"file", 	0, 0, 'f'},
 			{NULL, 		0, NULL, 0}
 	};
+
 
 	int option_index = 0;
 	while ((c = getopt_long(argc, argv, "f:", long_options, &option_index)) != -1) {
@@ -60,7 +59,6 @@ int main (int argc, char **argv) {
 		printf ("\n");
 	}
 
-
 	// ------------------------------------------------------------------------
 	// DDiMAP
 	// ------------------------------------------------------------------------
@@ -75,16 +73,22 @@ int main (int argc, char **argv) {
 	br->Open(file);
 
 	BamAlignment ba;
-	while(br->GetNextAlignment(ba))
-		read( ba, 34);
+	int counter = 0;
+	while(br->GetNextAlignment(ba)){
+		read( ba, 38);
+		counter++;
+	}
 
-	iterate( print );
+//	iterate( print );
+	cout << counter <<endl;
+
 
 #if defined (_WIN32)
 	double stop = GetTickCount();
 	printf("It took me  %6g s ", (stop - start)/1000 );
 #else
 	t = clock() - t;
+	iterate(print);
 	printf ("It took me %lu ticks (%f seconds).\n",t, ((float)t)/CLOCKS_PER_SEC);
 #endif
 

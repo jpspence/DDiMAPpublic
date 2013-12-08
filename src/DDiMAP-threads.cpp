@@ -19,6 +19,8 @@
 
 #if defined (_WIN32)
 #include <Windows.h>
+#else
+#include <thread>
 #endif
 
 
@@ -44,8 +46,7 @@ string file  = "data/128test_Gen1_example_sorted.bam";
 
 #if defined (_WIN32)
 typedef int PARAMTYPE;
-DWORD WINAPI WindowsBubbleSort(LPVOID lpParam);
-DWORD WINAPI WindowsMerge(LPVOID lpParam);
+DWORD WINAPI read(LPVOID lpParam);
 #endif
 
 
