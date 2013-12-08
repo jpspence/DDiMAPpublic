@@ -11,8 +11,9 @@
 // [ gene-name [ roa [ seq count ] ] ]
 map<int , map<int, map<string, Read> > > reads;
 
-void iterate ( void (*f)(int, int, string, Read) )
+int iterate ( int (*f)(int, int, string, Read) )
 {
+	long count = 0;
 	map<int , map<int, map<string, Read> > >::iterator genes = reads.begin();
 	for(; genes != reads.end(); ++genes)
 	{
@@ -22,20 +23,65 @@ void iterate ( void (*f)(int, int, string, Read) )
 			map<string, Read>::iterator sequences = (*ROAs).second.begin();
 			for (; sequences != (*ROAs).second.end(); ++sequences)
 			{
-				(*f)((*genes).first, (*ROAs).first, (*sequences).first, (*sequences).second);
+				count += (*f)((*genes).first, (*ROAs).first, (*sequences).first, (*sequences).second);
 			}
 		}
 	}
+
+	return count;
 }
 
 
-void print (int gene, int roa, string seq, Read read)
+int print (int gene, int roa, string seq, Read read)
 {
 	// Print [gene][ROA][COUNT][Seq]
-	if( gene > 1 && read.count > 10 )
+	if( gene > 1 && read.count > 100 )
 		cout << gene << " [" << roa << "][" << read.count << "] "  << seq << endl;
+
+	return 1;
 }
 
+int verify ( int gene, int roa, string seq, Read read)
+{
+	map<string, Read> roaVerifier;
+
+	// Verify the left
+	if((roaVerifier = reads[gene][roa - seq.length()/2 ]).size() > 0){
+		map<string, Read>::iterator sequences = roaVerifier.begin();
+		for (; sequences != roaVerifier.end(); ++sequences)
+		{
+			if( read.left_sequence_half == (*sequences).second.right_sequence_half){
+//				cout << gene << " : " << roa << " :                  " << seq <<endl;
+//				cout << gene << " : " << roa - seq.length()/2  << " : " << (*sequences).first << endl;
+//				cout << endl;
+				read.verification_flags += 0b00000001;
+				break;
+			}
+		}
+	}
+
+	// Verify the right
+	if((roaVerifier = reads[gene][roa + seq.length()/2 ]).size() > 0){
+		map<string, Read>::iterator sequences = roaVerifier.begin();
+		for (; sequences != roaVerifier.end(); ++sequences)
+		{
+			if( read.right_sequence_half == (*sequences).second.left_sequence_half ){
+//				cout << gene << " : " << roa << " : " << seq <<endl;
+//				cout << gene << " : " << roa - seq.length()/2  << " :                  " << (*sequences).first << endl;
+//				cout << endl;
+				read.verification_flags  += 0b00000010;
+				break;
+			}
+		}
+	}
+
+
+	if(read.verification_flags > 2)
+		return 1;
+
+	return 0;
+
+}
 
 void read( BamAlignment ba, int length )
 {
@@ -96,12 +142,12 @@ uint64_t charToUINT64(char ch)
 uint64_t stringToUINT64(string s)
 {
 	uint64_t temp = 0;
-	 for ( int i = 0 ; i < s.length()  ;  i++)
-	 {
-	         temp += charToUINT64(s[i]) << (3 * i);
-	  }
+	for ( int i = 0 ; i < s.length()  ;  i++)
+	{
+		temp += charToUINT64(s[i]) << (3 * i);
+	}
 
-     return temp;
+	return temp;
 
 }
 
@@ -109,8 +155,9 @@ Read buildRead(BamAlignment ba, string word)
 {
 	Read r;
 	r.count = 1;
+	r.verification_flags = 0;
 
-    int half = word.length()/2;
+	int half = word.length()/2;
 	string  left_half = word.substr(0, half);
 	string right_half = word.substr(half , half);
 
