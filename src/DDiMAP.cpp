@@ -16,9 +16,6 @@
 #include <ctime>
 #include <iostream>
 #include <string>
-#if defined (_WIN32)
-#include <Windows.h>
-#endif
 
 using namespace BamTools;
 using namespace std;
@@ -63,49 +60,27 @@ int main (int argc, char **argv) {
 	// DDiMAP
 	// ------------------------------------------------------------------------
 
-#if defined (_WIN32)
-	double start = GetTickCount();
-#else
 	clock_t t;
 	t = clock();
-#endif
 
 	BamReader *br = new BamReader();
 	br->Open(file);
-
 	BamAlignment ba;
 	int counter = 0;
 	while(br->GetNextAlignment(ba)){
-		read( ba, 34);
+//		read( ba, 34);
 		counter++;
 	}
 
-
-#if defined (_WIN32)
-	double stop = GetTickCount();
-	printf("It took me  %6g s to verify ", (stop - start)/1000 );
-#else
 	t = clock() - t;
-	int printed = iterate(print);
+	int printed = iterate(count);
 	printf ("It took me %lu ticks (%f seconds) to read %d | %d reads from BAM file.\n",t, ((float)t)/CLOCKS_PER_SEC, printed, counter);
-#endif
 
-
-#if defined (_WIN32)
-	start = GetTickCount();
-#else
 	t = clock();
-#endif
 
 	int verified = iterate(verify);
-#if defined (_WIN32)
-	double stop = GetTickCount();
-	printf("It took me  %6g s to verify", (stop - start)/1000 );
-#else
 	t = clock() - t;
 	printf ("It took me %lu ticks (%f seconds) to verify %d | %d.\n",t, ((float)t)/CLOCKS_PER_SEC , verified, printed);
-#endif
-
 
 	// ------------------------------------------------------------------------
 	// End. 

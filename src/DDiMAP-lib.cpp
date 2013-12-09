@@ -31,6 +31,11 @@ int iterate ( int (*f)(int, int, string, Read) )
 	return count;
 }
 
+int count (int gene, int roa, string seq, Read read)
+{
+	return 1;
+}
+
 
 int print (int gene, int roa, string seq, Read read)
 {

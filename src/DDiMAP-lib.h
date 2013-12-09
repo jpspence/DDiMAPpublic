@@ -23,6 +23,7 @@ struct Read {
 
 int iterate ( int (*f)(int, int, string, Read) );
 int print (int gene, int roa, string seq, Read read);
+int count (int gene, int roa, string seq, Read read);
 int verify ( int gene, int roa, string seq, Read read);
 
 void read( BamAlignment ba, int length );
