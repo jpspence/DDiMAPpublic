@@ -107,7 +107,7 @@ build: DDiMAPGPU
 bin/DDiMAPGPU.o: src/DDiMAPGPU.cu
 	$(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $< -I$(BAMTOOLS)/src -I$(BAMTOOLS)
 
-DDiMAPGPU: bin bin/DDiMAPGPU.o bin/DDiMAP-lib.o
+DDiMAPGPU: bin/DDiMAPGPU.o bin/DDiMAP-lib.o
 	$(NVCC) $(ALL_LDFLAGS) -o bin/$@ $+ $(LIBRARIES) $(LIBS) 	
 
 run: build

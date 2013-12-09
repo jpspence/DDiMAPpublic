@@ -10,6 +10,7 @@ I have tried my best to have a self contained repo that should be able to be
 brought up as quickly as possible.
 
 ### Installing the code
+This currently doesn't run on Windows, and I have no plans on support it either.
 ```bash
 make setup 
 make
