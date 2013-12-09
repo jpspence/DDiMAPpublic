@@ -32,7 +32,7 @@ string file  = "data/128test_Gen1_example_sorted.bam";
  *									GPU
  ******************************************************************************/
 
-__device__ long long stringToUINT64( string s) 
+__device__ long long stringToUINT64GPU( string s) 
 {
 
 	long long a = 1;
@@ -63,15 +63,14 @@ __global__ void convert_kernel(BamAlignment *bam_data, Read *converted_data)
 	
 	if(ba.Position > 0)
 	{		
-		int name 	  = ba.RefID;
+		int length    = 34;
 		int offset    = (ba.IsReverseStrand()) ? ba.AlignedBases.length() - length : 0 ;
-		int position  = ba.Position + offset;
 		string word   = ba.AlignedBases.substr(offset, length);
 
 		r.count = 1;
 		r.verification_flags = 0;
-		r.left_sequence_half  = stringToUINT64(word.substr(0, length/2));
-		r.right_sequence_half = stringToUINT64(word.substr(lenghth/2, length/2));
+		r.left_sequence_half  = stringToUINT64GPU(word.substr(0, length/2));
+		r.right_sequence_half = stringToUINT64GPU(word.substr(length/2, length/2));
 
 	}
 	
@@ -112,17 +111,18 @@ long n = 1024 * 1024;
 
 int correct_output(BamAlignment *data, Read *gpu)
 {
+	int length = 34;
+	
 	for (int i = 0; i < n; i++){
 		BamAlignment ba = data[i];
 		int offset    = (ba.IsReverseStrand()) ? ba.AlignedBases.length() - length : 0 ;
-		int position  = ba.Position + offset;
 		string word   = ba.AlignedBases.substr(offset, length);
-
 		Read bam = buildRead(word)
-		if (  bam.left_sequence_half  != gpu[i].left_sequence_half 
-		   || bam.right_sequence_half != gpu[i].right_sequence_half)
+				
+		if (  bam.left_sequence_half  != gpu[i].left_sequence_half || 
+		      bam.right_sequence_half != gpu[i].right_sequence_half)
 		{
-			printf("Error!);
+			printf("Error!");
 			return 0;
 		}
 	}
@@ -195,7 +195,7 @@ int main (int argc, char **argv) {
 	checkCudaErrors(cudaMalloc((void **)&d_alignments, alignmentBytes));
 	checkCudaErrors(cudaMemset(d_alignments, 0, alignmentBytes));
 
-	BamAlignment *d_reads=0;
+	Read *d_reads=0;
 	checkCudaErrors(cudaMalloc((void **)&d_reads, readBytes));
 	checkCudaErrors(cudaMemset(d_reads, 0, readBytes));
 
@@ -243,10 +243,10 @@ int main (int argc, char **argv) {
 
 
 	// have CPU do some work while waiting for stage 1 to finish
-	unsigned long int counter=0;
+	unsigned long int counter2=0;
 	while (cudaEventQuery(stop) == cudaErrorNotReady)
 	{
-		counter++;
+		counter2++;
 	}
 	checkCudaErrors(cudaEventElapsedTime(&gpu_time, start, stop));
 
@@ -257,10 +257,10 @@ int main (int argc, char **argv) {
 	// print the cpu and gpu times
 	printf("time spent executing by the GPU: %.2f\n", gpu_time);
 	printf("time spent by CPU in CUDA calls: %.2f\n", sdkGetTimerValue(&timer));
-	printf("CPU executed %lu iterations while waiting for GPU to finish\n", counter);
+	printf("CPU executed %lu iterations while waiting for GPU to finish\n", counter2);
 
 	// check the output for correctness
-	bool bFinalResults = (bool)correct_output(a, n, value);
+	bool bFinalResults = (bool)correct_output(a, r);
 
 
 	// ------------------------------------------------------------------------
