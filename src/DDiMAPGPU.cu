@@ -114,9 +114,11 @@ int correct_output( Read *gpu)
 	BamReader *br = new BamReader();
 	br->Open(file);
 	BamAlignment ba;
+	ba.Position = -1;
 
 	for (int i = 0; i < n; i++){
-		br->GetNextAlignment(ba);
+		while(ba.Position < 0)
+		  br->GetNextAlignment(ba);
 		int offset    = (ba.IsReverseStrand()) ? ba.AlignedBases.length() - length : 0 ;
 		string word   = ba.AlignedBases.substr(offset, length);
 		Read bam = buildRead(word);
@@ -124,7 +126,9 @@ int correct_output( Read *gpu)
 		if (  bam.left_sequence_half  != gpu[i].left_sequence_half || 
 			 bam.right_sequence_half  != gpu[i].right_sequence_half)
 		{
-			printf("Error!");
+			cout << "Error : "<< i << endl;
+			cout << "GPU left = " << gpu[i].left_sequence_half << " | GPU Right = " << gpu[i].right_sequence_half << endl;
+			cout << "CPU left = " << bam.left_sequence_half << " | CPU Right = " << bam.right_sequence_half << endl;
 			return 0;
 		}
 	}
@@ -221,9 +225,11 @@ int main (int argc, char **argv) {
 	BamReader *br = new BamReader();
 	br->Open(file);
 	BamAlignment ba;
+	ba.Position = -1;
 	int counter = 0;
 	while(counter < n ){
-		br->GetNextAlignment(ba);
+		while(ba.Position < 0)
+			br->GetNextAlignment(ba);
 		a[counter] = convert(ba);
 		counter++;
 	}
