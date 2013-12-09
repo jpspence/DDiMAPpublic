@@ -96,14 +96,9 @@ Read convert(BamAlignment ba)
 
 	int length = 34;
 	int offset    = (ba.IsReverseStrand()) ? ba.AlignedBases.length() - length : 0 ;
-	int position  = ba.Position + offset;
+	string word   = ba.AlignedBases.substr(offset, length);
 
-	string word   = ba.AlignedBases.substr(0, length);
-
-	char *a = new char[word.size()];
-	memcpy(a,word.c_str(),word.size());
-
-	r.sequence=a;
+	memcpy(r.sequence,word.c_str(),word.size());
 
 	return r;
 
@@ -118,7 +113,7 @@ void read( BamAlignment ba, int length )
 		int name 	  =  ba.RefID;
 		int offset    = (ba.IsReverseStrand()) ? ba.AlignedBases.length() - length : 0 ;
 		int position  = ba.Position + offset;
-		string word   = ba.AlignedBases.substr(0, length);
+		string word   = ba.AlignedBases.substr(offset, length);
 
 		// Increment counter for the observed sequence
 		if(reads[name][position][word].count)
