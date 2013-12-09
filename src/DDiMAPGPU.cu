@@ -40,7 +40,7 @@ __device__ long long stringToUINT64GPU( string s)
 	long long g = 3;
 	long long t = 4;
 	long long dash = 7;
-	
+
 	long long temp = 0;
 	for( int i = 0; i < s.length(); i++){
 		temp+= (s[i] == 'A') ? a 	<< (3*i) : 0;
@@ -49,18 +49,18 @@ __device__ long long stringToUINT64GPU( string s)
 		temp+= (s[i] == 'T') ? t 	<< (3*i) : 0;
 		temp+= (s[i] == '-') ? dash << (3*i) : 0;
 	}
-	
+
 	return temp;
 }
 
 __global__ void convert_kernel(BamAlignment *bam_data, Read *converted_data)
 {
 	int idx = blockIdx.x * blockDim.x + threadIdx.x;
-	
+
 	// Read in a single read from global memory
 	BamAlignment ba = bam_data[idx];
 	Read r;
-	
+
 	if(ba.Position > 0)
 	{		
 		int length    = 34;
@@ -73,10 +73,10 @@ __global__ void convert_kernel(BamAlignment *bam_data, Read *converted_data)
 		r.right_sequence_half = stringToUINT64GPU(word.substr(length/2, length/2));
 
 	}
-	
+
 	// Save the read to global memory.
 	converted_data[idx] = r;
-	
+
 }
 
 //void convertReads(){
@@ -112,14 +112,20 @@ long n = 1024 * 1024;
 int correct_output(BamAlignment *data, Read *gpu)
 {
 	int length = 34;
-	
+
 	for (int i = 0; i < n; i++){
 		BamAlignment ba = data[i];
 		int offset    = (ba.IsReverseStrand()) ? ba.AlignedBases.length() - length : 0 ;
 		string word   = ba.AlignedBases.substr(offset, length);
-		Read bam = buildRead(word)
-				
-		if (  bam.left_sequence_half  != gpu[i].left_sequence_half ||  bam.right_sequence_half != gpu[i].right_sequence_half)
+		Read bam = buildRead(word);
+
+		if (  bam.left_sequence_half  != gpu[i].left_sequence_half )
+		{
+			printf("Error!");
+			return 0;
+		}
+		
+		if (  bam.right_sequence_half != gpu[i].right_sequence_half)
 		{
 			printf("Error!");
 			return 0;
