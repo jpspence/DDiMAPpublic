@@ -9,11 +9,8 @@
 #include <helper_cuda.h>
 #include <helper_functions.h>  
 
-#include "DDiMAP-lib.h"
-#include <api/BamAlignment.h>
-#include <api/BamReader.h>
 #include <getopt.h>
-#include <sys/_types/_clock_t.h>
+#include <time.h>
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
@@ -23,7 +20,6 @@
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
 
-using namespace BamTools;
 using namespace std;
 
 // Default file.
@@ -165,18 +161,6 @@ int main (int argc, char **argv) {
 	// DDiMAP
 	// ------------------------------------------------------------------------
 
-	clock_t t;
-	t = clock();
-
-	t = clock() - t;
-	int printed = iterate(print);
-	printf ("It took me %lu ticks (%f seconds) to read %d | %d reads from BAM file.\n",t, ((float)t)/CLOCKS_PER_SEC, printed, counter);
-
-	t = clock();
-
-	int verified = iterate(verify);
-	t = clock() - t;
-	printf ("It took me %lu ticks (%f seconds) to verify %d | %d.\n",t, ((float)t)/CLOCKS_PER_SEC , verified, printed);
 
 	// ------------------------------------------------------------------------
 	// End. 
