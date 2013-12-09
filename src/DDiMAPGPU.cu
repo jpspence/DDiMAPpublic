@@ -60,18 +60,16 @@ __global__ void convert_kernel(Read *bam_data)
 	// Read in a single read from global memory
 	Read ba = bam_data[idx];
 
-	char left[17];
-	char right[17];
+	char *left[17];
+	char *right[17];
 
 	for(int i =0; i<17; i++){
-		left[i]  = bam_data.sequence[i];
-		right[i] = bam_data.sequence[i+17];
+		left[i]  = ba.sequence[i];
+		right[i] = ba.sequence[i+17];
 	}
 
-	r.count = 1;
-	r.verification_flags = 0;
-	r.left_sequence_half  = stringToUINT64GPU(left);
-	r.right_sequence_half = stringToUINT64GPU(right);
+	ba.left_sequence_half  = stringToUINT64GPU(left);
+	ba.right_sequence_half = stringToUINT64GPU(right);
 
 	// Save the read to global memory.
 	bam_data[idx] = r;
