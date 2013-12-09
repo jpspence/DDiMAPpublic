@@ -77,40 +77,17 @@ __global__ void convert_kernel(Read *bam_data)
 
 }
 
-//void convertReads(){
-//	
-//	BamReader *br = new BamReader();
-//	br->Open(file);
-//
-//	BamAlignment ba;
-//	int counter = 0;
-//	ba
-//	while(br->GetNextAlignment(ba)){
-//		read( ba, 34);
-//		counter++;
-//	}
-//	
-//	cudaStream_t stream1;
-//	cudaError_t result;
-//	
-//	result = cudaStreamCreate(&stream1);
-//	result = cudaMemcpyAsync(d_a, a, N, cudaMemcpyHostToDevice, stream1);
-//	result = increment<<<1,N,0,stream1>>>(d_a);
-//	result = cudaStreamDestroy(stream1);
-//	cudaDeviceSynchronize();
-//}
-
 
 /******************************************************************************
  *									CPU
  ******************************************************************************/
 
-long n = 1024 * 1024;
+long n = 1024 * 1024 ;
 
 int correct_output( Read *gpu)
 {
 	int length = 34;
-	
+
 	BamReader *br = new BamReader();
 	br->Open(file);
 	BamAlignment ba;
@@ -118,13 +95,13 @@ int correct_output( Read *gpu)
 
 	for (int i = 0; i < n; i++){
 		while(ba.Position < 0)
-		  br->GetNextAlignment(ba);
+			br->GetNextAlignment(ba);
 		int offset    = (ba.IsReverseStrand()) ? ba.AlignedBases.length() - length : 0 ;
 		string word   = ba.AlignedBases.substr(offset, length);
 		Read bam = buildRead(word);
 
 		if (  bam.left_sequence_half  != gpu[i].left_sequence_half || 
-			 bam.right_sequence_half  != gpu[i].right_sequence_half)
+				bam.right_sequence_half  != gpu[i].right_sequence_half)
 		{
 			cout << "Error : "<< i << endl;
 			cout << "GPU left = " << gpu[i].left_sequence_half << " | GPU Right = " << gpu[i].right_sequence_half << endl;
@@ -167,6 +144,8 @@ int main (int argc, char **argv) {
 			printf ("%s ", argv[optind++]);
 		printf ("\n");
 	}
+
+
 
 	// ------------------------------------------------------------------------
 	// Setup
@@ -234,15 +213,37 @@ int main (int argc, char **argv) {
 		counter++;
 	}
 	br->Close();
-	
+
+	cudaStream_t stream0;
+	cudaStream_t stream1;
+	cudaStream_t stream2;
+	cudaStream_t stream3;
+
 	// asynchronously issue work to the GPU (all to stream 0)
 	sdkStartTimer(&timer);
-	cudaEventRecord(start, 0);
+	cudaEventRecord(start, stream0);
 
-	cudaMemcpyAsync(d_alignments, a, alignmentBytes, cudaMemcpyHostToDevice, 0);
-	convert_kernel<<<blocks, threads, 0, 0>>>(d_alignments);
-	cudaMemcpyAsync(a, d_alignments, alignmentBytes, cudaMemcpyDeviceToHost, 0);
-	cudaEventRecord(stop, 0);
+	checkCudaErrors( cudaStreamCreate(&stream0));
+	checkCudaErrors( cudaStreamCreate(&stream1));
+	checkCudaErrors( cudaStreamCreate(&stream2));
+	checkCudaErrors( cudaStreamCreate(&stream3));
+
+	checkCudaErrors( cudaMemcpyAsync(d_a, a, alignmentBytes/4, cudaMemcpyHostToDevice, stream0));
+	checkCudaErrors( cudaMemcpyAsync(d_a, a, alignmentBytes/4, cudaMemcpyHostToDevice, stream1));
+	checkCudaErrors( cudaMemcpyAsync(d_a, a, alignmentBytes/4, cudaMemcpyHostToDevice, stream2));
+	checkCudaErrors( cudaMemcpyAsync(d_a, a, alignmentBytes/4, cudaMemcpyHostToDevice, stream3));
+
+	convert_kernel<<<blocks, threads, 0, stream0>>>(d_alignments);
+	convert_kernel<<<blocks, threads, 0, stream1>>>(d_alignments);
+	convert_kernel<<<blocks, threads, 0, stream2>>>(d_alignments);
+	convert_kernel<<<blocks, threads, 0, stream3>>>(d_alignments);
+
+	cudaMemcpyAsync(a, d_alignments, alignmentBytes/4, cudaMemcpyDeviceToHost, stream0);
+	cudaMemcpyAsync(a, d_alignments, alignmentBytes/4, cudaMemcpyDeviceToHost, stream1);
+	cudaMemcpyAsync(a, d_alignments, alignmentBytes/4, cudaMemcpyDeviceToHost, stream2);
+	cudaMemcpyAsync(a, d_alignments, alignmentBytes/4, cudaMemcpyDeviceToHost, stream3);
+
+	cudaEventRecord(stop, stream0);
 	sdkStopTimer(&timer);
 
 
@@ -265,12 +266,18 @@ int main (int argc, char **argv) {
 
 	// check the output for correctness
 	bool bFinalResults = (bool) correct_output(a);
-
+	
 
 	// ------------------------------------------------------------------------
 	// End. 
 	// ------------------------------------------------------------------------
 	// release resources
+
+	checkCudaErrors( cudaStreamDestroy(stream0));
+	checkCudaErrors( cudaStreamDestroy(stream1));
+	checkCudaErrors( cudaStreamDestroy(stream2));
+	checkCudaErrors( cudaStreamDestroy(stream3));
+
 	checkCudaErrors(cudaEventDestroy(start));
 	checkCudaErrors(cudaEventDestroy(stop));
 	checkCudaErrors(cudaFreeHost(a));

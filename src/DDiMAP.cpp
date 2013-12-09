@@ -71,6 +71,7 @@ int main (int argc, char **argv) {
 		read( ba, 34);
 		counter++;
 	}
+	br->Close();
 
 	t = clock() - t;
 	int printed = iterate(count);
