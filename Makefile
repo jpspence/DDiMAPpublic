@@ -107,8 +107,9 @@ build: DDiMAPGPU
 bin/DDiMAPGPU.o: src/DDiMAPGPU.cu
 	$(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $< -I$(BAMTOOLS)/src -I$(BAMTOOLS)
 
-DDiMAPGPU: bin/DDiMAPGPU.o bin/DDiMAP-lib.o
+DDiMAPGPU: bin bin/DDiMAPGPU.o bin/DDiMAP-lib.o
 	$(NVCC) $(ALL_LDFLAGS) -o bin/$@ $+ $(LIBRARIES) $(LIBS) 	
+
 run: build
 	./bin/DDiMAPGPU
 
@@ -118,7 +119,7 @@ bin:
 bin/%.o : src/%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
-install:
+setup:
 	git submodule update --init --recursive 
 	cd include/bamtools && mkdir -p build && cd build && cmake .. && make && sudo make install && cd ../../..
 	make -C include/cu
