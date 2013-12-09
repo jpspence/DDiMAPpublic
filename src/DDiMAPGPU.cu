@@ -107,23 +107,22 @@ __global__ void convert_kernel(Read *bam_data)
 
 long n = 1024 * 1024;
 
-int correct_output(BamAlignment *data, Read *gpu)
+int correct_output( Read *gpu)
 {
 	int length = 34;
+	
+	BamReader *br = new BamReader();
+	br->Open(file);
+	BamAlignment ba;
 
 	for (int i = 0; i < n; i++){
-		BamAlignment ba = data[i];
+		br->GetNextAlignment(ba);
 		int offset    = (ba.IsReverseStrand()) ? ba.AlignedBases.length() - length : 0 ;
 		string word   = ba.AlignedBases.substr(offset, length);
 		Read bam = buildRead(word);
 
-		if (  bam.left_sequence_half  != gpu[i].left_sequence_half )
-		{
-			printf("Error!");
-			return 0;
-		}
-
-		if (  bam.right_sequence_half != gpu[i].right_sequence_half)
+		if (  bam.left_sequence_half  != gpu[i].left_sequence_half || 
+			 bam.right_sequence_half  != gpu[i].right_sequence_half)
 		{
 			printf("Error!");
 			return 0;
@@ -228,7 +227,8 @@ int main (int argc, char **argv) {
 		a[counter] = convert(ba);
 		counter++;
 	}
-
+	br->Close();
+	
 	// asynchronously issue work to the GPU (all to stream 0)
 	sdkStartTimer(&timer);
 	cudaEventRecord(start, 0);
@@ -258,7 +258,7 @@ int main (int argc, char **argv) {
 	printf("CPU executed %lu iterations while waiting for GPU to finish\n", counter2);
 
 	// check the output for correctness
-	bool bFinalResults = true;
+	bool bFinalResults = (bool) correct_output(a);
 
 
 	// ------------------------------------------------------------------------
