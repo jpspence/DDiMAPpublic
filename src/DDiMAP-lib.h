@@ -28,7 +28,7 @@ int verify ( int gene, int roa, string seq, Read read);
 
 void read( BamAlignment ba, int length );
 
-Read buildRead(BamAlignment ba, string word);
+Read buildRead(string word);
 
 
 #endif
