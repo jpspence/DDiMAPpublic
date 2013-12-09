@@ -96,7 +96,7 @@ void read( BamAlignment ba, int length )
 		int name 	  =  ba.RefID;
 		int offset    = (ba.IsReverseStrand()) ? ba.AlignedBases.length() - length : 0 ;
 		int position  = ba.Position + offset;
-		string word   = ba.AlignedBases.substr(offset, length);
+		string word   = ba.AlignedBases.substr(0, length);
 
 		// Increment counter for the observed sequence
 		if(reads[name][position][word].count)

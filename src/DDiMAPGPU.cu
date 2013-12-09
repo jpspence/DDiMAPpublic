@@ -32,7 +32,7 @@ string file  = "data/128test_Gen1_example_sorted.bam";
  *									GPU
  ******************************************************************************/
 
-__device__ long long stringToUINT64GPU( string s) 
+__device__ long long stringToUINT64GPU( char *s) 
 {
 
 	long long a = 1;
@@ -42,7 +42,7 @@ __device__ long long stringToUINT64GPU( string s)
 	long long dash = 7;
 
 	long long temp = 0;
-	for( int i = 0; i < s.length(); i++){
+	for( int i = 0; i < 17; i++){
 		temp+= (s[i] == 'A') ? a 	<< (3*i) : 0;
 		temp+= (s[i] == 'C') ? c 	<< (3*i) : 0;
 		temp+= (s[i] == 'G') ? g 	<< (3*i) : 0;
@@ -64,13 +64,19 @@ __global__ void convert_kernel(BamAlignment *bam_data, Read *converted_data)
 	if(ba.Position > 0)
 	{		
 		int length    = 34;
-		int offset    = (ba.IsReverseStrand()) ? ba.AlignedBases.length() - length : 0 ;
-		string word   = ba.AlignedBases.substr(offset, length);
-
+//		int offset    = (ba.IsReverseStrand()) ? ba.AlignedBases.length() - length : 0 ;
+		char *word   = ba.AlignedBases;// substr(offset, length);		
+		char *left[17];
+		char *right[17];
+		
+		for(int i =0; i<17; i++){
+			left[i]  = word[i];
+			right[i] = word[i+17];
+		}
 		r.count = 1;
 		r.verification_flags = 0;
-		r.left_sequence_half  = stringToUINT64GPU(word.substr(0, length/2));
-		r.right_sequence_half = stringToUINT64GPU(word.substr(length/2, length/2));
+		r.left_sequence_half  = stringToUINT64GPU(left);
+		r.right_sequence_half = stringToUINT64GPU(right);
 
 	}
 
