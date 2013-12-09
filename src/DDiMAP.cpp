@@ -68,7 +68,7 @@ int main (int argc, char **argv) {
 	BamAlignment ba;
 	int counter = 0;
 	while(br->GetNextAlignment(ba)){
-//		read( ba, 34);
+		read( ba, 34);
 		counter++;
 	}
 
