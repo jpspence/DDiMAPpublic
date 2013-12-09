@@ -46,7 +46,6 @@ int print (int gene, int roa, string seq, Read read)
 	return 1;
 }
 
-
 int verify ( int gene, int roa, string seq, Read read)
 {
 	map<string, Read> roaVerifier;
@@ -87,6 +86,28 @@ int verify ( int gene, int roa, string seq, Read read)
 	return 0;
 
 }
+
+Read *convert(BamAlignment ba){
+
+	Read r;
+	r.count = 1;
+	r.verification_flags = 0;
+
+	int length = 34;
+	int offset    = (ba.IsReverseStrand()) ? ba.AlignedBases.length() - length : 0 ;
+	int position  = ba.Position + offset;
+
+	string word   = ba.AlignedBases.substr(0, length);
+
+	char *a = new char[word.size()];
+	memcpy(a,word.c_str(),word.size());
+
+	r.a=a;
+
+	return r;
+
+}
+
 
 void read( BamAlignment ba, int length )
 {
