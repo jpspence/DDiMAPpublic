@@ -228,10 +228,10 @@ int main (int argc, char **argv) {
 	checkCudaErrors( cudaStreamCreate(&stream2));
 	checkCudaErrors( cudaStreamCreate(&stream3));
 
-	checkCudaErrors( cudaMemcpyAsync(d_a, a, alignmentBytes/4, cudaMemcpyHostToDevice, stream0));
-	checkCudaErrors( cudaMemcpyAsync(d_a, a, alignmentBytes/4, cudaMemcpyHostToDevice, stream1));
-	checkCudaErrors( cudaMemcpyAsync(d_a, a, alignmentBytes/4, cudaMemcpyHostToDevice, stream2));
-	checkCudaErrors( cudaMemcpyAsync(d_a, a, alignmentBytes/4, cudaMemcpyHostToDevice, stream3));
+	checkCudaErrors( cudaMemcpyAsync(d_alignments, a, alignmentBytes/4, cudaMemcpyHostToDevice, stream0));
+	checkCudaErrors( cudaMemcpyAsync(d_alignments, a, alignmentBytes/4, cudaMemcpyHostToDevice, stream1));
+	checkCudaErrors( cudaMemcpyAsync(d_alignments, a, alignmentBytes/4, cudaMemcpyHostToDevice, stream2));
+	checkCudaErrors( cudaMemcpyAsync(d_alignments, a, alignmentBytes/4, cudaMemcpyHostToDevice, stream3));
 
 	convert_kernel<<<blocks, threads, 0, stream0>>>(d_alignments);
 	convert_kernel<<<blocks, threads, 0, stream1>>>(d_alignments);
