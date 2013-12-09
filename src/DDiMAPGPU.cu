@@ -54,9 +54,9 @@ __device__ long long stringToUINT64GPU( char *s)
 	return temp;
 }
 
-__global__ void convert_kernel(Read *bam_data)
+__global__ void convert_kernel(Read *bam_data, int offset)
 {
-	int idx = blockIdx.x * blockDim.x + threadIdx.x;
+	int idx = blockIdx.x * blockDim.x + threadIdx.x + offset;
 
 	// Read in a single read from global memory
 	Read ba = bam_data[idx];
@@ -228,20 +228,30 @@ int main (int argc, char **argv) {
 	checkCudaErrors( cudaStreamCreate(&stream2));
 	checkCudaErrors( cudaStreamCreate(&stream3));
 
-	checkCudaErrors( cudaMemcpyAsync(d_alignments, a, alignmentBytes/4, cudaMemcpyHostToDevice, stream0));
-	checkCudaErrors( cudaMemcpyAsync(d_alignments, a, alignmentBytes/4, cudaMemcpyHostToDevice, stream1));
-	checkCudaErrors( cudaMemcpyAsync(d_alignments, a, alignmentBytes/4, cudaMemcpyHostToDevice, stream2));
-	checkCudaErrors( cudaMemcpyAsync(d_alignments, a, alignmentBytes/4, cudaMemcpyHostToDevice, stream3));
 
-	convert_kernel<<<blocks, threads, 0, stream0>>>(d_alignments);
-	convert_kernel<<<blocks, threads, 0, stream1>>>(d_alignments);
-	convert_kernel<<<blocks, threads, 0, stream2>>>(d_alignments);
-	convert_kernel<<<blocks, threads, 0, stream3>>>(d_alignments);
+	cudaMemcpyAsync(&d_a[offset], &a[offset], streamBytes, stream[i]);
+	kernel<<>>(d_a, offset);
+	cudaMemcpyAsync(&a[offset], &d_a[offset], streamBytes, stream[i]);
 
+	cudaMemcpyAsync(d_alignments, a, alignmentBytes/4, cudaMemcpyHostToDevice, stream0);
+	convert_kernel<<<blocks, threads, 0, stream0>>>(d_alignments, 0);
 	cudaMemcpyAsync(a, d_alignments, alignmentBytes/4, cudaMemcpyDeviceToHost, stream0);
-	cudaMemcpyAsync(a, d_alignments, alignmentBytes/4, cudaMemcpyDeviceToHost, stream1);
-	cudaMemcpyAsync(a, d_alignments, alignmentBytes/4, cudaMemcpyDeviceToHost, stream2);
-	cudaMemcpyAsync(a, d_alignments, alignmentBytes/4, cudaMemcpyDeviceToHost, stream3);
+
+	int offset = n/4;
+	cudaMemcpyAsync(d_alignments[offset], a[offset], alignmentBytes/4, cudaMemcpyHostToDevice, stream1);
+	convert_kernel<<<blocks, threads, 0, stream1>>>(d_alignments, offset);
+	cudaMemcpyAsync(a[offset], d_alignments[offset], alignmentBytes/4, cudaMemcpyDeviceToHost, stream1);
+
+	offset += n/4;
+	cudaMemcpyAsync(d_alignments[offset], a[offset], alignmentBytes/4, cudaMemcpyHostToDevice, stream2);
+	convert_kernel<<<blocks, threads, 0, stream2>>>(d_alignments, offset);
+	cudaMemcpyAsync(a[offset], d_alignments[offset], alignmentBytes/4, cudaMemcpyDeviceToHost, stream2);
+	
+	offset += n/4;
+	cudaMemcpyAsync(d_alignments[offset], a[offset], alignmentBytes/4, cudaMemcpyHostToDevice, stream3);
+	convert_kernel<<<blocks, threads, 0, stream3>>>(d_alignments, offset);
+	cudaMemcpyAsync(a[offset], d_alignments[offset], alignmentBytes/4, cudaMemcpyDeviceToHost, stream3);
+
 
 	cudaEventRecord(stop, stream0);
 	cudaEventRecord(stop, stream1);
@@ -256,7 +266,7 @@ int main (int argc, char **argv) {
 			cudaStreamQuery(stream1) == cudaErrorNotReady ||
 			cudaStreamQuery(stream2) == cudaErrorNotReady ||
 			cudaStreamQuery(stream3) == cudaErrorNotReady 
-			)
+	)
 	{
 		counter2++;
 	}
@@ -273,7 +283,7 @@ int main (int argc, char **argv) {
 
 	// check the output for correctness
 	bool bFinalResults = (bool) correct_output(a);
-	
+
 
 	// ------------------------------------------------------------------------
 	// End. 
