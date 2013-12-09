@@ -87,7 +87,8 @@ int verify ( int gene, int roa, string seq, Read read)
 
 }
 
-Read *convert(BamAlignment ba){
+Read convert(BamAlignment ba)
+{
 
 	Read r;
 	r.count = 1;
@@ -102,7 +103,7 @@ Read *convert(BamAlignment ba){
 	char *a = new char[word.size()];
 	memcpy(a,word.c_str(),word.size());
 
-	r.a=a;
+	r.sequence=a;
 
 	return r;
 
