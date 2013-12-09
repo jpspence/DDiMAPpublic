@@ -244,12 +244,19 @@ int main (int argc, char **argv) {
 	cudaMemcpyAsync(a, d_alignments, alignmentBytes/4, cudaMemcpyDeviceToHost, stream3);
 
 	cudaEventRecord(stop, stream0);
+	cudaEventRecord(stop, stream1);
+	cudaEventRecord(stop, stream2);
+	cudaEventRecord(stop, stream3);
 	sdkStopTimer(&timer);
 
 
 	// have CPU do some work while waiting for stage 1 to finish
 	unsigned long int counter2=0;
-	while (cudaEventQuery(stop) == cudaErrorNotReady)
+	while ( cudaStreamQuery(stream0) == cudaErrorNotReady ||
+			cudaStreamQuery(stream1) == cudaErrorNotReady ||
+			cudaStreamQuery(stream2) == cudaErrorNotReady ||
+			cudaStreamQuery(stream3) == cudaErrorNotReady 
+			)
 	{
 		counter2++;
 	}
