@@ -7,7 +7,8 @@
 //============================================================================
 #include <cuda_runtime.h>
 #include <helper_cuda.h>
-#include <helper_functions.h>  
+#include <helper_functions.h>
+#include "DDiMAP-lib.h"
 #include <api/BamAlignment.h>
 #include <api/BamReader.h>
 #include <getopt.h>
@@ -31,57 +32,53 @@ string file  = "data/128test_Gen1_example_sorted.bam";
  *									GPU
  ******************************************************************************/
 
-//__device__ long long stringToUINT64( string s) 
-//{
-//
-//	long long a = 1;
-//	long long c = 2;
-//	long long g = 3;
-//	long long t = 4;
-//	long long dash = 7;
-//	
-//	long long temp = 0;
-//	for( int i = 0; i < s.length(); i++){
-//		temp+= (s[i] == 'A') ? a 	<< (3*i) : 0;
-//		temp+= (s[i] == 'C') ? c 	<< (3*i) : 0;
-//		temp+= (s[i] == 'G') ? g 	<< (3*i) : 0;
-//		temp+= (s[i] == 'T') ? t 	<< (3*i) : 0;
-//		temp+= (s[i] == '-') ? dash << (3*i) : 0;
-//	}
-//	
-//	return temp;
-//}
+__device__ long long stringToUINT64( string s) 
+{
 
-__global__ void increment_kernel(int *g_data, int inc_value)
+	long long a = 1;
+	long long c = 2;
+	long long g = 3;
+	long long t = 4;
+	long long dash = 7;
+	
+	long long temp = 0;
+	for( int i = 0; i < s.length(); i++){
+		temp+= (s[i] == 'A') ? a 	<< (3*i) : 0;
+		temp+= (s[i] == 'C') ? c 	<< (3*i) : 0;
+		temp+= (s[i] == 'G') ? g 	<< (3*i) : 0;
+		temp+= (s[i] == 'T') ? t 	<< (3*i) : 0;
+		temp+= (s[i] == '-') ? dash << (3*i) : 0;
+	}
+	
+	return temp;
+}
+
+__global__ void convert_kernel(BamAlignment *bam_data, Read *converted_data)
 {
 	int idx = blockIdx.x * blockDim.x + threadIdx.x;
-	g_data[idx] = g_data[idx] + inc_value;
+	
+	// Read in a single read from global memory
+	BamAlignment ba = bam_data[idx];
+	Read r;
+	
+	if(ba.Position > 0)
+	{		
+		int name 	  = ba.RefID;
+		int offset    = (ba.IsReverseStrand()) ? ba.AlignedBases.length() - length : 0 ;
+		int position  = ba.Position + offset;
+		string word   = ba.AlignedBases.substr(offset, length);
+
+		r.count = 1;
+		r.verification_flags = 0;
+		r.left_sequence_half  = stringToUINT64(word.substr(0, length/2));
+		r.right_sequence_half = stringToUINT64(word.substr(lenghth/2, length/2));
+
+	}
+	
+	// Save the read to global memory.
+	converted_data[idx] = r;
+	
 }
-//
-//__global__ void read(BamAlignment ba)
-//{
-//	
-//	unsigned int tidx = threadIdx.x + blockDim.x*blockIdx.x;
-//
-//	// Read in a single read from global memory
-//
-//	if(ba.Position > 0)
-//	{		
-//		int name 	  = ba.RefID;
-//		int offset    = (ba.IsReverseStrand()) ? ba.AlignedBases.length() - length : 0 ;
-//		int position  = ba.Position + offset;
-//		string word   = ba.AlignedBases.substr(offset, length);
-//
-//		Read r;
-//		r.count = 1;
-//		r.verification_flags = 0;
-//		r.left_sequence_half  = stringToUINT64(word.substr(0, length/2));
-//		r.right_sequence_half = stringToUINT64(word.substr(lenghth/2, length/2));
-//		
-//	}
-//	
-//	// Save the read to global memory.
-//}
 
 //void convertReads(){
 //	
@@ -107,24 +104,31 @@ __global__ void increment_kernel(int *g_data, int inc_value)
 //}
 
 
-
-int correct_output(int *data, const int n, const int x)
-{
-	for (int i = 0; i < n; i++)
-		if (data[i] != x)
-		{
-			printf("Error! data[%d] = %d, ref = %d\n", i, data[i], x);
-			return 0;
-		}
-
-	return 1;
-}
-
-
-
 /******************************************************************************
  *									CPU
  ******************************************************************************/
+
+long n = 1024 * 1024;
+
+int correct_output(BamAlignment *data, Read *gpu)
+{
+	for (int i = 0; i < n; i++){
+		BamAlignment ba = data[i];
+		int offset    = (ba.IsReverseStrand()) ? ba.AlignedBases.length() - length : 0 ;
+		int position  = ba.Position + offset;
+		string word   = ba.AlignedBases.substr(offset, length);
+
+		Read bam = buildRead(word)
+		if (  bam.left_sequence_half  != gpu[i].left_sequence_half 
+		   || bam.right_sequence_half != gpu[i].right_sequence_half)
+		{
+			printf("Error!);
+			return 0;
+		}
+	}
+
+	return 1;
+}
 
 int main (int argc, char **argv) {
 
@@ -159,14 +163,9 @@ int main (int argc, char **argv) {
 	}
 
 	// ------------------------------------------------------------------------
-	// DDiMAP
+	// Setup
 	// ------------------------------------------------------------------------
 
-
-	// ------------------------------------------------------------------------
-	// End. 
-	// ------------------------------------------------------------------------
-	
 	int devID;
 	cudaDeviceProp deviceProps;
 
@@ -179,19 +178,26 @@ int main (int argc, char **argv) {
 	checkCudaErrors(cudaGetDeviceProperties(&deviceProps, devID));
 	printf("CUDA device [%s]\n", deviceProps.name);
 
-	int n = 16 * 1024 * 1024;
-	int nbytes = n * sizeof(int);
-	int value = 26;
+	long alignmentBytes = n * sizeof(BamAlignment);
+	long readBytes = n * sizeof(Read);
 
 	// allocate host memory
-	int *a = 0;
-	checkCudaErrors(cudaMallocHost((void **)&a, nbytes));
-	memset(a, 0, nbytes);
+	BamAlignment *a = 0;
+	checkCudaErrors(cudaMallocHost((void **)&a, alignmentBytes));
+	memset(a, 0, alignmentBytes);
+
+	Read *r = 0;
+	checkCudaErrors(cudaMallocHost((void **)&r, readBytes));
+	memset(r, 0, readBytes);
 
 	// allocate device memory
-	int *d_a=0;
-	checkCudaErrors(cudaMalloc((void **)&d_a, nbytes));
-	checkCudaErrors(cudaMemset(d_a, 255, nbytes));
+	BamAlignment *d_alignments=0;
+	checkCudaErrors(cudaMalloc((void **)&d_alignments, alignmentBytes));
+	checkCudaErrors(cudaMemset(d_alignments, 0, alignmentBytes));
+
+	BamAlignment *d_reads=0;
+	checkCudaErrors(cudaMalloc((void **)&d_reads, readBytes));
+	checkCudaErrors(cudaMemset(d_reads, 0, readBytes));
 
 	// set kernel launch configuration
 	dim3 threads = dim3(512, 1);
@@ -205,27 +211,48 @@ int main (int argc, char **argv) {
 	StopWatchInterface *timer = NULL;
 	sdkCreateTimer(&timer);
 	sdkResetTimer(&timer);
-
 	checkCudaErrors(cudaDeviceSynchronize());
+
 	float gpu_time = 0.0f;
+
+	// ------------------------------------------------------------------------
+	// ASYNC DDiMAP Kernel Execution
+	// ------------------------------------------------------------------------
+
+	// Read the bamfile
+	BamReader *br = new BamReader();
+	br->Open(file);
+	BamAlignment ba;
+	int counter = 0;
+	while(counter < n ){
+		br->GetNextAlignment(ba);
+		a[i] = ba;
+		counter++;
+	}
 
 	// asynchronously issue work to the GPU (all to stream 0)
 	sdkStartTimer(&timer);
 	cudaEventRecord(start, 0);
-	cudaMemcpyAsync(d_a, a, nbytes, cudaMemcpyHostToDevice, 0);
-	increment_kernel<<<blocks, threads, 0, 0>>>(d_a, value);
-	cudaMemcpyAsync(a, d_a, nbytes, cudaMemcpyDeviceToHost, 0);
+
+	cudaMemcpyAsync(d_alignments, a, alignmentBytes, cudaMemcpyHostToDevice, 0);
+	convert_kernel<<<blocks, threads, 0, 0>>>(d_alignments, d_reads);
+	cudaMemcpyAsync(r, d_reads, readBytes, cudaMemcpyDeviceToHost, 0);
+
 	cudaEventRecord(stop, 0);
 	sdkStopTimer(&timer);
 
+
 	// have CPU do some work while waiting for stage 1 to finish
 	unsigned long int counter=0;
-
 	while (cudaEventQuery(stop) == cudaErrorNotReady)
 	{
 		counter++;
 	}
 	checkCudaErrors(cudaEventElapsedTime(&gpu_time, start, stop));
+
+	// ------------------------------------------------------------------------
+	// Check Correctness. 
+	// ------------------------------------------------------------------------
 
 	// print the cpu and gpu times
 	printf("time spent executing by the GPU: %.2f\n", gpu_time);
@@ -235,11 +262,17 @@ int main (int argc, char **argv) {
 	// check the output for correctness
 	bool bFinalResults = (bool)correct_output(a, n, value);
 
+
+	// ------------------------------------------------------------------------
+	// End. 
+	// ------------------------------------------------------------------------
 	// release resources
 	checkCudaErrors(cudaEventDestroy(start));
 	checkCudaErrors(cudaEventDestroy(stop));
 	checkCudaErrors(cudaFreeHost(a));
-	checkCudaErrors(cudaFree(d_a));
+	checkCudaErrors(cudaFreeHost(r));
+	checkCudaErrors(cudaFree(d_alignments));
+	checkCudaErrors(cudaFree(d_reads));
 
 	cudaDeviceReset();
 

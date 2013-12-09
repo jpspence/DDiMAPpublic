@@ -102,7 +102,7 @@ void read( BamAlignment ba, int length )
 		if(reads[name][position][word].count)
 			reads[name][position][word].count+=1;
 		else
-			reads[name][position][word] = buildRead(ba, word);
+			reads[name][position][word] = buildRead( word );
 
 	}
 }
@@ -154,7 +154,7 @@ uint64_t stringToUINT64(string s)
 
 }
 
-Read buildRead(BamAlignment ba, string word)
+Read buildRead( string word )
 {
 	Read r;
 	r.count = 1;
