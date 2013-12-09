@@ -119,8 +119,7 @@ int correct_output(BamAlignment *data, Read *gpu)
 		string word   = ba.AlignedBases.substr(offset, length);
 		Read bam = buildRead(word)
 				
-		if (  bam.left_sequence_half  != gpu[i].left_sequence_half || 
-		      bam.right_sequence_half != gpu[i].right_sequence_half)
+		if (  bam.left_sequence_half  != gpu[i].left_sequence_half ||  bam.right_sequence_half != gpu[i].right_sequence_half)
 		{
 			printf("Error!");
 			return 0;
@@ -226,7 +225,7 @@ int main (int argc, char **argv) {
 	int counter = 0;
 	while(counter < n ){
 		br->GetNextAlignment(ba);
-		a[i] = ba;
+		a[counter] = ba;
 		counter++;
 	}
 
