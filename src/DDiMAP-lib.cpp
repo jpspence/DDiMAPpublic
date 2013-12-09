@@ -31,6 +31,11 @@ int iterate ( int (*f)(int, int, string, Read) )
 	return count;
 }
 
+int count (int gene, int roa, string seq, Read read)
+{
+	return 1;
+}
+
 
 int print (int gene, int roa, string seq, Read read)
 {
@@ -40,7 +45,6 @@ int print (int gene, int roa, string seq, Read read)
 
 	return 1;
 }
-
 
 int verify ( int gene, int roa, string seq, Read read)
 {
@@ -83,6 +87,24 @@ int verify ( int gene, int roa, string seq, Read read)
 
 }
 
+Read convert(BamAlignment ba)
+{
+
+	Read r;
+	r.count = 1;
+	r.verification_flags = 0;
+
+	int length = 34;
+	int offset    = (ba.IsReverseStrand()) ? ba.AlignedBases.length() - length : 0 ;
+	string word   = ba.AlignedBases.substr(offset, length);
+
+	memcpy(r.sequence,word.c_str(),word.size());
+
+	return r;
+
+}
+
+
 void read( BamAlignment ba, int length )
 {
 	if(ba.Position > 0)
@@ -97,7 +119,7 @@ void read( BamAlignment ba, int length )
 		if(reads[name][position][word].count)
 			reads[name][position][word].count+=1;
 		else
-			reads[name][position][word] = buildRead(ba, word);
+			reads[name][position][word] = buildRead( word );
 
 	}
 }
@@ -149,7 +171,7 @@ uint64_t stringToUINT64(string s)
 
 }
 
-Read buildRead(BamAlignment ba, string word)
+Read buildRead( string word )
 {
 	Read r;
 	r.count = 1;

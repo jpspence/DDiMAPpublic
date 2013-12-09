@@ -10,7 +10,6 @@
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include <sys/_types/_clock_t.h>
 #include <time.h>
 #include <string>
 
@@ -20,7 +19,6 @@
 #if defined (_WIN32)
 #include <Windows.h>
 #else
-#include <thread>
 #endif
 
 

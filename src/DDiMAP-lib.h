@@ -14,6 +14,7 @@ using namespace std;
 
 struct Read {
 	// Each half of a read encodes for up to 32 base pairs
+	char *sequence[34];
 	uint64_t right_sequence_half;
 	uint64_t  left_sequence_half;
 	unsigned int count;
@@ -23,11 +24,12 @@ struct Read {
 
 int iterate ( int (*f)(int, int, string, Read) );
 int print (int gene, int roa, string seq, Read read);
+int count (int gene, int roa, string seq, Read read);
 int verify ( int gene, int roa, string seq, Read read);
 
 void read( BamAlignment ba, int length );
 
-Read buildRead(BamAlignment ba, string word);
-
+Read convert(BamAlignment ba);
+Read buildRead(string word);
 
 #endif
