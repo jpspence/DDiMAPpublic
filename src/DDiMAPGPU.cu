@@ -220,13 +220,14 @@ int main (int argc, char **argv) {
 	cudaStream_t stream3;
 
 	// asynchronously issue work to the GPU (all to stream 0)
-	sdkStartTimer(&timer);
-	cudaEventRecord(start, stream0);
-
 	checkCudaErrors( cudaStreamCreate(&stream0));
 	checkCudaErrors( cudaStreamCreate(&stream1));
 	checkCudaErrors( cudaStreamCreate(&stream2));
 	checkCudaErrors( cudaStreamCreate(&stream3));
+	
+	sdkStartTimer(&timer);
+	cudaEventRecord(start, stream0);
+
 
 
 	cudaMemcpyAsync(&d_a[offset], &a[offset], streamBytes, stream[i]);
