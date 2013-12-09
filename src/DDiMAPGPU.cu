@@ -8,7 +8,8 @@
 #include <cuda_runtime.h>
 #include <helper_cuda.h>
 #include <helper_functions.h>  
-
+#include <api/BamAlignment.h>
+#include <api/BamReader.h>
 #include <getopt.h>
 #include <time.h>
 #include <cstdio>

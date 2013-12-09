@@ -12,7 +12,7 @@ LDFLAGS     :=
 # Extra user flags
 EXTRA_NVCCFLAGS   ?=
 EXTRA_NVCCLDFLAGS ?=
-EXTRA_LDFLAGS     ?=
+EXTRA_LDFLAGS     ?= 
 EXTRA_CCFLAGS     ?=
 
 # OS-specific build flags
@@ -105,11 +105,10 @@ $(TARGET): bin $(OBJS)
 build: DDiMAPGPU
 
 bin/DDiMAPGPU.o: src/DDiMAPGPU.cu
-	$(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $<
+	$(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $< -I$(BAMTOOLS)/src -I$(BAMTOOLS)
 
 DDiMAPGPU: bin/DDiMAPGPU.o
-	$(NVCC) $(ALL_LDFLAGS) -o bin/$@ $+ $(LIBRARIES)
-	
+	$(NVCC) $(ALL_LDFLAGS) -o bin/$@ $+ $(LIBRARIES) 	
 run: build
 	./bin/DDiMAPGPU
 
