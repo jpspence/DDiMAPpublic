@@ -22,6 +22,7 @@
 #include <thrust/host_vector.h>
 #include <thrust/device_vector.h>
 
+using namespace BamTools;
 using namespace std;
 
 // Default file.
@@ -60,8 +61,8 @@ __global__ void convert_kernel(Read *bam_data)
 	// Read in a single read from global memory
 	Read ba = bam_data[idx];
 
-	char *left[17];
-	char *right[17];
+	char left[17];
+	char right[17];
 
 	for(int i =0; i<17; i++){
 		left[i]  = ba.sequence[i];
@@ -72,7 +73,7 @@ __global__ void convert_kernel(Read *bam_data)
 	ba.right_sequence_half = stringToUINT64GPU(right);
 
 	// Save the read to global memory.
-	bam_data[idx] = r;
+	bam_data[idx] = ba;
 
 }
 
@@ -188,12 +189,12 @@ int main (int argc, char **argv) {
 	checkCudaErrors(cudaMallocHost((void **)&a, alignmentBytes));
 	memset(a, 0, alignmentBytes);
 
-	BamAlignments *alignments = 0;
+	BamAlignment *alignments = 0;
 	checkCudaErrors(cudaMallocHost((void **)&alignments, aBytes));
 	memset(a, 0, aBytes);
 
 	// allocate device memory
-	BamAlignment *d_alignments=0;
+	Read *d_alignments=0;
 	checkCudaErrors(cudaMalloc((void **)&d_alignments, alignmentBytes));
 	checkCudaErrors(cudaMemset(d_alignments, 0, alignmentBytes));
 
@@ -234,7 +235,7 @@ int main (int argc, char **argv) {
 	cudaEventRecord(start, 0);
 
 	cudaMemcpyAsync(d_alignments, a, alignmentBytes, cudaMemcpyHostToDevice, 0);
-	convert_kernel<<<blocks, threads, 0, 0>>>(d_alignments, d_reads);
+	convert_kernel<<<blocks, threads, 0, 0>>>(d_alignments);
 	cudaMemcpyAsync(a, d_alignments, alignmentBytes, cudaMemcpyDeviceToHost, 0);
 
 	cudaEventRecord(stop, 0);
