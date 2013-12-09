@@ -10,7 +10,7 @@
 #include <api/BamAlignment.h>
 #include <api/BamReader.h>
 #include <getopt.h>
-#include <sys/_types/_clock_t.h>
+#include <time.h>
 #include <cstdio>
 #include <cstdlib>
 #include <ctime>
