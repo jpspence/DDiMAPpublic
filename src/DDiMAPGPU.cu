@@ -226,42 +226,34 @@ int main (int argc, char **argv) {
 	checkCudaErrors( cudaStreamCreate(&stream3));
 	
 	sdkStartTimer(&timer);
-	cudaEventRecord(start, stream0);
-
-
-
-	cudaMemcpyAsync(&d_a[offset], &a[offset], streamBytes, stream[i]);
-	kernel<<>>(d_a, offset);
-	cudaMemcpyAsync(&a[offset], &d_a[offset], streamBytes, stream[i]);
+	cudaEventRecord(start, 0);
 
 	cudaMemcpyAsync(d_alignments, a, alignmentBytes/4, cudaMemcpyHostToDevice, stream0);
 	convert_kernel<<<blocks, threads, 0, stream0>>>(d_alignments, 0);
 	cudaMemcpyAsync(a, d_alignments, alignmentBytes/4, cudaMemcpyDeviceToHost, stream0);
 
 	int offset = n/4;
-	cudaMemcpyAsync(d_alignments[offset], a[offset], alignmentBytes/4, cudaMemcpyHostToDevice, stream1);
+	cudaMemcpyAsync(&d_alignments[offset], &a[offset], alignmentBytes/4, cudaMemcpyHostToDevice, stream1);
 	convert_kernel<<<blocks, threads, 0, stream1>>>(d_alignments, offset);
-	cudaMemcpyAsync(a[offset], d_alignments[offset], alignmentBytes/4, cudaMemcpyDeviceToHost, stream1);
+	cudaMemcpyAsync(&a[offset], &d_alignments[offset], alignmentBytes/4, cudaMemcpyDeviceToHost, stream1);
 
 	offset += n/4;
-	cudaMemcpyAsync(d_alignments[offset], a[offset], alignmentBytes/4, cudaMemcpyHostToDevice, stream2);
+	cudaMemcpyAsync(&d_alignments[offset], &a[offset], alignmentBytes/4, cudaMemcpyHostToDevice, stream2);
 	convert_kernel<<<blocks, threads, 0, stream2>>>(d_alignments, offset);
-	cudaMemcpyAsync(a[offset], d_alignments[offset], alignmentBytes/4, cudaMemcpyDeviceToHost, stream2);
+	cudaMemcpyAsync(&a[offset], &d_alignments[offset], alignmentBytes/4, cudaMemcpyDeviceToHost, stream2);
 	
 	offset += n/4;
-	cudaMemcpyAsync(d_alignments[offset], a[offset], alignmentBytes/4, cudaMemcpyHostToDevice, stream3);
+	cudaMemcpyAsync(&d_alignments[offset], &a[offset], alignmentBytes/4, cudaMemcpyHostToDevice, stream3);
 	convert_kernel<<<blocks, threads, 0, stream3>>>(d_alignments, offset);
-	cudaMemcpyAsync(a[offset], d_alignments[offset], alignmentBytes/4, cudaMemcpyDeviceToHost, stream3);
+	cudaMemcpyAsync(&a[offset], &d_alignments[offset], alignmentBytes/4, cudaMemcpyDeviceToHost, stream3);
 
 
-	cudaEventRecord(stop, stream0);
-	cudaEventRecord(stop, stream1);
-	cudaEventRecord(stop, stream2);
-	cudaEventRecord(stop, stream3);
+	cudaEventRecord(stop, 0);
 	sdkStopTimer(&timer);
 
 
-	// have CPU do some work while waiting for stage 1 to finish
+
+// have CPU do some work while waiting for stage 1 to finish
 	unsigned long int counter2=0;
 	while ( cudaStreamQuery(stream0) == cudaErrorNotReady ||
 			cudaStreamQuery(stream1) == cudaErrorNotReady ||
@@ -271,7 +263,7 @@ int main (int argc, char **argv) {
 	{
 		counter2++;
 	}
-	checkCudaErrors(cudaEventElapsedTime(&gpu_time, start, stop));
+	
 
 	// ------------------------------------------------------------------------
 	// Check Correctness. 
