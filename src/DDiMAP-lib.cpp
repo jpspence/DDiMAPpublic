@@ -41,6 +41,7 @@ int print (int gene, int roa, string seq, Read read)
 	return 1;
 }
 
+
 int verify ( int gene, int roa, string seq, Read read)
 {
 	map<string, Read> roaVerifier;
@@ -75,7 +76,6 @@ int verify ( int gene, int roa, string seq, Read read)
 		}
 	}
 
-
 	if(read.verification_flags > 2)
 		return 1;
 
@@ -93,9 +93,7 @@ void read( BamAlignment ba, int length )
 		int position  = ba.Position + offset;
 		string word   = ba.AlignedBases.substr(offset, length);
 
-
 		// Increment counter for the observed sequence
-
 		if(reads[name][position][word].count)
 			reads[name][position][word].count+=1;
 		else
@@ -158,11 +156,8 @@ Read buildRead(BamAlignment ba, string word)
 	r.verification_flags = 0;
 
 	int half = word.length()/2;
-	string  left_half = word.substr(0, half);
-	string right_half = word.substr(half , half);
-
-	r.left_sequence_half = stringToUINT64( left_half );
-	r.right_sequence_half = stringToUINT64( right_half );
+	r.left_sequence_half  = stringToUINT64( word.substr(0, half)     );
+	r.right_sequence_half = stringToUINT64( word.substr(half , half) );
 
 	return r;
 }

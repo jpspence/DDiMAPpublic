@@ -36,3 +36,6 @@ https://github.com/danfis/cu                # Unit testing in C | http://cu.danf
 
 https://github.com/boostorg/program_options # Library used to parse command line arguments.
 
+### Resources for running on EC2
+http://vasir.net/blog/opencl/installing-cuda-opencl-pyopencl-on-aws-ec2
+

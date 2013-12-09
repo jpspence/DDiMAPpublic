@@ -34,7 +34,6 @@ __global__ void read()
 {
 	// Read in a single read from global memory
 	
-	
 	if(ba.Position > 0)
 	{		
 		int name 	  =  ba.RefID;
