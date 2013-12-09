@@ -63,11 +63,10 @@ __global__ void convert_kernel(BamAlignment *bam_data, Read *converted_data)
 
 	if(ba.Position > 0)
 	{		
-		int length    = 34;
 //		int offset    = (ba.IsReverseStrand()) ? ba.AlignedBases.length() - length : 0 ;
-		char *word   = ba.AlignedBases;// substr(offset, length);		
-		char *left[17];
-		char *right[17];
+		string word   = ba.AlignedBases;// substr(offset, length);		
+		char left[17];
+		char right[17];
 		
 		for(int i =0; i<17; i++){
 			left[i]  = word[i];
