@@ -54,9 +54,9 @@ __device__ long long stringToUINT64GPU( char *s)
 	return temp;
 }
 
-__global__ void convert_kernel(Read *bam_data, int offset)
+__global__ void convert_kernel(Read *bam_data)
 {
-	int idx = blockIdx.x * blockDim.x + threadIdx.x + offset;
+	int idx = blockIdx.x * blockDim.x + threadIdx.x;
 
 	// Read in a single read from global memory
 	Read ba = bam_data[idx];
@@ -214,60 +214,21 @@ int main (int argc, char **argv) {
 	}
 	br->Close();
 
-	cudaStream_t stream0;
-	cudaStream_t stream1;
-	cudaStream_t stream2;
-	cudaStream_t stream3;
-
-	// asynchronously issue work to the GPU (all to stream 0)
-	checkCudaErrors( cudaStreamCreate(&stream0));
-	checkCudaErrors( cudaStreamCreate(&stream1));
-	checkCudaErrors( cudaStreamCreate(&stream2));
-	checkCudaErrors( cudaStreamCreate(&stream3));
-	
 	sdkStartTimer(&timer);
-	cudaEventRecord(start, stream0);
+	cudaEventRecord(start, 0);
 
 
-
-	cudaMemcpyAsync(&d_a[offset], &a[offset], streamBytes, stream[i]);
-	kernel<<>>(d_a, offset);
-	cudaMemcpyAsync(&a[offset], &d_a[offset], streamBytes, stream[i]);
-
-	cudaMemcpyAsync(d_alignments, a, alignmentBytes/4, cudaMemcpyHostToDevice, stream0);
-	convert_kernel<<<blocks, threads, 0, stream0>>>(d_alignments, 0);
-	cudaMemcpyAsync(a, d_alignments, alignmentBytes/4, cudaMemcpyDeviceToHost, stream0);
-
-	int offset = n/4;
-	cudaMemcpyAsync(d_alignments[offset], a[offset], alignmentBytes/4, cudaMemcpyHostToDevice, stream1);
-	convert_kernel<<<blocks, threads, 0, stream1>>>(d_alignments, offset);
-	cudaMemcpyAsync(a[offset], d_alignments[offset], alignmentBytes/4, cudaMemcpyDeviceToHost, stream1);
-
-	offset += n/4;
-	cudaMemcpyAsync(d_alignments[offset], a[offset], alignmentBytes/4, cudaMemcpyHostToDevice, stream2);
-	convert_kernel<<<blocks, threads, 0, stream2>>>(d_alignments, offset);
-	cudaMemcpyAsync(a[offset], d_alignments[offset], alignmentBytes/4, cudaMemcpyDeviceToHost, stream2);
+	cudaMemcpyAsync(d_alignments, a, alignmentBytes, cudaMemcpyHostToDevice);
+	convert_kernel<<<blocks, threads, 0, 0>>>(d_alignments);
+	cudaMemcpyAsync(a, d_alignments, alignmentBytes, cudaMemcpyDeviceToHost);
 	
-	offset += n/4;
-	cudaMemcpyAsync(d_alignments[offset], a[offset], alignmentBytes/4, cudaMemcpyHostToDevice, stream3);
-	convert_kernel<<<blocks, threads, 0, stream3>>>(d_alignments, offset);
-	cudaMemcpyAsync(a[offset], d_alignments[offset], alignmentBytes/4, cudaMemcpyDeviceToHost, stream3);
-
-
-	cudaEventRecord(stop, stream0);
-	cudaEventRecord(stop, stream1);
-	cudaEventRecord(stop, stream2);
-	cudaEventRecord(stop, stream3);
+	cudaEventRecord(stop, 0);
 	sdkStopTimer(&timer);
 
 
 	// have CPU do some work while waiting for stage 1 to finish
 	unsigned long int counter2=0;
-	while ( cudaStreamQuery(stream0) == cudaErrorNotReady ||
-			cudaStreamQuery(stream1) == cudaErrorNotReady ||
-			cudaStreamQuery(stream2) == cudaErrorNotReady ||
-			cudaStreamQuery(stream3) == cudaErrorNotReady 
-	)
+	while ( cudaEventQuery(stop) == cudaErrorNotReady)
 	{
 		counter2++;
 	}
@@ -290,11 +251,6 @@ int main (int argc, char **argv) {
 	// End. 
 	// ------------------------------------------------------------------------
 	// release resources
-
-	checkCudaErrors( cudaStreamDestroy(stream0));
-	checkCudaErrors( cudaStreamDestroy(stream1));
-	checkCudaErrors( cudaStreamDestroy(stream2));
-	checkCudaErrors( cudaStreamDestroy(stream3));
 
 	checkCudaErrors(cudaEventDestroy(start));
 	checkCudaErrors(cudaEventDestroy(stop));
