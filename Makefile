@@ -94,7 +94,7 @@ TARGET   = DDiMAP
 OBJST 	= bin/DDiMAP-threads.o bin/DDiMAP-lib.o
 TARGETT = DDiMAP-threads 
 
-all: $(TARGET) $(TARGETT) build
+all: $(TARGET) $(TARGETT) 
 
 $(TARGETT): bin $(OBJST)
 	$(CXX) -o bin/$(TARGETT) $(OBJST) $(LIBS)

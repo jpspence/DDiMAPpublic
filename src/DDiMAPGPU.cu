@@ -5,12 +5,7 @@
 // Copyright   : All Rights Reserved
 // Description : DDiMAP in C
 //============================================================================
-#include <cuda_runtime.h>
-#include <helper_cuda.h>
-#include <helper_functions.h>
-#include "DDiMAP-lib.h"
-#include <api/BamAlignment.h>
-#include <api/BamReader.h>
+#include "DDiMAPGPU.h"
 #include <getopt.h>
 #include <time.h>
 #include <cstdio>
@@ -19,15 +14,11 @@
 #include <iostream>
 #include <string>
 
-#include <thrust/host_vector.h>
-#include <thrust/device_vector.h>
-
-using namespace BamTools;
-using namespace std;
-
 // Default file.
 // char *file = "data/Burack_128F/128F_Gen1_Frag_WithBcl2Sanger_sorted.bam";
 string file  = "data/128test_Gen1_example_sorted.bam";
+long n = 1024 * 1024 ;
+
 
 /******************************************************************************
  *									GPU
@@ -36,19 +27,14 @@ string file  = "data/128test_Gen1_example_sorted.bam";
 __device__ long long stringToUINT64GPU( char *s) 
 {
 
-	long long a = 1;
-	long long c = 2;
-	long long g = 3;
-	long long t = 4;
-	long long dash = 7;
-
 	long long temp = 0;
+
 	for( int i = 0; i < 17; i++){
-		temp+= (s[i] == 'A') ? a 	<< (3*i) : 0;
-		temp+= (s[i] == 'C') ? c 	<< (3*i) : 0;
-		temp+= (s[i] == 'G') ? g 	<< (3*i) : 0;
-		temp+= (s[i] == 'T') ? t 	<< (3*i) : 0;
-		temp+= (s[i] == '-') ? dash << (3*i) : 0;
+		temp+= (s[i] == 'A') ? 1 << (3*i) : 0;
+		temp+= (s[i] == 'C') ? 2 << (3*i) : 0;
+		temp+= (s[i] == 'G') ? 3 << (3*i) : 0;
+		temp+= (s[i] == 'T') ? 4 << (3*i) : 0;
+		temp+= (s[i] == '-') ? 7 << (3*i) : 0;
 	}
 
 	return temp;
@@ -82,9 +68,7 @@ __global__ void convert_kernel(Read *bam_data)
  *									CPU
  ******************************************************************************/
 
-long n = 1024 * 1024 ;
-
-int correct_output( Read *gpu)
+int check_output( Read *gpu)
 {
 	int length = 34;
 
@@ -115,58 +99,43 @@ int correct_output( Read *gpu)
 
 int main (int argc, char **argv) {
 
+	/****************************************************************************
+	 * GPU Setup 
+	 ***************************************************************************/
 
 	// ------------------------------------------------------------------------
-	// Parameters
+	// GPU Initialization
 	// ------------------------------------------------------------------------
-	int c;
-
-	static struct option long_options[] = {
-			{"file", 	0, 0, 'f'},
-			{NULL, 		0, NULL, 0}
-	};
-
-	int option_index = 0;
-	while ((c = getopt_long(argc, argv, "f:", long_options, &option_index)) != -1) {
-
-		switch (c) {
-		case 'f':
-			printf ("Parsing file :  %s \n",optarg);
-			file = optarg;
-			break;
-		default:
-			printf ("?? getopt returned character code 0%o ??\n", c);
-		}
-	}
-	if (optind < argc) {
-		printf ("non-option ARGV-elements: ");
-		while (optind < argc)
-			printf ("%s ", argv[optind++]);
-		printf ("\n");
-	}
-
-
-
-	// ------------------------------------------------------------------------
-	// Setup
-	// ------------------------------------------------------------------------
-
 	int devID;
 	cudaDeviceProp deviceProps;
-
-	printf("[%s] - Starting...\n", argv[0]);
 
 	// This will pick the best possible CUDA capable device
 	devID = findCudaDevice(argc, (const char **)argv);
 
 	// get device name
 	checkCudaErrors(cudaGetDeviceProperties(&deviceProps, devID));
-	printf("CUDA device [%s]\n", deviceProps.name);
+	printf("I'm using the CUDA device [%s]\n", deviceProps.name);
 
-	long alignmentBytes = n * sizeof(Read);
-	long aBytes = n * sizeof(BamAlignment);
+	// --- Choose which GPU to run on, change this on a multi-GPU system.
+	cudaError_t cudaStatus;
+	cudaStatus = cudaSetDevice(devID);
+	if (cudaStatus != cudaSuccess) {
+		fprintf(stderr, "cudaSetDevice failed!  Do you have a CUDA-capable GPU installed?");
+		goto Error;
+	}
 
-	// allocate host memory
+	// set kernel launch configuration
+	dim3 threads = dim3(512, 1);
+	dim3 blocks  = dim3(n / threads.x, 1);
+
+	// ------------------------------------------------------------------------
+	// Memory Allocation
+	// ------------------------------------------------------------------------
+
+	const long alignmentBytes = n * sizeof(Read);
+	const long aBytes = n * sizeof(BamAlignment);
+
+	// allocate CPU memory
 	Read *a = 0;
 	checkCudaErrors(cudaMallocHost((void **)&a, alignmentBytes));
 	memset(a, 0, alignmentBytes);
@@ -175,82 +144,113 @@ int main (int argc, char **argv) {
 	checkCudaErrors(cudaMallocHost((void **)&alignments, aBytes));
 	memset(alignments, 0, aBytes);
 
-	// allocate device memory
+	// allocate GPU memory
 	Read *d_alignments=0;
 	checkCudaErrors(cudaMalloc((void **)&d_alignments, alignmentBytes));
 	checkCudaErrors(cudaMemset(d_alignments, 0, alignmentBytes));
 
-	// set kernel launch configuration
-	dim3 threads = dim3(512, 1);
-	dim3 blocks  = dim3(n / threads.x, 1);
+	// ------------------------------------------------------------------------
+	// Setup Streams & Timers
+	// ------------------------------------------------------------------------
+	float ms;  				// total elapsed time in milliseconds
+	float gpu_time = 0.0f;	// total time on GPU
 
-	// create cuda event handles
+	// --- create cuda timers
 	cudaEvent_t start, stop;
+	cudaEvent_t time1, time2, time3, time4;
+
 	checkCudaErrors(cudaEventCreate(&start));
 	checkCudaErrors(cudaEventCreate(&stop));
+	checkCudaErrors(cudaEventCreate(&time1));
+	checkCudaErrors(cudaEventCreate(&time2));
+	checkCudaErrors(cudaEventCreate(&time3));
+	checkCudaErrors(cudaEventCreate(&time4));
 
 	StopWatchInterface *timer = NULL;
 	sdkCreateTimer(&timer);
 	sdkResetTimer(&timer);
+
+	// --- Create & configure CUDA streams
+	const int blockSize = 128, nStreams = 4;
+	const int streamSize = n / nStreams;
+	const int streamBytes = streamSize * sizeof(Read);
+	
+	cudaStream_t stream[nStreams];
+	for (int i = 0; i < nStreams; ++i)
+		checkCudaErrors( cudaStreamCreate(&stream[i]) );
+
 	checkCudaErrors(cudaDeviceSynchronize());
 
-	float gpu_time = 0.0f;
-
 	// ------------------------------------------------------------------------
-	// ASYNC DDiMAP Kernel Execution
+	// Read the BAM file
 	// ------------------------------------------------------------------------
+	cudaEventRecord(time1, 0);
 
-	// Read the bamfile
 	BamReader *br = new BamReader();
 	br->Open(file);
 	BamAlignment ba;
-	ba.Position = -1;
 	int counter = 0;
-	while(counter < n ){
-		while(ba.Position < 0)
-			br->GetNextAlignment(ba);
+	while(br->GetNextAlignment(ba)){
+		if(counter  == n) 	break;
+		if(ba.Position < 0) continue;
 		a[counter] = convert(ba);
 		counter++;
 	}
 	br->Close();
 
+	// ------------------------------------------------------------------------
+	// Convert BAM Alignments to binary representations
+	// ------------------------------------------------------------------------
+	cudaEventRecord(time2, 0);
+
 	sdkStartTimer(&timer);
 	cudaEventRecord(start, 0);
 
-
 	cudaMemcpyAsync(d_alignments, a, alignmentBytes, cudaMemcpyHostToDevice);
-	convert_kernel<<<blocks, threads, 0, 0>>>(d_alignments);
+
+	cudaEventRecord(time3, 0);
+
+	convert_kernel<<<streamSize/blockSize, blockSize, 0, 0>>>(d_alignments);
+
+	cudaEventRecord(time4, 0);
+
 	cudaMemcpyAsync(a, d_alignments, alignmentBytes, cudaMemcpyDeviceToHost);
-	
+
 	cudaEventRecord(stop, 0);
 	sdkStopTimer(&timer);
-
 
 	// have CPU do some work while waiting for stage 1 to finish
 	unsigned long int counter2=0;
 	while ( cudaEventQuery(stop) == cudaErrorNotReady)
-	{
 		counter2++;
-	}
-	checkCudaErrors(cudaEventElapsedTime(&gpu_time, start, stop));
 
-	// ------------------------------------------------------------------------
-	// Check Correctness. 
-	// ------------------------------------------------------------------------
+	checkCudaErrors(cudaEventElapsedTime(&gpu_time, start, stop));
 
 	// print the cpu and gpu times
 	printf("time spent executing by the GPU: %.2f (ms) \n", gpu_time);
 	printf("time spent by CPU in CUDA calls: %.2f (ms) \n", sdkGetTimerValue(&timer));
 	printf("CPU executed %lu iterations while waiting for GPU to finish\n", counter2);
 
-	// check the output for correctness
-	bool bFinalResults = (bool) correct_output(a);
+	// ------------------------------------------------------------------------
+	// Check Correctness. 
+	// ------------------------------------------------------------------------
+	bool bFinalResults = (bool) check_output(a);
+
+	// ------------------------------------------------------------------------
+	// Verify the reads
+	// ------------------------------------------------------------------------
+
+	// ------------------------------------------------------------------------
+	// Print out the new calls
+	// ------------------------------------------------------------------------
 
 
 	// ------------------------------------------------------------------------
 	// End. 
 	// ------------------------------------------------------------------------
 	// release resources
+	for (int i = 0; i < nStreams; ++i)
+		checkCudaErrors( cudaStreamDestroy(stream[i]) );
 
 	checkCudaErrors(cudaEventDestroy(start));
 	checkCudaErrors(cudaEventDestroy(stop));

@@ -1,9 +1,11 @@
-#ifndef DDIMAPLIB_H_GUARD
-#define DDIMAPLIB_H_GUARD
+#ifndef DDIMAPLIB_H
+
+#define DDIMAPLIB_H
 
 #include <map>
 #include <utility>
-#include "../include/bamtools/src/api/BamAlignment.h"
+#include <api/BamAlignment.h>
+#include <api/BamReader.h>
 
 namespace BamTools {
 	struct BamAlignment;

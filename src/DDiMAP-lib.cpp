@@ -96,8 +96,8 @@ Read convert(BamAlignment ba)
 
 	int length = 34;
 	int offset    = (ba.IsReverseStrand()) ? ba.AlignedBases.length() - length : 0 ;
-	string word   = ba.AlignedBases.substr(offset, length);
 
+	string word   = ba.AlignedBases.substr(offset, length);
 	memcpy(r.sequence,word.c_str(),word.size());
 
 	return r;

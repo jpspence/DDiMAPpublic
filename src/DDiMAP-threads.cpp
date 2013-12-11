@@ -6,24 +6,18 @@
 // Description : DDiMAP in C
 //============================================================================
 
-#include "./DDiMAP-lib.h"
+#include "DDiMAP-lib.h"
 #include <getopt.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <time.h>
 #include <string>
 
-#include "../include/bamtools/src/api/BamAlignment.h"
-#include "../include/bamtools/src/api/BamReader.h"
 
 #if defined (_WIN32)
 #include <Windows.h>
 #else
 #endif
-
-
-using namespace BamTools;
-using namespace std;
 
 // Global variables, available to all threads
 int N, ELEMENTS,  CHUNKS;

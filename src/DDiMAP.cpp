@@ -7,8 +7,6 @@
 //============================================================================
 
 #include "DDiMAP-lib.h"
-#include <api/BamAlignment.h>
-#include <api/BamReader.h>
 #include <getopt.h>
 #include <time.h>
 #include <cstdio>
@@ -16,9 +14,6 @@
 #include <ctime>
 #include <iostream>
 #include <string>
-
-using namespace BamTools;
-using namespace std;
 
 // Default file.
 // char *file = "data/Burack_128F/128F_Gen1_Frag_WithBcl2Sanger_sorted.bam";
@@ -75,13 +70,15 @@ int main (int argc, char **argv) {
 
 	t = clock() - t;
 	int printed = iterate(count);
-	printf ("It took me %lu ticks (%f seconds) to read %d | %d reads from BAM file.\n",t, ((float)t)/CLOCKS_PER_SEC, printed, counter);
+	printf ("It took me %lu ticks (%f seconds) to read %d | %d reads from BAM file.\n",
+			t, ((float)t)/CLOCKS_PER_SEC, printed, counter);
 
 	t = clock();
 
 	int verified = iterate(verify);
 	t = clock() - t;
-	printf ("It took me %lu ticks (%f seconds) to verify %d | %d.\n",t, ((float)t)/CLOCKS_PER_SEC , verified, printed);
+	printf ("It took me %lu ticks (%f seconds) to verify %d | %d.\n",
+			t, ((float)t)/CLOCKS_PER_SEC , verified, printed);
 
 	// ------------------------------------------------------------------------
 	// End. 
