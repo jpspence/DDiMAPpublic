@@ -63,8 +63,8 @@ int main (int argc, char **argv) {
 	BamAlignment ba;
 	int total = 0, unique = 0;
 	while(br->GetNextAlignment(ba)){
-//		unique += reduce( ba, 34, convert );
-		unique += reduce( ba, 34, buildRead );
+		unique += reduce( ba, 34, convert );
+//		unique += reduce( ba, 34, buildRead );
 		total++;
 	}
 

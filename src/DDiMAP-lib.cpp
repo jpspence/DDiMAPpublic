@@ -181,7 +181,7 @@ int verify ( int gene, int roa, string seq, Read read)
 		map<string, Read>::iterator sequences = roaVerifier.begin();
 		for (; sequences != roaVerifier.end(); ++sequences)
 		{
-			if( !(read.verification_flags & 0b00000001 ) && read.left_sequence_half == (*sequences).second.right_sequence_half){
+			if(read.left_sequence_half == (*sequences).second.right_sequence_half){
 				//				cout << gene << " : " << roa << " :                  " << seq <<endl;
 				//				cout << gene << " : " << roa - seq.length()/2  << " : " << (*sequences).first << endl;
 				//				cout << endl;
@@ -196,7 +196,7 @@ int verify ( int gene, int roa, string seq, Read read)
 		map<string, Read>::iterator sequences = roaVerifier.begin();
 		for (; sequences != roaVerifier.end(); ++sequences)
 		{
-			if( !(read.verification_flags & 0b00000010 ) && read.right_sequence_half == (*sequences).second.left_sequence_half ){
+			if(read.right_sequence_half == (*sequences).second.left_sequence_half ){
 				//				cout << gene << " : " << roa << " : " << seq <<endl;
 				//				cout << gene << " : " << roa - seq.length()/2  << " :                  " << (*sequences).first << endl;
 				//				cout << endl;
@@ -206,7 +206,7 @@ int verify ( int gene, int roa, string seq, Read read)
 		}
 	}
 
-	if( read.verification_flags & 0b00000011)
+	if( (read.verification_flags & 0b00000011) == 0b00000011)
 		return 1;
 
 	return 0;
