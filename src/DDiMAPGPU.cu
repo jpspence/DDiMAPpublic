@@ -200,13 +200,13 @@ int main (int argc, char **argv) {
 	cudaEventRecord(start, 0);
 
 	for(int i = 0 ; i < nStreams; i++){
-	// cudaEventRecord(time1, 0);
-	// cudaEventRecord(time2, 0);
-		cudaMemcpyAsync(d_alignments, a, alignmentBytes, cudaMemcpyHostToDevice, stream[i]);
-	//cudaEventRecord(time3, 0);
-		convert_kernel<<< 1,1 , 0, stream[i]>>>(d_alignments);
-	// cudaEventRecord(time4, 0);
-		cudaMemcpyAsync(a, d_alignments, alignmentBytes, cudaMemcpyDeviceToHost, stream[i]);
+		cudaEventRecord(timers[i][0], stream[i]);
+		cudaMemcpyAsync(&d_alignments[i], a, streamBytes, cudaMemcpyHostToDevice, stream[i]);
+		cudaEventRecord(timers[i][1], stream[i]);
+		convert_kernel<<< blocks, threads, 0, stream[i]>>>(&d_alignments[i]);
+		cudaEventRecord(timers[i][2], stream[i]);
+		cudaMemcpyAsync(a, &d_alignments[i], streamBytes, cudaMemcpyDeviceToHost, stream[i]);
+		cudaEventRecord(timers[i][3], stream[i]);
 	}
 
 	cudaEventRecord(stop, 0);
