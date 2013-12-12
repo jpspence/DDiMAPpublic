@@ -13,6 +13,26 @@ map<int , map<int, map<string, Read> > > reads;
 
 
 // ----------------------------------------------------------------------------
+// Convenience methods.
+// ----------------------------------------------------------------------------
+
+string createWordString(BamAlignment &ba, int length, int &position)
+{
+	int offset    = (ba.IsReverseStrand()) ? ba.AlignedBases.length() - length : 0 ;
+	position = ba.Position + offset;
+	string word   = ba.AlignedBases.substr(offset, length);
+	return word;
+
+}
+
+const char *createWordArray(BamAlignment &ba, int length, int &position)
+{
+	string word = createWordString(ba, length, position);
+	return word.c_str();
+
+}
+
+// ----------------------------------------------------------------------------
 // BAM --> Reads
 // ----------------------------------------------------------------------------
 
@@ -54,31 +74,23 @@ uint64_t stringToUINT64(string s)
 
 }
 
-Read buildRead( string word )
+Read buildRead( string &word, int length)
 {
 	Read r;
 	r.count = 1;
 	r.verification_flags = 0;
-
-	int half = word.length()/2;
-	r.left_sequence_half  = stringToUINT64( word.substr(0, half)     );
-	r.right_sequence_half = stringToUINT64( word.substr(half , half) );
-
+	r.left_sequence_half  = stringToUINT64( word.substr(0, length/2));
+	r.right_sequence_half = stringToUINT64( word.substr(length/2 , length/2) );
 	return r;
 }
 
-// BuildRead It took me 1380621 ticks (1.380621 seconds).
-// BuildRead It took me 1376389 ticks (1.376389 seconds) to read 149412 | 504509 reads from BAM file.
-
-// Convert   It took me 1371200 ticks (1.371200 seconds)
-
-Read convert(string word)
+Read convert(string &word, int length)
 {
 
 	Read r;
 	r.count = 1;
 	r.verification_flags = 0;
-	memcpy(r.sequence, word.c_str(), 34*sizeof(char));
+	memcpy(r.sequence, word.c_str(), length*sizeof(char));
 	return r;
 
 }
@@ -88,19 +100,19 @@ Read convert(string word)
 // ----------------------------------------------------------------------------
 
 
-int reduce( BamAlignment &ba, int length, Read (*f)(string) )
+int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) )
 {
 	if(ba.Position > 0)
 	{
 		int position;
-		string word   = createWordString(ba, 34, position);
+		string word   = createWordString(ba, length, position);
 		int name 	  =  ba.RefID;
 
 		// Increment counter for the observed sequence
 		if(reads[name][position][word].count)
 			reads[name][position][word].count+=1;
 		else {
-			reads[name][position][word] = f(word);
+			reads[name][position][word] = f(word, length);
 			return 1;
 		}
 	}
@@ -109,14 +121,14 @@ int reduce( BamAlignment &ba, int length, Read (*f)(string) )
 }
 
 
-void readFile(string file, Read (*f)(string))
+void readFile(string file, int length, Read (*f)(string &, int))
 {
 	BamReader *bamreader = new BamReader();
 	bamreader->Open(file);
 	BamAlignment ba;
 	int counter = 0;
 	while(bamreader->GetNextAlignment(ba))
-		counter += reduce(ba, 34, f);
+		counter += reduce(ba, length, f);
 	bamreader->Close();
 }
 
@@ -169,11 +181,11 @@ int verify ( int gene, int roa, string seq, Read read)
 		map<string, Read>::iterator sequences = roaVerifier.begin();
 		for (; sequences != roaVerifier.end(); ++sequences)
 		{
-			if( read.left_sequence_half == (*sequences).second.right_sequence_half){
+			if( !(read.verification_flags & 0b00000001 ) && read.left_sequence_half == (*sequences).second.right_sequence_half){
 				//				cout << gene << " : " << roa << " :                  " << seq <<endl;
 				//				cout << gene << " : " << roa - seq.length()/2  << " : " << (*sequences).first << endl;
 				//				cout << endl;
-				read.verification_flags += 0b00000001;
+				read.verification_flags = read.verification_flags | 0b00000001;
 				break;
 			}
 		}
@@ -184,40 +196,19 @@ int verify ( int gene, int roa, string seq, Read read)
 		map<string, Read>::iterator sequences = roaVerifier.begin();
 		for (; sequences != roaVerifier.end(); ++sequences)
 		{
-			if( read.right_sequence_half == (*sequences).second.left_sequence_half ){
+			if( !(read.verification_flags & 0b00000010 ) && read.right_sequence_half == (*sequences).second.left_sequence_half ){
 				//				cout << gene << " : " << roa << " : " << seq <<endl;
 				//				cout << gene << " : " << roa - seq.length()/2  << " :                  " << (*sequences).first << endl;
 				//				cout << endl;
-				read.verification_flags  += 0b00000010;
+				read.verification_flags  = read.verification_flags | 0b00000010;
 				break;
 			}
 		}
 	}
 
-	if(read.verification_flags > 2)
+	if( read.verification_flags & 0b00000011)
 		return 1;
 
 	return 0;
-
-}
-
-
-// ----------------------------------------------------------------------------
-// Convenience methods.
-// ----------------------------------------------------------------------------
-
-string createWordString(BamAlignment &ba, int length, int &position)
-{
-	int offset    = (ba.IsReverseStrand()) ? ba.AlignedBases.length() - length : 0 ;
-	position = ba.Position + offset;
-	string word   = ba.AlignedBases.substr(offset, length);
-	return word;
-
-}
-
-const char *createWordArray(BamAlignment &ba, int length, int &position)
-{
-		string word = createWordString(ba, length, position);
-		return word.c_str();
 
 }
