@@ -94,15 +94,13 @@ TARGET   = DDiMAP
 OBJST 	= bin/DDiMAP-threads.o bin/DDiMAP-lib.o
 TARGETT = DDiMAP-threads 
 
-all: $(TARGET) $(TARGETT) 
+all: $(TARGET) $(TARGETT) DDiMAPGPU 
 
 $(TARGETT): bin $(OBJST)
 	$(CXX) -o bin/$(TARGETT) $(OBJST) $(LIBS)
 	
 $(TARGET): bin $(OBJS)
 	$(CXX) -o bin/$(TARGET) $(OBJS) $(LIBS)
-
-build: DDiMAPGPU
 
 bin/DDiMAPGPU.o: src/DDiMAPGPU.cu
 	$(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $< -I$(BAMTOOLS)/src -I$(BAMTOOLS)

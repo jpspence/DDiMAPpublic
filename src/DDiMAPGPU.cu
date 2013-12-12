@@ -17,6 +17,7 @@
 // Default file.
 // char *file = "data/Burack_128F/128F_Gen1_Frag_WithBcl2Sanger_sorted.bam";
 string file  = "data/128test_Gen1_example_sorted.bam";
+int length = 34;
 
 /******************************************************************************
  *									GPU
@@ -66,9 +67,8 @@ __global__ void convert_kernel(Read *bam_data)
  *									CPU
  ******************************************************************************/
 
-int check_output( Read *gpu)
+int check_output( Read *gpu, int n)
 {
-	int length = 34;
 
 	BamReader *br = new BamReader();
 	br->Open(file);
@@ -80,7 +80,7 @@ int check_output( Read *gpu)
 			br->GetNextAlignment(ba);
 		int offset    = (ba.IsReverseStrand()) ? ba.AlignedBases.length() - length : 0 ;
 		string word   = ba.AlignedBases.substr(offset, length);
-		Read bam = buildRead(word);
+		Read bam = buildRead(word, length);
 
 		if (  bam.left_sequence_half  != gpu[i].left_sequence_half || 
 				bam.right_sequence_half  != gpu[i].right_sequence_half)
@@ -101,17 +101,33 @@ int main (int argc, char **argv) {
 	// Read the BAM file
 	// We're going to do a simple map/reduce on this data to prep data for GPU.
 	// ------------------------------------------------------------------------
-	readFile(file, convert);
+	int unique_reads = readFile(file, length, convert);
 	
 	/****************************************************************************
 	 * GPU Setup 
 	 ***************************************************************************/
+	
+	const long alignmentBytes = unique_reads * sizeof(Read);
+	const long aBytes 	  = unique_reads * sizeof(BamAlignment);
+	
+	// --- Create & configure CUDA streams
+	const int nStreams = 4;
+	const int streamBytes = alignmentBytes / nStreams;
 
+	// allocate CPU memory
+	Read *a = 0;
+	BamAlignment *alignments = 0;
+	Read d_alignments[nStreams];
+	float gpu_time = 0.0f;	// total time on GPU
+	unsigned long int counter2=0;
+
+	bool bFinalResults;
 	// ------------------------------------------------------------------------
 	// GPU Initialization
 	// ------------------------------------------------------------------------
 	int devID;
 	cudaDeviceProp deviceProps;
+	StopWatchInterface *timer = NULL;
 
 	// This will pick the best possible CUDA capable device
 	devID = findCudaDevice(argc, (const char **)argv);
@@ -119,6 +135,10 @@ int main (int argc, char **argv) {
 	// get device name
 	checkCudaErrors(cudaGetDeviceProperties(&deviceProps, devID));
 	printf("I'm using the CUDA device [%s]\n", deviceProps.name);
+	
+	// set kernel launch configuration
+	dim3 threads = dim3(1024, 1);
+	dim3 blocks  = dim3(unique_reads / threads.x, 1);
 
 	// --- Choose which GPU to run on, change this on a multi-GPU system.
 	cudaError_t cudaStatus;
@@ -128,56 +148,43 @@ int main (int argc, char **argv) {
 		goto Error;
 	}
 
-	// set kernel launch configuration
-	dim3 threads = dim3(512, 1);
-	dim3 blocks  = dim3(n / threads.x, 1);
 
 	// ------------------------------------------------------------------------
 	// Memory Allocation
 	// ------------------------------------------------------------------------
 
-	const long alignmentBytes = n * sizeof(Read);
-	const long aBytes = n * sizeof(BamAlignment);
-
-	// allocate CPU memory
-	Read *a = 0;
 	checkCudaErrors(cudaMallocHost((void **)&a, alignmentBytes));
 	memset(a, 0, alignmentBytes);
 
-	BamAlignment *alignments = 0;
 	checkCudaErrors(cudaMallocHost((void **)&alignments, aBytes));
 	memset(alignments, 0, aBytes);
 
 	// allocate GPU memory
-	Read *d_alignments=0;
-	checkCudaErrors(cudaMalloc((void **)&d_alignments, alignmentBytes));
-	checkCudaErrors(cudaMemset(d_alignments, 0, alignmentBytes));
+	for (int i = 0; i < nStreams; ++i){
+		checkCudaErrors( cudaMalloc((Read **)&d_alignments[i], streamBytes));
+		checkCudaErrors(cudaMemset(&d_alignments[i], 0, streamBytes));
+	}
 
 	// ------------------------------------------------------------------------
 	// Setup Streams & Timers
 	// ------------------------------------------------------------------------
-	float ms;  				// total elapsed time in milliseconds
-	float gpu_time = 0.0f;	// total time on GPU
 
 	// --- create cuda timers
 	cudaEvent_t start, stop;
-	cudaEvent_t time1, time2, time3, time4;
-
 	checkCudaErrors(cudaEventCreate(&start));
 	checkCudaErrors(cudaEventCreate(&stop));
-	checkCudaErrors(cudaEventCreate(&time1));
-	checkCudaErrors(cudaEventCreate(&time2));
-	checkCudaErrors(cudaEventCreate(&time3));
-	checkCudaErrors(cudaEventCreate(&time4));
+	
+	cudaEvent_t timers[nStreams][4];
+	for (int i = 0; i < nStreams; ++i){
+		checkCudaErrors(cudaEventCreate(&timers[i][0]));
+		checkCudaErrors(cudaEventCreate(&timers[i][1]));
+		checkCudaErrors(cudaEventCreate(&timers[i][2]));
+		checkCudaErrors(cudaEventCreate(&timers[i][3]));
+	}
 
-	StopWatchInterface *timer = NULL;
 	sdkCreateTimer(&timer);
 	sdkResetTimer(&timer);
 
-	// --- Create & configure CUDA streams
-	const int blockSize = 128, nStreams = 4;
-	const int streamSize = n / nStreams;
-	const int streamBytes = streamSize * sizeof(Read);
 	
 	cudaStream_t stream[nStreams];
 	for (int i = 0; i < nStreams; ++i)
@@ -185,32 +192,27 @@ int main (int argc, char **argv) {
 
 	checkCudaErrors(cudaDeviceSynchronize());
 
-
 	// ------------------------------------------------------------------------
 	// Convert BAM Alignments to binary representations
 	// ------------------------------------------------------------------------
-	cudaEventRecord(time1, 0);
-
-	cudaEventRecord(time2, 0);
 
 	sdkStartTimer(&timer);
 	cudaEventRecord(start, 0);
 
-	cudaMemcpyAsync(d_alignments, a, alignmentBytes, cudaMemcpyHostToDevice);
-
-	cudaEventRecord(time3, 0);
-
-	convert_kernel<<<streamSize/blockSize, blockSize, 0, 0>>>(d_alignments);
-
-	cudaEventRecord(time4, 0);
-
-	cudaMemcpyAsync(a, d_alignments, alignmentBytes, cudaMemcpyDeviceToHost);
+	for(int i = 0 ; i < nStreams; i++){
+	// cudaEventRecord(time1, 0);
+	// cudaEventRecord(time2, 0);
+		cudaMemcpyAsync(d_alignments, a, alignmentBytes, cudaMemcpyHostToDevice, stream[i]);
+	//cudaEventRecord(time3, 0);
+		convert_kernel<<< 1,1 , 0, stream[i]>>>(d_alignments);
+	// cudaEventRecord(time4, 0);
+		cudaMemcpyAsync(a, d_alignments, alignmentBytes, cudaMemcpyDeviceToHost, stream[i]);
+	}
 
 	cudaEventRecord(stop, 0);
 	sdkStopTimer(&timer);
 
 	// have CPU do some work while waiting for stage 1 to finish
-	unsigned long int counter2=0;
 	while ( cudaEventQuery(stop) == cudaErrorNotReady)
 		counter2++;
 
@@ -224,7 +226,7 @@ int main (int argc, char **argv) {
 	// ------------------------------------------------------------------------
 	// Check Correctness. 
 	// ------------------------------------------------------------------------
-	bool bFinalResults = (bool) check_output(a);
+	bFinalResults = (bool) check_output(a, unique_reads);
 
 	// ------------------------------------------------------------------------
 	// Verify the reads
@@ -239,14 +241,18 @@ int main (int argc, char **argv) {
 	// End. 
 	// ------------------------------------------------------------------------
 	// release resources
-	for (int i = 0; i < nStreams; ++i)
+Error:
+	for (int i = 0; i < nStreams; ++i){
+		checkCudaErrors(cudaEventDestroy(timers[i][0]));
+		checkCudaErrors(cudaEventDestroy(timers[i][1]));
+		checkCudaErrors(cudaEventDestroy(timers[i][2]));
+		checkCudaErrors(cudaEventDestroy(timers[i][3]));
 		checkCudaErrors( cudaStreamDestroy(stream[i]) );
-
+		checkCudaErrors(cudaFree(&d_alignments[i] ));
+	}
 	checkCudaErrors(cudaEventDestroy(start));
 	checkCudaErrors(cudaEventDestroy(stop));
 	checkCudaErrors(cudaFreeHost(a));
-	checkCudaErrors(cudaFree(d_alignments));
-
 	cudaDeviceReset();
 
 	exit(bFinalResults ? EXIT_SUCCESS : EXIT_FAILURE);

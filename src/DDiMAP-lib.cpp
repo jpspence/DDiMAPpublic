@@ -120,8 +120,8 @@ int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) )
 	return 0;
 }
 
-
-void readFile(string file, int length, Read (*f)(string &, int))
+// Returns the number of unique reads in the file.
+int readFile(string file, int length, Read (*f)(string &, int))
 {
 	BamReader *bamreader = new BamReader();
 	bamreader->Open(file);
@@ -130,6 +130,7 @@ void readFile(string file, int length, Read (*f)(string &, int))
 	while(bamreader->GetNextAlignment(ba))
 		counter += reduce(ba, length, f);
 	bamreader->Close();
+	return counter;
 }
 
 
