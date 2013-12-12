@@ -89,7 +89,7 @@ int main (int argc, char **argv) {
 
 	BamAlignment ba;
 	while(br->GetNextAlignment(ba))
-		read( ba, 34);
+		reduce( ba, 34, buildRead);
 
 	iterate( print );
 

@@ -17,8 +17,6 @@
 // Default file.
 // char *file = "data/Burack_128F/128F_Gen1_Frag_WithBcl2Sanger_sorted.bam";
 string file  = "data/128test_Gen1_example_sorted.bam";
-long n = 1024 * 1024 ;
-
 
 /******************************************************************************
  *									GPU
@@ -98,7 +96,13 @@ int check_output( Read *gpu)
 }
 
 int main (int argc, char **argv) {
-
+	
+	// ------------------------------------------------------------------------
+	// Read the BAM file
+	// We're going to do a simple map/reduce on this data to prep data for GPU.
+	// ------------------------------------------------------------------------
+	readFile(file, convert);
+	
 	/****************************************************************************
 	 * GPU Setup 
 	 ***************************************************************************/
@@ -181,26 +185,12 @@ int main (int argc, char **argv) {
 
 	checkCudaErrors(cudaDeviceSynchronize());
 
-	// ------------------------------------------------------------------------
-	// Read the BAM file
-	// ------------------------------------------------------------------------
-	cudaEventRecord(time1, 0);
-
-	BamReader *br = new BamReader();
-	br->Open(file);
-	BamAlignment ba;
-	int counter = 0;
-	while(br->GetNextAlignment(ba)){
-		if(counter  == n) 	break;
-		if(ba.Position < 0) continue;
-		a[counter] = convert(ba);
-		counter++;
-	}
-	br->Close();
 
 	// ------------------------------------------------------------------------
 	// Convert BAM Alignments to binary representations
 	// ------------------------------------------------------------------------
+	cudaEventRecord(time1, 0);
+
 	cudaEventRecord(time2, 0);
 
 	sdkStartTimer(&timer);

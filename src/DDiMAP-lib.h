@@ -23,14 +23,14 @@ struct Read {
 	unsigned int verification_flags;
 };
 
-
+void readFile(string file, Read (*f)(string));
+int reduce( BamAlignment &ba, int length, Read (*f)(string) );
 int iterate ( int (*f)(int, int, string, Read) );
 int print (int gene, int roa, string seq, Read read);
 int count (int gene, int roa, string seq, Read read);
 int verify ( int gene, int roa, string seq, Read read);
-
-void read( BamAlignment ba, int length );
-Read convert(BamAlignment ba);
+Read convert(string word);
 Read buildRead(string word);
+string createWordString(BamAlignment &ba, int length, int &position);
 
 #endif

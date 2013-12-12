@@ -11,6 +11,120 @@
 // [ gene-name [ roa [ seq count ] ] ]
 map<int , map<int, map<string, Read> > > reads;
 
+
+// ----------------------------------------------------------------------------
+// BAM --> Reads
+// ----------------------------------------------------------------------------
+
+// Cipher is given by :
+uint64_t a    = 0b00000001;
+uint64_t c    = 0b00000010;
+uint64_t g    = 0b00000011;
+uint64_t t 	  = 0b00000100;
+uint64_t dash = 0b00000111;
+
+uint64_t charToUINT64(char ch)
+{
+	switch(ch){
+	case 'A':
+	case 'a':
+		return a;
+	case 'T':
+	case 't':
+		return t;
+	case 'C':
+	case 'c':
+		return c;
+	case 'G':
+	case 'g':
+		return g;
+	case '-':
+		return dash;
+	default :
+		return 0;
+	}
+}
+
+uint64_t stringToUINT64(string s)
+{
+	uint64_t temp = 0;
+	for ( int i = 0 ; i < s.length()  ;  i++)
+		temp += charToUINT64(s[i]) << (3 * i);
+	return temp;
+
+}
+
+Read buildRead( string word )
+{
+	Read r;
+	r.count = 1;
+	r.verification_flags = 0;
+
+	int half = word.length()/2;
+	r.left_sequence_half  = stringToUINT64( word.substr(0, half)     );
+	r.right_sequence_half = stringToUINT64( word.substr(half , half) );
+
+	return r;
+}
+
+// BuildRead It took me 1380621 ticks (1.380621 seconds).
+// BuildRead It took me 1376389 ticks (1.376389 seconds) to read 149412 | 504509 reads from BAM file.
+
+// Convert   It took me 1371200 ticks (1.371200 seconds)
+
+Read convert(string word)
+{
+
+	Read r;
+	r.count = 1;
+	r.verification_flags = 0;
+	memcpy(r.sequence, word.c_str(), 34*sizeof(char));
+	return r;
+
+}
+
+// ----------------------------------------------------------------------------
+// Reading Files
+// ----------------------------------------------------------------------------
+
+
+int reduce( BamAlignment &ba, int length, Read (*f)(string) )
+{
+	if(ba.Position > 0)
+	{
+		int position;
+		string word   = createWordString(ba, 34, position);
+		int name 	  =  ba.RefID;
+
+		// Increment counter for the observed sequence
+		if(reads[name][position][word].count)
+			reads[name][position][word].count+=1;
+		else {
+			reads[name][position][word] = f(word);
+			return 1;
+		}
+	}
+
+	return 0;
+}
+
+
+void readFile(string file, Read (*f)(string))
+{
+	BamReader *bamreader = new BamReader();
+	bamreader->Open(file);
+	BamAlignment ba;
+	int counter = 0;
+	while(bamreader->GetNextAlignment(ba))
+		counter += reduce(ba, 34, f);
+	bamreader->Close();
+}
+
+
+// ----------------------------------------------------------------------------
+// Iterators
+// ----------------------------------------------------------------------------
+
 int iterate ( int (*f)(int, int, string, Read) )
 {
 	long count = 0;
@@ -56,9 +170,9 @@ int verify ( int gene, int roa, string seq, Read read)
 		for (; sequences != roaVerifier.end(); ++sequences)
 		{
 			if( read.left_sequence_half == (*sequences).second.right_sequence_half){
-//				cout << gene << " : " << roa << " :                  " << seq <<endl;
-//				cout << gene << " : " << roa - seq.length()/2  << " : " << (*sequences).first << endl;
-//				cout << endl;
+				//				cout << gene << " : " << roa << " :                  " << seq <<endl;
+				//				cout << gene << " : " << roa - seq.length()/2  << " : " << (*sequences).first << endl;
+				//				cout << endl;
 				read.verification_flags += 0b00000001;
 				break;
 			}
@@ -71,9 +185,9 @@ int verify ( int gene, int roa, string seq, Read read)
 		for (; sequences != roaVerifier.end(); ++sequences)
 		{
 			if( read.right_sequence_half == (*sequences).second.left_sequence_half ){
-//				cout << gene << " : " << roa << " : " << seq <<endl;
-//				cout << gene << " : " << roa - seq.length()/2  << " :                  " << (*sequences).first << endl;
-//				cout << endl;
+				//				cout << gene << " : " << roa << " : " << seq <<endl;
+				//				cout << gene << " : " << roa - seq.length()/2  << " :                  " << (*sequences).first << endl;
+				//				cout << endl;
 				read.verification_flags  += 0b00000010;
 				break;
 			}
@@ -87,99 +201,23 @@ int verify ( int gene, int roa, string seq, Read read)
 
 }
 
-Read convert(BamAlignment ba)
+
+// ----------------------------------------------------------------------------
+// Convenience methods.
+// ----------------------------------------------------------------------------
+
+string createWordString(BamAlignment &ba, int length, int &position)
 {
-
-	Read r;
-	r.count = 1;
-	r.verification_flags = 0;
-
-	int length = 34;
 	int offset    = (ba.IsReverseStrand()) ? ba.AlignedBases.length() - length : 0 ;
-
+	position = ba.Position + offset;
 	string word   = ba.AlignedBases.substr(offset, length);
-	memcpy(r.sequence,word.c_str(),word.size());
-
-	return r;
+	return word;
 
 }
 
-
-void read( BamAlignment ba, int length )
+const char *createWordArray(BamAlignment &ba, int length, int &position)
 {
-	if(ba.Position > 0)
-	{
+		string word = createWordString(ba, length, position);
+		return word.c_str();
 
-		int name 	  =  ba.RefID;
-		int offset    = (ba.IsReverseStrand()) ? ba.AlignedBases.length() - length : 0 ;
-		int position  = ba.Position + offset;
-		string word   = ba.AlignedBases.substr(offset, length);
-
-		// Increment counter for the observed sequence
-		if(reads[name][position][word].count)
-			reads[name][position][word].count+=1;
-		else
-			reads[name][position][word] = buildRead( word );
-
-	}
-}
-
-string readToString(Read r){
-	string s = " test ";
-	return s;
-}
-
-
-// Cipher is given by :
-uint64_t a    = 0b00000001;
-uint64_t c    = 0b00000010;
-uint64_t g    = 0b00000011;
-uint64_t t 	  = 0b00000100;
-uint64_t dash = 0b00000111;
-
-uint64_t charToUINT64(char ch)
-{
-	switch(ch){
-	case 'A':
-	case 'a':
-		return a;
-	case 'T':
-	case 't':
-		return t;
-	case 'C':
-	case 'c':
-		return c;
-	case 'G':
-	case 'g':
-		return g;
-	case '-':
-		return dash;
-	default :
-		return 0;
-	}
-}
-
-uint64_t stringToUINT64(string s)
-{
-	uint64_t temp = 0;
-	for ( int i = 0 ; i < s.length()  ;  i++)
-	{
-		temp += charToUINT64(s[i]) << (3 * i);
-	}
-
-	return temp;
-
-}
-
-Read buildRead( string word )
-{
-	Read r;
-	r.count = 1;
-	r.verification_flags = 0;
-
-	int half = word.length()/2;
-	r.left_sequence_half  = stringToUINT64( word.substr(0, half)     );
-	r.right_sequence_half = stringToUINT64( word.substr(half , half) );
-
-	return r;
 }

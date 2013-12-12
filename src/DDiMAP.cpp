@@ -56,25 +56,24 @@ int main (int argc, char **argv) {
 	// ------------------------------------------------------------------------
 
 	clock_t t;
-	t = clock();
 
+	t = clock();
 	BamReader *br = new BamReader();
 	br->Open(file);
 	BamAlignment ba;
 	int counter = 0;
 	while(br->GetNextAlignment(ba)){
-		read( ba, 34);
+		reduce( ba, 34, convert );
 		counter++;
 	}
 	br->Close();
-
 	t = clock() - t;
 	int printed = iterate(count);
 	printf ("It took me %lu ticks (%f seconds) to read %d | %d reads from BAM file.\n",
 			t, ((float)t)/CLOCKS_PER_SEC, printed, counter);
 
-	t = clock();
 
+	t = clock();
 	int verified = iterate(verify);
 	t = clock() - t;
 	printf ("It took me %lu ticks (%f seconds) to verify %d | %d.\n",
