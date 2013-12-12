@@ -26,6 +26,7 @@ struct Read {
 int readFile(string file, int length, Read (*f)(string &, int));
 int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) );
 int iterate ( int (*f)(int, int, string, Read) );
+void iterateAndSet( Read reads_array[]);
 int print (int gene, int roa, string seq, Read read);
 int count (int gene, int roa, string seq, Read read);
 int verify ( int gene, int roa, string seq, Read read);

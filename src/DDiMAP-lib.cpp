@@ -138,6 +138,26 @@ int readFile(string file, int length, Read (*f)(string &, int))
 // Iterators
 // ----------------------------------------------------------------------------
 
+void iterateAndSet( Read reads_array[])
+{
+	long count = 0;
+	map<int , map<int, map<string, Read> > >::iterator genes = reads.begin();
+	for(; genes != reads.end(); ++genes)
+	{
+		map<int, map<string, Read> >::iterator ROAs = (*genes).second.begin();
+		for (; ROAs != (*genes).second.end(); ++ROAs)
+		{
+			map<string, Read>::iterator sequences = (*ROAs).second.begin();
+			for (; sequences != (*ROAs).second.end(); ++sequences)
+			{
+				reads_array[count] = (*sequences).second;
+				count++;
+			}
+		}
+	}
+
+}
+
 int iterate ( int (*f)(int, int, string, Read) )
 {
 	long count = 0;
