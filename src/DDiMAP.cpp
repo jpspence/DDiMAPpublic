@@ -58,25 +58,18 @@ int main (int argc, char **argv) {
 	clock_t t;
 
 	t = clock();
-	BamReader *br = new BamReader();
-	br->Open(file);
-	BamAlignment ba;
-	int total = 0, unique = 0;
-	while(br->GetNextAlignment(ba)){
-		unique += reduce( ba, 34, convert );
-//		unique += reduce( ba, 34, buildRead );
-		total++;
-	}
-
-	br->Close();
+	int total = 0, unique;
+  unique = readFile(file, 34, convert);
 	t = clock() - t;
-	printf ("It took me %lu ticks (%f seconds) to read %d | %d reads from BAM file.\n",
+  printf ("It took me %lu ticks (%f seconds) to read %d | %d reads from BAM file.\n",
 			t, ((float)t)/CLOCKS_PER_SEC, unique, total);
 
 
 	t = clock();
 	int verified = iterate(verify);
 	t = clock() - t;
+
+	int printed = iterate(print);
 	printf ("It took me %lu ticks (%f seconds) to verify %d | %d.\n",
 			t, ((float)t)/CLOCKS_PER_SEC , verified, unique);
 

@@ -6,6 +6,9 @@
 #include <utility>
 #include <api/BamAlignment.h>
 #include <api/BamReader.h>
+#include <iostream>
+#include <sstream>
+#include <iterator>
 
 namespace BamTools {
 	struct BamAlignment;

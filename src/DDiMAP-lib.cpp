@@ -8,9 +8,16 @@
 
 #include "DDiMAP-lib.h"
 
+#include <api/BamAux.h>
+#include <api/SamHeader.h>
+//#include <api/SamSequence.h>
+#include <api/SamSequenceDictionary.h>
+#include <cstdint>
+#include <cstring>
+
 // [ gene-name [ roa [ seq count ] ] ]
 map<int , map<int, map<string, Read> > > reads;
-
+map<int, string> genes;
 
 // ----------------------------------------------------------------------------
 // Convenience methods.
@@ -74,6 +81,7 @@ uint64_t stringToUINT64(string s)
 
 }
 
+// Build Read converts sequence to INT
 Read buildRead( string &word, int length)
 {
 	Read r;
@@ -84,6 +92,7 @@ Read buildRead( string &word, int length)
 	return r;
 }
 
+// Convert does NOT convert sequence to INT
 Read convert(string &word, int length)
 {
 
@@ -102,17 +111,26 @@ Read convert(string &word, int length)
 
 int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) )
 {
+
+//	cout << " Tag Data : " << ba.TagData << endl;
 	if(ba.Position > 0)
 	{
 		int position;
 		string word   = createWordString(ba, length, position);
-		int name 	  =  ba.RefID;
+		string fullname = genes[ba.RefID];
+		int name   = ba.RefID;// fullname.substr(0,fullname.find_first_of("_"));
 
 		// Increment counter for the observed sequence
 		if(reads[name][position][word].count)
 			reads[name][position][word].count+=1;
 		else {
-			reads[name][position][word] = f(word, length);
+			Read r;
+			r = f(word, length);
+
+			//TODO: Find out if this matches the reference sequence
+			if(ba.CigarData[0].Length == 50)
+				r.verification_flags = r.verification_flags | 0b00000100 ;
+			reads[name][position][word] = r;
 			return 1;
 		}
 	}
@@ -125,6 +143,13 @@ int readFile(string file, int length, Read (*f)(string &, int))
 {
 	BamReader *bamreader = new BamReader();
 	bamreader->Open(file);
+
+	int i =0;
+	SamSequenceIterator seqs = bamreader->GetHeader().Sequences.Begin() ;
+	for(; seqs != bamreader->GetHeader().Sequences.End(); seqs++){
+		genes[i] = (*seqs).Name;
+		i++;
+	}
 	BamAlignment ba;
 	int counter = 0;
 	while(bamreader->GetNextAlignment(ba))
@@ -178,16 +203,15 @@ int iterate ( int (*f)(int, int, string, Read) )
 	return count;
 }
 
+
 int count (int gene, int roa, string seq, Read read)
-{
-	return 1;
-}
+{ return 1; }
 
 
 int print (int gene, int roa, string seq, Read read)
 {
 	// Print [gene][ROA][COUNT][Seq]
-	if( gene > 1 && read.count > 100 )
+	if( read.count > 100 )
 		cout << gene << " [" << roa << "][" << read.count << "] "  << seq << endl;
 
 	return 1;
@@ -203,9 +227,9 @@ int verify ( int gene, int roa, string seq, Read read)
 		for (; sequences != roaVerifier.end(); ++sequences)
 		{
 			if(read.left_sequence_half == (*sequences).second.right_sequence_half){
-				//				cout << gene << " : " << roa << " :                  " << seq <<endl;
-				//				cout << gene << " : " << roa - seq.length()/2  << " : " << (*sequences).first << endl;
-				//				cout << endl;
+//				cout << gene << " : " << roa << " :                  " << seq <<endl;
+//				cout << gene << " : " << roa - seq.length()/2  << " : " << (*sequences).first << endl;
+//				cout << endl;
 				read.verification_flags = read.verification_flags | 0b00000001;
 				break;
 			}
@@ -218,9 +242,9 @@ int verify ( int gene, int roa, string seq, Read read)
 		for (; sequences != roaVerifier.end(); ++sequences)
 		{
 			if(read.right_sequence_half == (*sequences).second.left_sequence_half ){
-				//				cout << gene << " : " << roa << " : " << seq <<endl;
-				//				cout << gene << " : " << roa - seq.length()/2  << " :                  " << (*sequences).first << endl;
-				//				cout << endl;
+//				cout << gene << " : " << roa << " : " << seq <<endl;
+//				cout << gene << " : " << roa - seq.length()/2  << " :                  " << (*sequences).first << endl;
+//				cout << endl;
 				read.verification_flags  = read.verification_flags | 0b00000010;
 				break;
 			}
