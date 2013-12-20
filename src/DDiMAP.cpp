@@ -59,7 +59,7 @@ int main (int argc, char **argv) {
 
 	t = clock();
 	int total = 0, unique;
-  unique = readFile(file, 34, convert);
+	unique = readFile(file, 34, buildRead);
 	t = clock() - t;
   printf ("It took me %lu ticks (%f seconds) to read %d | %d reads from BAM file.\n",
 			t, ((float)t)/CLOCKS_PER_SEC, unique, total);

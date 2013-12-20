@@ -17,7 +17,7 @@
 
 // [ gene-name [ roa [ seq count ] ] ]
 map<int , map<int, map<string, Read> > > reads;
-map<int, string> genes;
+map<int, string > genes;
 
 // ----------------------------------------------------------------------------
 // Convenience methods.
@@ -117,7 +117,7 @@ int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) )
 	{
 		int position;
 		string word   = createWordString(ba, length, position);
-		string fullname = genes[ba.RefID];
+//		string fullname = genes[ba.RefID];
 		int name   = ba.RefID;// fullname.substr(0,fullname.find_first_of("_"));
 
 		// Increment counter for the observed sequence
@@ -144,12 +144,18 @@ int readFile(string file, int length, Read (*f)(string &, int))
 	BamReader *bamreader = new BamReader();
 	bamreader->Open(file);
 
+	// Read the header file
 	int i =0;
+	int size = bamreader->GetHeader().Sequences.Size();
 	SamSequenceIterator seqs = bamreader->GetHeader().Sequences.Begin() ;
-	for(; seqs != bamreader->GetHeader().Sequences.End(); seqs++){
+	for( int j=0; j< size; j++){
+
 		genes[i] = (*seqs).Name;
-		i++;
+		cout << i << "th gene = "<< (*seqs).Name << " | " << size << endl;
+		i++;seqs++;
 	}
+
+	// Begin the alignment search
 	BamAlignment ba;
 	int counter = 0;
 	while(bamreader->GetNextAlignment(ba))
