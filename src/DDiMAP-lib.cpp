@@ -16,9 +16,9 @@
 #include <cstring>
 
 // [ gene-name [ roa [ seq count ] ] ]
-map<int , map<int, map<string, Read> > > reads;
+map<string , map<int, map<string, Read> > > reads;
 map<int, string > genes;
-
+map<int, string > gene_names;
 // ----------------------------------------------------------------------------
 // Convenience methods.
 // ----------------------------------------------------------------------------
@@ -117,8 +117,7 @@ int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) )
 	{
 		int position;
 		string word   = createWordString(ba, length, position);
-//		string fullname = genes[ba.RefID];
-		int name   = ba.RefID;// fullname.substr(0,fullname.find_first_of("_"));
+		string name   = genes[ba.RefID];
 
 		// Increment counter for the observed sequence
 		if(reads[name][position][word].count)
@@ -127,9 +126,12 @@ int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) )
 			Read r;
 			r = f(word, length);
 
-			//TODO: Find out if this matches the reference sequence
-			if(ba.CigarData[0].Length == 50)
+			// Find out if this matches the reference sequence
+			if(ba.CigarData[0].Length == 50){
 				r.verification_flags = r.verification_flags | 0b00000100 ;
+				if(gene_names[ba.RefID].find("_NCBI") != std::string::npos)
+					r.verification_flags = r.verification_flags | 0b00001000 ;
+			}
 			reads[name][position][word] = r;
 			return 1;
 		}
@@ -151,6 +153,7 @@ int readFile(string file, int length, Read (*f)(string &, int))
 	for( int j=0; j< size; j++){
 
 		genes[i] = (*seqs).Name.substr(0,(*seqs).Name.find_first_of("_"));
+		gene_names[i] = (*seqs).Name;
 		i++;seqs++;
 	}
 
@@ -171,7 +174,7 @@ int readFile(string file, int length, Read (*f)(string &, int))
 void iterateAndSet( Read reads_array[])
 {
 	long count = 0;
-	map<int , map<int, map<string, Read> > >::iterator genes = reads.begin();
+	map<string , map<int, map<string, Read> > >::iterator genes = reads.begin();
 	for(; genes != reads.end(); ++genes)
 	{
 		map<int, map<string, Read> >::iterator ROAs = (*genes).second.begin();
@@ -188,10 +191,10 @@ void iterateAndSet( Read reads_array[])
 
 }
 
-int iterate ( int (*f)(int, int, string, Read) )
+int iterate ( int (*f)(string, int, string, Read) )
 {
 	long count = 0;
-	map<int , map<int, map<string, Read> > >::iterator genes = reads.begin();
+	map<string , map<int, map<string, Read> > >::iterator genes = reads.begin();
 	for(; genes != reads.end(); ++genes)
 	{
 		map<int, map<string, Read> >::iterator ROAs = (*genes).second.begin();
@@ -209,20 +212,20 @@ int iterate ( int (*f)(int, int, string, Read) )
 }
 
 
-int count (int gene, int roa, string seq, Read read)
+int count (string gene, int roa, string seq, Read read)
 { return 1; }
 
 
-int print (int gene, int roa, string seq, Read read)
+int print (string gene, int roa, string seq, Read read)
 {
 	// Print [gene][ROA][COUNT][Seq]
-	if( read.count > 100 )
+	if( read.count > 10000 )
 		cout << gene << " [" << roa << "][" << read.count << "] "  << seq << endl;
 
 	return 1;
 }
 
-int verify ( int gene, int roa, string seq, Read read)
+int verify ( string gene, int roa, string seq, Read read)
 {
 	map<string, Read> roaVerifier;
 
@@ -255,6 +258,10 @@ int verify ( int gene, int roa, string seq, Read read)
 			}
 		}
 	}
+
+	// Print the verified words that are not reference.
+	if( (read.verification_flags & 0b00001111) == 0b00000011)
+		cout << gene << " : " << roa << " : " << seq << endl;
 
 	if( (read.verification_flags & 0b00000011) == 0b00000011)
 		return 1;
