@@ -150,8 +150,7 @@ int readFile(string file, int length, Read (*f)(string &, int))
 	SamSequenceIterator seqs = bamreader->GetHeader().Sequences.Begin() ;
 	for( int j=0; j< size; j++){
 
-		genes[i] = (*seqs).Name;
-		cout << i << "th gene = "<< (*seqs).Name << " | " << size << endl;
+		genes[i] = (*seqs).Name.substr(0,(*seqs).Name.find_first_of("_"));
 		i++;seqs++;
 	}
 
