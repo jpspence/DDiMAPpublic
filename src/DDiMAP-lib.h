@@ -26,7 +26,7 @@ struct Read {
 	unsigned int verification_flags;
 };
 
-int readFile(string file, int length, Read (*f)(string &, int));
+int readFile(string file, char *fasta, int length, Read (*f)(string &, int));
 int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) );
 int iterate ( int (*f)(string, int, string, Read) );
 void iterateAndSet( Read reads_array[]);

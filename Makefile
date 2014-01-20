@@ -85,9 +85,9 @@ GENCODE_FLAGS   := $(GENCODE_SM10) $(GENCODE_SM20) $(GENCODE_SM30)
 
 # Location of Bamtools on your machine. 
 BAMTOOLS = include/bamtools
-
-CXXFLAGS = -O2 -g -Wall -fmessage-length=0 -I$(BAMTOOLS)/src -I$(BAMTOOLS)
-LIBS 	 = -L$(BAMTOOLS)/lib -lbamtools
+FASTQ		 = include/readfq
+CXXFLAGS = -O2 -g -Wall -fmessage-length=0 -I$(BAMTOOLS)/src -I$(FASTQ) -I$(BAMTOOLS)
+LIBS 	 = -L$(BAMTOOLS)/lib -lbamtools -lz
 OBJS 	 = bin/DDiMAP.o bin/DDiMAP-lib.o
 TARGET   = DDiMAP
 

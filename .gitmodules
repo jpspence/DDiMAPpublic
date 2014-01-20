@@ -6,3 +6,6 @@
 	path = include/cu
 	url = git@github.com:danfis/cu.git
 	ignore = dirty
+[submodule "include/readfq"]
+	path = include/readfq
+	url = git@github.com:lh3/readfq.git

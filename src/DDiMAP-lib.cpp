@@ -10,15 +10,31 @@
 
 #include <api/BamAux.h>
 #include <api/SamHeader.h>
-//#include <api/SamSequence.h>
+#include <api/SamSequence.h>
 #include <api/SamSequenceDictionary.h>
+#include <kseq.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <zlib.h>
+#include <cctype>
 #include <cstdint>
 #include <cstring>
+#include <string>
+
+// Declare the type of file handler for fasta reader
+KSEQ_INIT(gzFile, gzread)
 
 // [ gene-name [ roa [ seq count ] ] ]
 map<string , map<int, map<string, Read> > > reads;
 map<int, string > genes;
-map<int, string > gene_names;
+map<int, string > genes_names;
+
+// TODO: Fix the binary flags for unchanged refs in both constructor & verifications
+// TODO: Find the original sequence (for verification purposes)
+// TODO: Print out into Fasta File
+// TODO: Compare with existing Fasta File
+// TODO: Reduce the printed or verified mutations
+
 // ----------------------------------------------------------------------------
 // Convenience methods.
 // ----------------------------------------------------------------------------
@@ -112,7 +128,7 @@ Read convert(string &word, int length)
 int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) )
 {
 
-//	cout << " Tag Data : " << ba.TagData << endl;
+	//	cout << " Tag Data : " << ba.TagData << endl;
 	if(ba.Position > 0)
 	{
 		int position;
@@ -129,9 +145,10 @@ int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) )
 			// Find out if this matches the reference sequence
 			if(ba.CigarData[0].Length == 50){
 				r.verification_flags = r.verification_flags | 0b00000100 ;
-				if(gene_names[ba.RefID].find("_NCBI") != std::string::npos)
+				if(genes_names[ba.RefID].find("_NCBI") != std::string::npos)
 					r.verification_flags = r.verification_flags | 0b00001000 ;
 			}
+
 			reads[name][position][word] = r;
 			return 1;
 		}
@@ -141,28 +158,50 @@ int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) )
 }
 
 // Returns the number of unique reads in the file.
-int readFile(string file, int length, Read (*f)(string &, int))
+int readFile(string file, char *fasta, int length, Read (*f)(string &, int))
 {
+
+	// Read the fasta file
+	gzFile fp;
+	kseq_t *seq;
+	int n = 0, slen = 0, qlen = 0;
+	FILE *fast = fopen(fasta,"r");
+	fp = gzdopen(fileno(fast), "r");
+	seq = kseq_init(fp);
+	while (kseq_read(seq) >= 0){
+		++n, slen += seq->seq.l, qlen += seq->qual.l;
+		printf( seq->name.s );
+		printf("\n");
+	}
+	printf("I read %d sequences \t of size %d \t Quality scores %d\n", n, slen, qlen);
+	kseq_destroy(seq);
+	gzclose(fp);
+
+
+	// Read the bamfile
 	BamReader *bamreader = new BamReader();
 	bamreader->Open(file);
 
-	// Read the header file
+	// --- Read the header file
 	int i =0;
-	int size = bamreader->GetHeader().Sequences.Size();
-	SamSequenceIterator seqs = bamreader->GetHeader().Sequences.Begin() ;
-	for( int j=0; j< size; j++){
+	int size = bamreader->GetConstSamHeader().Sequences.Size();
 
+	SamSequenceIterator seqs = bamreader->GetHeader().Sequences.Begin() ;
+
+
+	for( int j=0; j< size; j++){
 		genes[i] = (*seqs).Name.substr(0,(*seqs).Name.find_first_of("_"));
-		gene_names[i] = (*seqs).Name;
+		genes_names[i] = (*seqs).Name;
 		i++;seqs++;
 	}
 
-	// Begin the alignment search
+	// --- Begin the alignment search
 	BamAlignment ba;
 	int counter = 0;
 	while(bamreader->GetNextAlignment(ba))
 		counter += reduce(ba, length, f);
 	bamreader->Close();
+
 	return counter;
 }
 
@@ -211,11 +250,19 @@ int iterate ( int (*f)(string, int, string, Read) )
 	return count;
 }
 
+// ----------------------------------------------------------------------------
+// Iterator Functions
+// ----------------------------------------------------------------------------
+
 
 int count (string gene, int roa, string seq, Read read)
 { return 1; }
 
 
+void printFasta()
+{
+
+}
 int print (string gene, int roa, string seq, Read read)
 {
 	// Print [gene][ROA][COUNT][Seq]
@@ -227,6 +274,7 @@ int print (string gene, int roa, string seq, Read read)
 
 int verify ( string gene, int roa, string seq, Read read)
 {
+
 	map<string, Read> roaVerifier;
 
 	// Verify the left
@@ -235,9 +283,9 @@ int verify ( string gene, int roa, string seq, Read read)
 		for (; sequences != roaVerifier.end(); ++sequences)
 		{
 			if(read.left_sequence_half == (*sequences).second.right_sequence_half){
-//				cout << gene << " : " << roa << " :                  " << seq <<endl;
-//				cout << gene << " : " << roa - seq.length()/2  << " : " << (*sequences).first << endl;
-//				cout << endl;
+				//				cout << gene << " : " << roa << " :                  " << seq <<endl;
+				//				cout << gene << " : " << roa - seq.length()/2  << " : " << (*sequences).first << endl;
+				//				cout << endl;
 				read.verification_flags = read.verification_flags | 0b00000001;
 				break;
 			}
@@ -250,9 +298,9 @@ int verify ( string gene, int roa, string seq, Read read)
 		for (; sequences != roaVerifier.end(); ++sequences)
 		{
 			if(read.right_sequence_half == (*sequences).second.left_sequence_half ){
-//				cout << gene << " : " << roa << " : " << seq <<endl;
-//				cout << gene << " : " << roa - seq.length()/2  << " :                  " << (*sequences).first << endl;
-//				cout << endl;
+				//				cout << gene << " : " << roa << " : " << seq <<endl;
+				//				cout << gene << " : " << roa - seq.length()/2  << " :                  " << (*sequences).first << endl;
+				//				cout << endl;
 				read.verification_flags  = read.verification_flags | 0b00000010;
 				break;
 			}
@@ -260,8 +308,8 @@ int verify ( string gene, int roa, string seq, Read read)
 	}
 
 	// Print the verified words that are not reference.
-	if( (read.verification_flags & 0b00001111) == 0b00000011)
-		cout << gene << " : " << roa << " : " << seq << endl;
+	//	if( (read.verification_flags & 0b00001111) == 0b00000011)
+	//			cout << gene << " : " << roa << " : " << seq << " is verified." << endl;
 
 	if( (read.verification_flags & 0b00000011) == 0b00000011)
 		return 1;
