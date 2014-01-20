@@ -29,6 +29,9 @@ map<string , map<int, map<string, Read> > > reads;
 map<int, string > genes;
 map<int, string > genes_names;
 
+// Map <Reference Name -> < position -> sequence>
+map<string, map<int, uint64_t > > references;
+
 // TODO: Fix the binary flags for unchanged refs in both constructor & verifications
 // TODO: Find the original sequence (for verification purposes)
 // TODO: Print out into Fasta File
@@ -90,6 +93,7 @@ uint64_t charToUINT64(char ch)
 
 uint64_t stringToUINT64(string s)
 {
+
 	uint64_t temp = 0;
 	for ( int i = 0 ; i < s.length()  ;  i++)
 		temp += charToUINT64(s[i]) << (3 * i);
@@ -170,7 +174,16 @@ int readFile(string file, char *fasta, int length, Read (*f)(string &, int))
 	seq = kseq_init(fp);
 	while (kseq_read(seq) >= 0){
 		++n, slen += seq->seq.l, qlen += seq->qual.l;
-		printf( seq->name.s );
+
+		string s = seq->seq.s;
+		s.erase( std::remove_if( s.begin(), s.end(), ::isspace ), s.end() );
+
+		map<int, uint64_t> reference;
+		for(int j= 0; j< s.length()-length; j++){
+			reference[j] = stringToUINT64(s.substr(j, length));
+		}
+		references[seq->name.s] = reference;
+
 		printf("\n");
 	}
 	printf("I read %d sequences \t of size %d \t Quality scores %d\n", n, slen, qlen);
@@ -308,8 +321,8 @@ int verify ( string gene, int roa, string seq, Read read)
 	}
 
 	// Print the verified words that are not reference.
-	//	if( (read.verification_flags & 0b00001111) == 0b00000011)
-	//			cout << gene << " : " << roa << " : " << seq << " is verified." << endl;
+	if( (read.verification_flags & 0b00001111) == 0b00000011)
+		cout << gene << " : " << roa << " : " << seq << " is verified." << endl;
 
 	if( (read.verification_flags & 0b00000011) == 0b00000011)
 		return 1;
