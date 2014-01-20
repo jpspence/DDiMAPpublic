@@ -16,6 +16,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <zlib.h>
+#include <algorithm>
 #include <cctype>
 #include <cstdint>
 #include <cstring>
@@ -33,10 +34,8 @@ map<int, string > genes_names;
 map<string, map<int, uint64_t > > references;
 
 // TODO: Fix the binary flags for unchanged refs in both constructor & verifications
-// TODO: Find the original sequence (for verification purposes)
-// TODO: Print out into Fasta File
-// TODO: Compare with existing Fasta File
 // TODO: Reduce the printed or verified mutations
+// TODO: Print out into Fasta File
 
 // ----------------------------------------------------------------------------
 // Convenience methods.
@@ -90,6 +89,35 @@ uint64_t charToUINT64(char ch)
 		return 0;
 	}
 }
+
+char UINT64ToChar(uint64_t ch)
+{
+	if( ch == a)
+		return 'A';
+	if( ch == t)
+		return 'T';
+	if (ch == c)
+		return 'C';
+	if (ch == g)
+		return 'G';
+	if (ch == dash)
+		return '-';
+	return 0;
+}
+
+string UINT64ToString(uint64_t s)
+{
+
+	std::stringstream temp;
+
+	while(s!=0){
+		temp << UINT64ToChar( s & 0b00000111 );
+		s = s >> 3;
+	}
+	return temp.str();
+
+}
+
 
 uint64_t stringToUINT64(string s)
 {
@@ -149,8 +177,19 @@ int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) )
 			// Find out if this matches the reference sequence
 			if(ba.CigarData[0].Length == 50){
 				r.verification_flags = r.verification_flags | 0b00000100 ;
-				if(genes_names[ba.RefID].find("_NCBI") != std::string::npos)
+
+				// Check to see that the sequence doesn't match a reference
+				if(references[genes_names[ba.RefID]][position] == r.left_sequence_half)
 					r.verification_flags = r.verification_flags | 0b00001000 ;
+				else if (references[genes_names[ba.RefID]][position] != 0 ){
+					cout << "GENE : " << genes_names[ba.RefID] << " @ Position : "<<position << endl;
+					cout << "read : " << createWordString(ba, length/2, position) << endl ;
+					cout << "refs : " << UINT64ToString(references[genes_names[ba.RefID]][position]) << endl;
+					cout << endl;
+				}
+				if(references[genes_names[ba.RefID]][position+length/2] == r.right_sequence_half)
+					r.verification_flags = r.verification_flags | 0b00010000 ;
+
 			}
 
 			reads[name][position][word] = r;
@@ -180,11 +219,10 @@ int readFile(string file, char *fasta, int length, Read (*f)(string &, int))
 
 		map<int, uint64_t> reference;
 		for(int j= 0; j< s.length()-length; j++){
-			reference[j] = stringToUINT64(s.substr(j, length));
+			reference[j] = stringToUINT64(s.substr(j, length/2));
 		}
 		references[seq->name.s] = reference;
 
-		printf("\n");
 	}
 	printf("I read %d sequences \t of size %d \t Quality scores %d\n", n, slen, qlen);
 	kseq_destroy(seq);
@@ -195,13 +233,10 @@ int readFile(string file, char *fasta, int length, Read (*f)(string &, int))
 	BamReader *bamreader = new BamReader();
 	bamreader->Open(file);
 
-	// --- Read the header file
+	// --- Read the header file and assign the gene ID to the names
 	int i =0;
 	int size = bamreader->GetConstSamHeader().Sequences.Size();
-
 	SamSequenceIterator seqs = bamreader->GetHeader().Sequences.Begin() ;
-
-
 	for( int j=0; j< size; j++){
 		genes[i] = (*seqs).Name.substr(0,(*seqs).Name.find_first_of("_"));
 		genes_names[i] = (*seqs).Name;
@@ -321,8 +356,8 @@ int verify ( string gene, int roa, string seq, Read read)
 	}
 
 	// Print the verified words that are not reference.
-	if( (read.verification_flags & 0b00001111) == 0b00000011)
-		cout << gene << " : " << roa << " : " << seq << " is verified." << endl;
+//	if( (read.verification_flags & 0b00011111) == 0b00000011)
+//		cout << gene << " : " << roa << " : " << seq << " is verified and unique." << endl;
 
 	if( (read.verification_flags & 0b00000011) == 0b00000011)
 		return 1;
