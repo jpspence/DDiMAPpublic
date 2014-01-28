@@ -88,7 +88,8 @@ BAMTOOLS = include/bamtools
 FASTQ		 = include/readfq
 CXXFLAGS = -O2 -g -Wall -fmessage-length=0 -I$(BAMTOOLS)/src -I$(FASTQ) -I$(BAMTOOLS)
 LIBS 	 = -L$(BAMTOOLS)/lib -lbamtools -lz
-OBJS 	 = bin/DDiMAP.o bin/DDiMAP-lib.o
+
+OBJS 	 = bin/DDiMAP.o bin/DDiMAP-lib.o bin/gnuplot_i.o
 TARGET   = DDiMAP
 
 OBJST 	= bin/DDiMAP-threads.o bin/DDiMAP-lib.o
@@ -101,6 +102,10 @@ $(TARGETT): bin $(OBJST)
 	
 $(TARGET): bin $(OBJS)
 	$(CXX) -o bin/$(TARGET) $(OBJS) $(LIBS)
+
+bin/gnuplot_i.o: include/gnuplot_i/gnuplot_i.c include/gnuplot_i/gnuplot_i.h
+	gcc -c -o bin/gnuplot_i.o include/gnuplot_i/gnuplot_i.c
+
 
 bin/DDiMAPGPU.o: src/DDiMAPGPU.cu
 	$(NVCC) $(INCLUDES) $(ALL_CCFLAGS) $(GENCODE_FLAGS) -o $@ -c $< -I$(BAMTOOLS)/src -I$(BAMTOOLS)

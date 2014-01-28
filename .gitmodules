@@ -9,3 +9,6 @@
 [submodule "include/readfq"]
 	path = include/readfq
 	url = git@github.com:lh3/readfq.git
+[submodule "include/gnuplot-iostream"]
+	path = include/gnuplot-iostream
+	url = git://gitorious.org/gnuplot-iostream/gnuplot-iostream.git
