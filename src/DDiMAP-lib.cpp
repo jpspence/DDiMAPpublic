@@ -16,7 +16,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <zlib.h>
-#include <algorithm>
 #include <cctype>
 #include <cstdint>
 #include <cstring>
@@ -296,7 +295,7 @@ void iterateAndSet( Read reads_array[])
 
 }
 
-int iterate ( int (*f)(string, int, string, Read) )
+int iterate ( int (*f)(string, int, string, Read&) )
 {
 	long count = 0;
 	map<string , map<int, map<string, Read> > >::iterator genes = reads.begin();
@@ -321,7 +320,7 @@ int iterate ( int (*f)(string, int, string, Read) )
 // ----------------------------------------------------------------------------
 
 
-int count (string gene, int position, string seq, Read read)
+int count (string gene, int position, string seq, Read& read)
 {
 	return 1;
 }
@@ -331,7 +330,7 @@ void printFasta()
 {
 
 }
-int print (string gene, int position, string seq, Read read)
+int print (string gene, int position, string seq, Read& read)
 {
 
 	// Print [gene][ROA][COUNT][Seq]
@@ -341,7 +340,7 @@ int print (string gene, int position, string seq, Read read)
 	return 1;
 }
 
-int verify ( string gene, int roa, string seq, Read read)
+int verify ( string gene, int roa, string seq, Read& read)
 {
 
   map<string, Read> roaVerifier;
@@ -377,10 +376,11 @@ int verify ( string gene, int roa, string seq, Read read)
   }
 
   // Print the verified words that are not reference.
-  if( not read.matches_ref_on_left_and_right() && read.is_right_left_verified() )
-    cout << gene << " : " << roa << " : " << seq << " is verified and unique." << read.is_right_left_verified() << endl;
+//  if( not read.matches_ref_on_left_and_right() && read.is_right_left_verified() )
+//    cout << gene << " : " << roa << " : " << seq << " is verified and unique." << read.is_right_left_verified() << endl;
 
-  if( read.is_right_left_verified() )
+  if( (read.verification_flags & 0b00000011 ) == 0b00000011 && // RL Verified
+      (read.verification_flags &  0b00011000) != 0b00011000 ) //  Not reference
     return 1;
 
   return 0;
@@ -470,36 +470,25 @@ int verify ( string gene, int roa, string seq, Read read)
 	multiple SNVs at a given location, they each get their own line in the file
 
  */
-int buildHistograms(string gene, int position, string seq, Read read)
+int buildHistograms(string gene, int position, string seq, Read& read)
 {
 
-  if((read.verification_flags &  0b00000011) == 0b00000011)
-{
-    cout << "this should work 1 " << (read.verification_flags & 0b00000011) << read.is_right_left_verified() << endl; 
-}
-	if( read.is_right_left_verified()) 
+  if((read.verification_flags &  0b00000011) == 0b00000011 && // RL Verify
+     (read.verification_flags &  0b00011000) != 0b00011000 ) //  Not reference
 	{
     
-  cout << "this should work 22" << endl; 
-
 		// Create a histogram for the left half
 		uint64_t s = read.left_sequence_half;
 		int i = 0;
 		while(s!=0){
-			if( read.is_right_left_verified() ) // If the read is verified on both sides
 				verified_histogram[gene][position + i][ s & 0b00000111] += read.count;
-			if( read.is_above_threshold()) // Threshold
-				threshold_histogram[gene][position+i][ s & 0b00000111]  += read.count;
 			s = s >> 3; i++;
 		}
 
 		// Then the right
 		s = read.right_sequence_half;
 		while(s!=0){
-			if( read.is_right_left_verified() ) // If the read is verified on both sides
 				verified_histogram[gene][position + i][ s & 0b00000111] += read.count;
-			if( read.is_above_threshold() ) // Threshold
-				threshold_histogram[gene][position+i][ s & 0b00000111]  += read.count;
 			s = s >> 3; i++;
 		}
 
