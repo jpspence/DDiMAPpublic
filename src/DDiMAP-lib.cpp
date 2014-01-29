@@ -39,8 +39,6 @@ map<string , map<int, map<int, int> > > threshold_histogram;
 // Map <Reference Name -> < position -> sequence>
 map<string, map<int, uint64_t > > references;
 
-// TODO: Fix the binary flags for unchanged refs in both constructor & verifications
-// TODO: Reduce the printed or verified mutations
 // TODO: Print out into Fasta File
 
 // ----------------------------------------------------------------------------
@@ -172,10 +170,6 @@ int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) )
 	{
 		int position;
 		string word   = createWordString(ba, length, position);
-		if(position > 2000){
-			cout << "wtf position : " << position << endl;
-			return 0;
-		}
 		string name   = genes[ba.RefID];
 
 		// Increment counter for the observed sequence
@@ -329,7 +323,6 @@ int iterate ( int (*f)(string, int, string, Read) )
 
 int count (string gene, int position, string seq, Read read)
 {
-	if(position > 2000){ return 0;}
 	return 1;
 }
 
@@ -340,7 +333,6 @@ void printFasta()
 }
 int print (string gene, int position, string seq, Read read)
 {
-	if(position > 2000){ return 0;}
 
 	// Print [gene][ROA][COUNT][Seq]
 	if( read.count > 10000 )
@@ -349,70 +341,51 @@ int print (string gene, int position, string seq, Read read)
 	return 1;
 }
 
-int verify ( string gene, int position, string seq, Read read)
+int verify ( string gene, int roa, string seq, Read read)
 {
-	if(position > 2000){ return 0;}
 
-	map<string, Read> roaVerifier;
+  map<string, Read> roaVerifier;
 
-	// Verify the left
-	if((roaVerifier = reads[gene][position - seq.length()/2 ]).size() > 0){
-		map<string, Read>::iterator sequences = roaVerifier.begin();
-		for (; sequences != roaVerifier.end(); ++sequences)
-		{
-			if(read.left_sequence_half == (*sequences).second.right_sequence_half &&
-					(*sequences).second.count > THRESHOLD
-			){
-				//				cout << gene << " : " << roa << " :                  " << seq <<endl;
-				//				cout << gene << " : " << roa - seq.length()/2  << " : " << (*sequences).first << endl;
-				//				cout << endl;
-				read.verification_flags = read.verification_flags | 0b00000001;
-				break;
-			}
-		}
-	}
+  // Verify the left
+  if((roaVerifier = reads[gene][roa - seq.length()/2 ]).size() > 0){
+    map<string, Read>::iterator sequences = roaVerifier.begin();
+    for (; sequences != roaVerifier.end(); ++sequences)
+    {
+      if(read.left_sequence_half == (*sequences).second.right_sequence_half){
+        //        cout << gene << " : " << roa << " :                  " << seq <<endl;
+        //        cout << gene << " : " << roa - seq.length()/2  << " : " << (*sequences).first << endl;
+        //        cout << endl;
+        read.verification_flags = read.verification_flags | 0b00000001;
+        break;
+      }
+    }
+  }
 
-	// Verify the frequency threshold for that ROA
-	if((roaVerifier = reads[gene][position]).size() > 0){
-		map<string, Read>::iterator sequences = roaVerifier.begin();
-		double count = 0;
-		for (; sequences != roaVerifier.end(); ++sequences)
-			count += (*sequences).second.count;
-		if( (double) read.count / count  > 0.00075)
-			read.verification_flags = read.verification_flags | 0b00100000;
+  // Verify the right
+  if((roaVerifier = reads[gene][roa + seq.length()/2 ]).size() > 0){
+    map<string, Read>::iterator sequences = roaVerifier.begin();
+    for (; sequences != roaVerifier.end(); ++sequences)
+    {
+      if(read.right_sequence_half == (*sequences).second.left_sequence_half ){
+        //        cout << gene << " : " << roa << " : " << seq <<endl;
+        //        cout << gene << " : " << roa - seq.length()/2  << " :                  " << (*sequences).first << endl;
+        //        cout << endl;
+        read.verification_flags  = read.verification_flags | 0b00000010;
+        break;
+      }
+    }
+  }
 
-	}
+  // Print the verified words that are not reference.
+  if( not read.matches_ref_on_left_and_right() && read.is_right_left_verified() )
+    cout << gene << " : " << roa << " : " << seq << " is verified and unique." << read.is_right_left_verified() << endl;
 
-	// Verify the right
-	if((roaVerifier = reads[gene][position + seq.length()/2 ]).size() > 0){
-		map<string, Read>::iterator sequences = roaVerifier.begin();
-		for (; sequences != roaVerifier.end(); ++sequences)
-		{
-			if(read.right_sequence_half == (*sequences).second.left_sequence_half &&
-					(*sequences).second.count > THRESHOLD
-			){
-				//				cout << gene << " : " << roa << " : " << seq <<endl;
-				//				cout << gene << " : " << roa - seq.length()/2  << " :                  " << (*sequences).first << endl;
-				//				cout << endl;
-				read.verification_flags  = read.verification_flags | 0b00000010;
-				break;
-			}
-		}
-	}
+  if( read.is_right_left_verified() )
+    return 1;
 
+  return 0;
 
-	//	 Print the verified words that are not reference.
-	//	if( (read.verification_flags & 0b00000111) == 0b00000111 && // Left and Right Verified
-	//			(read.verification_flags & 0b00011000) != 0b00011000 // Is not an exact match to reference
-	//	)
-	//		cout << gene << " : " << roa << " : " << seq << " is verified and unique." << endl;
-
-	return ( read.is_right_left_verified() 	&&
-			 read.is_above_threshold() 		&&
-			 not read.matches_ref_on_left_and_right()
-	);
 }
-
 
 /*
 
@@ -499,14 +472,16 @@ int verify ( string gene, int position, string seq, Read read)
  */
 int buildHistograms(string gene, int position, string seq, Read read)
 {
-	if(position > 2000){
-		cout << "can't do ROA " << position << endl;
-		return 0;
-	}
 
-	if( not read.matches_ref_on_left_and_right() &&
-		(read.is_right_left_verified() || read.is_above_threshold()))
+  if((read.verification_flags &  0b00000011) == 0b00000011)
+{
+    cout << "this should work 1 " << (read.verification_flags & 0b00000011) << read.is_right_left_verified() << endl; 
+}
+	if( read.is_right_left_verified()) 
 	{
+    
+  cout << "this should work 22" << endl; 
+
 		// Create a histogram for the left half
 		uint64_t s = read.left_sequence_half;
 		int i = 0;

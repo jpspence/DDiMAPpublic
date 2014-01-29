@@ -37,11 +37,11 @@ struct Read {
 	//    |_ 		128
 
 	// Function Declarations
-	bool matches_ref_on_left_and_right()
-	{ return (verification_flags & 0b00011000) == 0b00011000; }
-
 	bool is_right_left_verified()
-	{ return (verification_flags & 0b00000011) == 0b00000011; }
+	{ return (this->verification_flags & 0b00000011) == 0b00000011; }
+	
+  bool matches_ref_on_left_and_right()
+	{ return (verification_flags & 0b00011000) == 0b00011000; }
 
 	bool is_above_threshold()
 	{ return (verification_flags & 0b00100000) == 0b00100000; }
