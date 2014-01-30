@@ -36,6 +36,26 @@ struct Read {
 	//    ||_ 		64
 	//    |_ 		128
 
+  void set_left_verified()
+  { verification_flags = verification_flags | 0b0000001; }
+  
+  void set_right_verified()
+  { verification_flags = verification_flags | 0b0000010; }
+ 
+  void set_no_indels()
+  { verification_flags = verification_flags | 0b0000100; } 
+  
+  void set_matches_ref_on_left() 
+  { verification_flags = verification_flags | 0b0001000; }
+
+  void set_matches_ref_on_right() 
+  { verification_flags = verification_flags | 0b0010000; }
+  
+  bool is_right_left_verified()
+  { return (verification_flags & 0b00000011) == 0b00000011;}
+  
+  bool matches_reference()
+  { return (verification_flags & 0b00011000) == 0b00011000;}
 };
 
 int readFile(string file, char *fasta, int length, Read (*f)(string &, int));

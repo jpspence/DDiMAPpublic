@@ -20,11 +20,11 @@
 
 // Default file.
 
-string file  = "data/128test_Gen1_example_sorted.bam";
-char  *fasta = "data/128test_Gen1_example.fa";
+//string file  = "data/128test_Gen1_example_sorted.bam";
+//char  *fasta = "data/128test_Gen1_example.fa";
 
-//string file  = "/Dropbox/Google Drive/DataExchangeUR/128_Gen7_BSBSB_VhJ_FragHigh_sorted.bam";
-//char  *fasta = "/Dropbox/Google Drive/DataExchangeUR/128_Gen7_BSBSB_VhJ_FragHigh.fa";
+string file  = "/Dropbox/Google Drive/DataExchangeUR/128_Gen7_BSBSB_VhJ_FragHigh_sorted.bam";
+char  *fasta = "/Dropbox/Google Drive/DataExchangeUR/128_Gen7_BSBSB_VhJ_FragHigh.fa";
 
 int main (int argc, char **argv)
 {
@@ -78,12 +78,6 @@ int main (int argc, char **argv)
 			t, ((float)t)/CLOCKS_PER_SEC , verified, unique);
 
 
-	t = clock();
- verified = iterate(verify);
-	t = clock() - t;
-	printf ("It took me %lu ticks (%f seconds) to verify %d | %d.\n",
-			t, ((float)t)/CLOCKS_PER_SEC , verified, unique);
-	
 t = clock();
 	verified = iterate(buildHistograms);
 	t = clock() - t;
@@ -96,7 +90,7 @@ t = clock();
   h1 = gnuplot_init() ;
   gnuplot_resetplot(h1) ;
   gnuplot_cmd(h1, "set xrange [0:1200]");
-  gnuplot_cmd(h1, "set yrange [0:1]");
+  gnuplot_cmd(h1, "set yrange [0.000001:0.999999]");
   gnuplot_cmd(h1, "set multiplot title \"GC Content for different genes\" layout 3,4");
   gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/Bcl2CG.txt\" 	with points ls 1 title \"Bcl2\"");
   gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/Bcl6CG.txt\" 	with points ls 1 title \"Bcl6\"");

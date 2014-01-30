@@ -164,7 +164,6 @@ int counters =0;
 int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) )
 {
 
-	//	cout << " Tag Data : " << ba.TagData << endl;
 	if(ba.Position > 0)
 	{
 		int position;
@@ -179,35 +178,14 @@ int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) )
 			r = f(word, length);
 
 			// Find out if this matches the reference sequence
-			if(ba.CigarData[0].Length == 50){
+			if(ba.CigarData[0].Length == 50)
+        r.set_no_indels();
 
-				bool changed = false;
-				r.verification_flags = r.verification_flags | 0b00000100 ;
-
-				// Check to see that the sequence doesn't match a reference
-				if(references[genes_names[ba.RefID]][position] == r.left_sequence_half)
-					r.verification_flags = r.verification_flags | 0b00001000 ;
-				//				else if (references[genes_names[ba.RefID]][position] != 0 ){
-				//					cout << "GENE : " << genes_names[ba.RefID] << " @ Position : "<<position << " L "<< endl;
-				//					cout << "read : " << UINT64ToString(r.left_sequence_half) 							<< " : " << r.left_sequence_half << endl ;
-				//					cout << "refs : " << UINT64ToString(references[genes_names[ba.RefID]][position])	<< " : " << references[genes_names[ba.RefID]][position]  << endl;
-				//					cout << counters << "WRONG " <<endl;
-				//					changed = true;
-				//					cout << endl;
-				//				}
-				if(references[genes_names[ba.RefID]][position+length/2] == r.right_sequence_half)
-					r.verification_flags = r.verification_flags | 0b00010000 ;
-				//				else if (references[genes_names[ba.RefID]][position+length/2] != 0 ){
-				//					cout << "GENE : " << genes_names[ba.RefID] << " @ Position : "<<position+length/2 << " R "<< endl;
-				//					cout << "read : " << UINT64ToString(r.right_sequence_half) 									<< " : " << r.right_sequence_half << endl ;
-				//					cout << "refs : " << UINT64ToString(references[genes_names[ba.RefID]][position+length/2])	<< " : " << references[genes_names[ba.RefID]][position+length/2]  << endl;
-				//					cout << counters << "WRONG " <<endl;
-				//					changed = true;
-				//					cout << endl;
-				//				}
-
-				if(changed) counters++;
-			}
+			if(references[genes_names[ba.RefID]][position] == r.left_sequence_half)
+        r.set_matches_ref_on_left();
+			
+      if(references[genes_names[ba.RefID]][position+length/2] == r.right_sequence_half)
+				r.set_matches_ref_on_right();
 
 			reads[name][position][word] = r;
 			return 1;
@@ -346,41 +324,35 @@ int verify ( string gene, int roa, string seq, Read& read)
   map<string, Read> roaVerifier;
 
   // Verify the left
-  if((roaVerifier = reads[gene][roa - seq.length()/2 ]).size() > 0){
+  if((roaVerifier = reads[gene][roa - seq.length()/2 ]).size() > 0) 
+  {
     map<string, Read>::iterator sequences = roaVerifier.begin();
     for (; sequences != roaVerifier.end(); ++sequences)
-    {
-      if(read.left_sequence_half == (*sequences).second.right_sequence_half){
-        //        cout << gene << " : " << roa << " :                  " << seq <<endl;
-        //        cout << gene << " : " << roa - seq.length()/2  << " : " << (*sequences).first << endl;
-        //        cout << endl;
-        read.verification_flags = read.verification_flags | 0b00000001;
+      if(read.left_sequence_half == (*sequences).second.right_sequence_half) 
+      {
+        read.set_left_verified();
         break;
       }
-    }
   }
 
   // Verify the right
-  if((roaVerifier = reads[gene][roa + seq.length()/2 ]).size() > 0){
+  if((roaVerifier = reads[gene][roa + seq.length()/2 ]).size() > 0)
+  {
     map<string, Read>::iterator sequences = roaVerifier.begin();
     for (; sequences != roaVerifier.end(); ++sequences)
-    {
-      if(read.right_sequence_half == (*sequences).second.left_sequence_half ){
-        //        cout << gene << " : " << roa << " : " << seq <<endl;
-        //        cout << gene << " : " << roa - seq.length()/2  << " :                  " << (*sequences).first << endl;
-        //        cout << endl;
-        read.verification_flags  = read.verification_flags | 0b00000010;
+      if(read.right_sequence_half == (*sequences).second.left_sequence_half )
+      {
+        read.set_right_verified();
         break;
       }
-    }
   }
 
   // Print the verified words that are not reference.
 //  if( not read.matches_ref_on_left_and_right() && read.is_right_left_verified() )
 //    cout << gene << " : " << roa << " : " << seq << " is verified and unique." << read.is_right_left_verified() << endl;
 
-  if( (read.verification_flags & 0b00000011 ) == 0b00000011 && // RL Verified
-      (read.verification_flags &  0b00011000) != 0b00011000 ) //  Not reference
+  if( read.is_right_left_verified() && 
+      not read.matches_reference() )
     return 1;
 
   return 0;
@@ -473,23 +445,25 @@ int verify ( string gene, int roa, string seq, Read& read)
 int buildHistograms(string gene, int position, string seq, Read& read)
 {
 
-  if((read.verification_flags &  0b00000011) == 0b00000011 && // RL Verify
-     (read.verification_flags &  0b00011000) != 0b00011000 ) //  Not reference
+  if( read.is_right_left_verified() && 
+      not read.matches_reference() )
 	{
     
 		// Create a histogram for the left half
 		uint64_t s = read.left_sequence_half;
 		int i = 0;
-		while(s!=0){
-				verified_histogram[gene][position + i][ s & 0b00000111] += read.count;
-			s = s >> 3; i++;
+		while(s!=0)
+		{
+    	verified_histogram[gene][position + i][ s & 0b00000111] += read.count;
+		  s = s>>3;i++;
 		}
 
 		// Then the right
 		s = read.right_sequence_half;
-		while(s!=0){
+		while(s!=0)
+    {
 				verified_histogram[gene][position + i][ s & 0b00000111] += read.count;
-			s = s >> 3; i++;
+			  s=s>>3;i++;
 		}
 
 	}
