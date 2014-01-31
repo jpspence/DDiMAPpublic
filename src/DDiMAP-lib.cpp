@@ -47,24 +47,21 @@ map<string, map<int, uint64_t > > references;
 // Convenience methods.
 // ----------------------------------------------------------------------------
 
-string createWordString(BamAlignment &ba, int length, int &position)
+string createWordString(BamAlignment &ba, int length, int &position, int track)
 {
-  int to_roa    = ( length/2 - ba.Position ) % (length/2);
-  if(to_roa < 0) to_roa+=length/2;
-	int offset    = (ba.IsReverseStrand()) ? ba.AlignedBases.length() - ( (ba.Position + ba.AlignedBases.length())%(length/2)) - length  : to_roa ;
+    int to_roa    = ( length/2 - ba.Position ) % (length/2);
+    if(to_roa < 0) to_roa+=length/2;
+    int offset    = (ba.IsReverseStrand()) ? ba.AlignedBases.length() - ( (ba.Position + ba.AlignedBases.length())%(length/2)) - length  : to_roa ;
 
-	position = ba.Position + offset;
-//  cout << ba.Position << "+" << offset << "+" << to_roa << endl;
-//  cout << ((ba.IsReverseStrand()) ? "reverse [" : "forward [") <<  ba.Position << " - " << (ba.Position + ba.AlignedBases.length()) << "] + @" << position << endl;
-	string word   = ba.AlignedBases.substr(offset, length);
-	return word;
+    position = ba.Position + offset + track * (ba.IsReverseStrand() ? - 8 : 8);
+    string word   = ba.AlignedBases.substr(offset, length);
+    return word;
 }
 
-const char *createWordArray(BamAlignment &ba, int length, int &position)
+const char *createWordArray(BamAlignment &ba, int length, int &position, int track)
 {
-	string word = createWordString(ba, length, position);
+	string word = createWordString(ba, length, position, track);
 	return word.c_str();
-
 }
 
 // ----------------------------------------------------------------------------
@@ -82,36 +79,30 @@ uint64_t charToUINT64(char ch)
 {
 	switch(ch){
 	case 'A':
-	case 'a':
-		return a;
-	case 'T':
-	case 't':
-		return t;
-	case 'C':
-	case 'c':
-		return c;
-	case 'G':
-	case 'g':
-		return g;
-	case '-':
-		return dash;
-	default :
-		return 0;
+	case 'a': return a;
+	
+  case 'T':
+	case 't': return t;
+	
+  case 'C':
+	case 'c':	return c;
+	
+  case 'G':
+	case 'g':	return g;
+
+  case '-': return dash;
+
+	default : return 0;
 	}
 }
 
 char UINT64ToChar(uint64_t ch)
 {
-	if( ch == a)
-		return 'A';
-	if( ch == t)
-		return 'T';
-	if (ch == c)
-		return 'C';
-	if (ch == g)
-		return 'G';
-	if (ch == dash)
-		return '-';
+	if( ch == a) return 'A';
+	if( ch == t) return 'T';
+	if (ch == c) return 'C';
+	if (ch == g) return 'G';
+	if (ch == dash) return '-';
 	return '.';
 }
 
@@ -119,7 +110,6 @@ string UINT64ToString(uint64_t s)
 {
 
 	std::stringstream temp;
-
 	while(s!=0){
 		temp << UINT64ToChar( s & 0b00000111 );
 		s = s >> 3;
@@ -153,53 +143,53 @@ Read buildRead( string &word, int length)
 // Convert does NOT convert sequence to INT
 Read convert(string &word, int length)
 {
-
 	Read r;
 	r.count = 1;
 	r.verification_flags = 0;
 	memcpy(r.sequence, word.c_str(), length*sizeof(char));
 	return r;
-
 }
 
 // ----------------------------------------------------------------------------
 // Reading Files
 // ----------------------------------------------------------------------------
-
-
 int counters =0;
 int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) )
 {
 
-	if(ba.Position > 0)
+	int unique = 0;
+  if(ba.Position > 0)
 	{
-		int position;
-		string word   = createWordString(ba, length, position);
-		string name   = genes[ba.RefID];
+    for (int track = 0; track < 2; track ++ ){
+      int position;
+      string word   = createWordString(ba, length, position, track);
+      string name   = genes[ba.RefID];
 
-		// Increment counter for the observed sequence
-		if(reads[name][position][word].count)
-			reads[name][position][word].count+=1;
-		else {
-			Read r;
-			r = f(word, length);
+      // Increment counter for the observed sequence
+      if(reads[name][position][word].count)
+        reads[name][position][word].count+=1;
+      
+      // Create a new read for the position on this track
+      else {
+        Read r;
+        r = f(word, length);
 
-			// Find out if this matches the reference sequence
-			if(ba.CigarData[0].Length == 50)
-        r.set_no_indels();
+        if(ba.CigarData[0].Length == 50)
+          r.set_no_indels();
 
-			if(references[genes_names[ba.RefID]][position] == r.left_sequence_half)
-        r.set_matches_ref_on_left();
-			
-      if(references[genes_names[ba.RefID]][position+length/2] == r.right_sequence_half)
-				r.set_matches_ref_on_right();
+        if(references[genes_names[ba.RefID]][position] == r.left_sequence_half)
+          r.set_matches_ref_on_left();
+        
+        if(references[genes_names[ba.RefID]][position+length/2] == r.right_sequence_half)
+          r.set_matches_ref_on_right();
 
-			reads[name][position][word] = r;
-			return 1;
-		}
-	}
+        reads[name][position][word] = r;
+        unique++;
+      }
+    }
+  }
 
-	return 0;
+	return unique;
 }
 
 // Returns the number of unique reads in the file.

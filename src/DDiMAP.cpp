@@ -90,7 +90,7 @@ t = clock();
   h1 = gnuplot_init() ;
   gnuplot_resetplot(h1) ;
   gnuplot_cmd(h1, "set xrange [0:1200]");
-  gnuplot_cmd(h1, "set yrange [0.000001:0.999999]");
+  gnuplot_cmd(h1, "set yrange [0:1]");
   gnuplot_cmd(h1, "set multiplot title \"GC Content for different genes\" layout 3,4");
   gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/Bcl2CG.txt\" 	with points ls 1 title \"Bcl2\"");
   gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/Bcl6CG.txt\" 	with points ls 1 title \"Bcl6\"");
