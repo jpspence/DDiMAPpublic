@@ -51,11 +51,17 @@ struct Read {
   void set_matches_ref_on_right() 
   { verification_flags = verification_flags | 0b0010000; }
   
+  void set_above_ppm_threshold() 
+  { verification_flags = verification_flags | 0b0100000; }
+  
   bool is_right_left_verified()
-  { return (verification_flags & 0b00000011) == 0b00000011;}
+  { return (verification_flags & 0b0000011) == 0b0000010;}
   
   bool matches_reference()
-  { return (verification_flags & 0b00011000) == 0b00011000;}
+  { return (verification_flags & 0b0011000) == 0b0011000;}
+  
+  bool is_above_ppm()
+  { return (verification_flags & 0b0100000) == 0b0100000;}
 };
 
 int readFile(string file, char *fasta, int length, Read (*f)(string &, int));

@@ -21,7 +21,9 @@
 #include <cstring>
 #include <string>
 
-#define THRESHOLD 2
+#define THRESHOLD   2
+#define PPM         0.00075
+#define ROA_LENGTH  34
 
 // Declare the type of file handler for fasta reader
 KSEQ_INIT(gzFile, gzread)
@@ -32,13 +34,14 @@ map<int, string > genes;
 map<int, string > genes_names;
 
 // Histogram Data Structures
-map<string , map<int, map<int, int> > > verified_histogram;
-map<string , map<int, map<int, int> > > threshold_histogram;
+map<string , map<int, map<int, int> > > verified_histogram_0;
+map<string , map<int, map<int, int> > > verified_histogram_1;
+
+map<string , map<int, map<int, int> > > threshold_histogram_0;
+map<string , map<int, map<int, int> > > threshold_histogram_1;
 
 // Map <Reference Name -> < position -> sequence>
 map<string, map<int, uint64_t > > references;
-
-// TODO: Print out into Fasta File
 
 // ----------------------------------------------------------------------------
 // Convenience methods.
@@ -46,11 +49,15 @@ map<string, map<int, uint64_t > > references;
 
 string createWordString(BamAlignment &ba, int length, int &position)
 {
-	int offset    = (ba.IsReverseStrand()) ? ba.AlignedBases.length() - length : 0 ;
+  int to_roa    = ( length/2 - ba.Position ) % (length/2);
+  if(to_roa < 0) to_roa+=length/2;
+	int offset    = (ba.IsReverseStrand()) ? ba.AlignedBases.length() - ( (ba.Position + ba.AlignedBases.length())%(length/2)) - length  : to_roa ;
+
 	position = ba.Position + offset;
+//  cout << ba.Position << "+" << offset << "+" << to_roa << endl;
+//  cout << ((ba.IsReverseStrand()) ? "reverse [" : "forward [") <<  ba.Position << " - " << (ba.Position + ba.AlignedBases.length()) << "] + @" << position << endl;
 	string word   = ba.AlignedBases.substr(offset, length);
 	return word;
-
 }
 
 const char *createWordArray(BamAlignment &ba, int length, int &position)
@@ -311,36 +318,49 @@ void printFasta()
 int print (string gene, int position, string seq, Read& read)
 {
 
-	// Print [gene][ROA][COUNT][Seq]
 	if( read.count > 10000 )
 		cout << gene << " [" << position << "][" << read.count << "] "  << seq << endl;
 
 	return 1;
 }
 
-int verify ( string gene, int roa, string seq, Read& read)
+int verify ( string gene, int position, string seq, Read& read)
 {
 
   map<string, Read> roaVerifier;
 
   // Verify the left
-  if((roaVerifier = reads[gene][roa - seq.length()/2 ]).size() > 0) 
+  if((roaVerifier = reads[gene][position - seq.length()/2 ]).size() > 0) 
   {
     map<string, Read>::iterator sequences = roaVerifier.begin();
     for (; sequences != roaVerifier.end(); ++sequences)
-      if(read.left_sequence_half == (*sequences).second.right_sequence_half) 
+      if(read.left_sequence_half == (*sequences).second.right_sequence_half &&
+        (*sequences).second.count > THRESHOLD ) 
       {
         read.set_left_verified();
         break;
       }
   }
-
-  // Verify the right
-  if((roaVerifier = reads[gene][roa + seq.length()/2 ]).size() > 0)
+  
+  // Verify the frequency
+  double count = 0;
+  if((roaVerifier = reads[gene][position]).size() > 0) 
   {
     map<string, Read>::iterator sequences = roaVerifier.begin();
     for (; sequences != roaVerifier.end(); ++sequences)
-      if(read.right_sequence_half == (*sequences).second.left_sequence_half )
+      count+=(*sequences).second.count;
+  }
+  if( (double)read.count / count > PPM)
+  read.set_above_ppm_threshold();
+
+
+  // Verify the right
+  if((roaVerifier = reads[gene][position + seq.length()/2 ]).size() > 0)
+  {
+    map<string, Read>::iterator sequences = roaVerifier.begin();
+    for (; sequences != roaVerifier.end(); ++sequences)
+      if(read.right_sequence_half == (*sequences).second.left_sequence_half &&
+         (*sequences).second.count > THRESHOLD )
       {
         read.set_right_verified();
         break;
@@ -359,93 +379,11 @@ int verify ( string gene, int roa, string seq, Read& read)
 
 }
 
-/*
 
-	SNV Calling and Coverage Profiling
-	----------------------------------
-
-	The final analysis phase produces
-	1) SNV calls
-	2) Associated SNV Frequencies
-	3) Coverage profiles.
-
-	We start with the complete collection of all ROA dictionaries.
-	- We accept only the words that pass the bidirectional frequency test
-		(at least 2x in each direction &&
-		at least 750 ppm in each direction relative to the total coverage of all words in the ROA).
-
-	- We choose two start positions, each of which is used to define a covering dictionary collection.
-		For instance, a start position of 9,  ROA size of 34, overlap of 17
-		uses the collection of ROAs starting at 9, 26, 43, … as corresponding
-		covering collections.  These are the ones used for verification.
-
-	Within each covering collection, we calculate two histograms for each location
-	in the underlying reference sequence
-	- the number of occurrences of each letter (A, C, G, T, -).
-	- Once for words that pass the frequency threshold tests
- 	- separately for the verified words.
-
-	TODO: NOTE:
-	1) An SNV is called for any base at a position for which one of these rules is followed:
-
-	A letter that does not match the reference sequence
-	- AND -
-
-	a) A letter appears in the verified histograms for both start positions.
-
-	b) A letter appears in the verified histogram for one of the start positions at a frequency in excess of a first set minimum threshold.
-	--> the frequency threshold we typically use is 0.3%.  The computed
-	frequency for each covering collection is the ratio of the verified
-	histogram count to the coverage at that location, namely the sum of
-	all letter counts in that covering collection histogram.
-
-	c) A letter appears in either all-words histogram at a frequency in excess of a second set minimum threshold.
-	--> the frequency threshold we typically use is 10%.  The computed
-	 frequency for each covering collection is the ratio of the all-words
-	 histogram count to the coverage at that location, namely the sum of
-	 all letter counts in that covering collection histogram.
-
-
-	2) Once an SNV is called, a frequency is computed.
-	This combines the results from the two start position results.
-	This can be done by adding the histograms for the two start positions together and computing frequencies using the combined counts.  For type 1 calls, this is easy.  For type 2 calls, I have been only including the SNV counts from the covering collection in which it is called in the numerator but have been dividing by the total coverage of the two start position verified histograms.  This is probably not the best way, but the paper was written using data generated this way.  I'd like to put in a flag to compute it this way or by combining counts from both verified histograms in the numerator as well.  For type 3 calls, I have been including SNV counts from both all-words covering collections in the numerator and dividing by the total coverage of the two start position all-words histograms.
-
-	The final SNV calling output should be a csv file for each reference sequence containing the following columns of data (and suggested column headers):
-
-	Gene (reference sequence base name like Bcl2, KS, etc)
-	SpecimenID (in a run, there can be multiple specimens that are called separately and we could combine them if we processed saved dictionary collections from them all at once)
-	Location (1-based location within the reference sequence)
-	RefBase (the base in the reference sequence at that location)
-	CalledBase (the called SNV base or D for a deletion.  A hyphen “-” is typically used but spreadsheet programs can turn this into a number 0 as it treats entries with a minus and no letters as a number)
-	CallReason (rule number 1, 2, or 3)
-	MaxFreq (the larger of the two verified frequencies for rules 1 or 2, the larger of the two all-words frequencies for rule 3 – these are the numbers used for the calling rule)
-	Count (the numerator of the frequency calculation)
-	Coverage (the denominator of the frequency calculation)
-	CalcFreq (the ratio of Count/Coverage)
-	RawCoverage (the coverage from the all words histograms, averaged at each position between the two start positions – as an int, chopped not rounded)
-
-	A table of control parameters used to do the analysis should be put as a header in the csv file, with a description in the first column and a value in a second column
-
-	For example:
-	ControlParameter,ParameterValue
-	ROAsize,34
-	ROAoverlap,17
-	AcceptanceCountThreshold,2
-	AcceptanceFrequencyThreshold,0.000750
-	StartPosition#1,1
-	StartPosition#2,9
-	VerifiedThreshold,0.003
-	AllWordsThreshold, 0.1
-
-	This would be followed by a blank line, and then a line with the set of
-	column headers for the data and then the data.  Note that if there are
-	multiple SNVs at a given location, they each get their own line in the file
-
- */
 int buildHistograms(string gene, int position, string seq, Read& read)
 {
 
-  if( read.is_right_left_verified() && 
+  if( ( read.is_right_left_verified() || read.is_above_ppm() ) && 
       not read.matches_reference() )
 	{
     
@@ -454,7 +392,10 @@ int buildHistograms(string gene, int position, string seq, Read& read)
 		int i = 0;
 		while(s!=0)
 		{
-    	verified_histogram[gene][position + i][ s & 0b00000111] += read.count;
+      if( read.is_right_left_verified() )
+    	  verified_histogram_0[gene][position + i][ s & 0b00000111] += read.count;
+      if( read.is_above_ppm() )
+    	  threshold_histogram_0[gene][position + i][ s & 0b00000111] += read.count;
 		  s = s>>3;i++;
 		}
 
@@ -462,7 +403,10 @@ int buildHistograms(string gene, int position, string seq, Read& read)
 		s = read.right_sequence_half;
 		while(s!=0)
     {
-				verified_histogram[gene][position + i][ s & 0b00000111] += read.count;
+      if( read.is_right_left_verified() )
+    	  verified_histogram_0[gene][position + i][ s & 0b00000111] += read.count;
+      if( read.is_above_ppm() )
+    	  threshold_histogram_0[gene][position + i][ s & 0b00000111] += read.count;
 			  s=s>>3;i++;
 		}
 
@@ -472,8 +416,8 @@ int buildHistograms(string gene, int position, string seq, Read& read)
 
 void printHistograms()
 {
-	map<string , map<int, map<int, int> > >::iterator genes = verified_histogram.begin();
-	for(; genes != verified_histogram.end(); ++genes)
+	map<string , map<int, map<int, int> > >::iterator genes = verified_histogram_0.begin();
+	for(; genes != verified_histogram_0.end(); ++genes)
 	{
 		string filename = "/Users/androwis/Desktop/"+(*genes).first+"AT.txt";
 		string filenameC = "/Users/androwis/Desktop/"+(*genes).first+"CG.txt";
