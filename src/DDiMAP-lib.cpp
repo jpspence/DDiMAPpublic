@@ -137,11 +137,18 @@ Read convert(string &word, int length)
 // We assign each read to only 1 Track
 string createWordString(BamAlignment &ba, int length, int &position)
 {
-	int to_roa    = ( length/4 - ba.Position ) % (length/4);
-	if(to_roa < 0) to_roa+=length/4;
-	int offset    = (ba.IsReverseStrand()) ? ba.AlignedBases.length() - ( (ba.Position + ba.AlignedBases.length())%(length/4)) - length  : to_roa ;
+	int to_roa    = ( length/2 - ba.Position ) % (length/2);
+	if(to_roa < 0) to_roa+=length/2;
+	int offset    = (ba.IsReverseStrand()) ? ba.AlignedBases.length() - ( (ba.Position + ba.AlignedBases.length())%(length/2)) - length  : to_roa ;
+
+	// Place the read in one of two tracks.
+	if(ba.IsReverseStrand() && ba.AlignedBases.length() - offset > 8 )
+		offset+=8;
+	else if((to_roa % length/2) > 8)
+		offset-=8;
+
 	position = ba.Position + offset;
-	if(ba.Position < 50)
+
 	//cout << (ba.IsReverseStrand() ? "reverse " : "forward ") << "[" << ba.Position << " - " << (ba.Position+ba.AlignedBases.length()) << "] @" << position << endl;
 	string word   = ba.AlignedBases.substr(offset, length);
 	return word;
@@ -184,6 +191,7 @@ int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) )
 				r.set_matches_ref_on_right();
 
 			reads[name][position][word] = r;
+
 			return 1;
 		}
 	}
@@ -315,6 +323,7 @@ int print (string gene, int position, string seq, Read& read)
 int verify ( string gene, int position, string seq, Read& read)
 {
 
+
 	map<string, Read> roaVerifier;
 
 	// Verify the left
@@ -429,9 +438,17 @@ void printHistograms()
 		for (; positions != (*genes).second.end(); ++positions)
 		{
 			map<int, int> counts = (*positions).second;
-			double total = counts[1]+counts[2]+counts[3]+counts[4];
-			f <<  (*positions).first << "\t" << ((double) (counts[1]+ counts[4]) / total) << "\n";
-			fc <<  (*positions).first << "\t" << ((double) (counts[2]+ counts[3]) / total) << "\n";
+			double total = counts[1]+counts[2]+counts[3]+counts[4] +
+					verified_histogram_1[(*genes).first][(*positions).first][1] +
+					verified_histogram_1[(*genes).first][(*positions).first][2] +
+					verified_histogram_1[(*genes).first][(*positions).first][3] +
+					verified_histogram_1[(*genes).first][(*positions).first][4];
+			f <<  (*positions).first << "\t" << ((double) (counts[1]+ counts[4]+
+					verified_histogram_1[(*genes).first][(*positions).first][1] +
+					verified_histogram_1[(*genes).first][(*positions).first][4] ) / total) << "\n";
+			fc <<  (*positions).first << "\t" << ((double) (counts[2]+ counts[3] +
+					verified_histogram_1[(*genes).first][(*positions).first][2] +
+					verified_histogram_1[(*genes).first][(*positions).first][3] ) / total) << "\n";
 
 		}
 
