@@ -83,7 +83,7 @@ char UINT64ToChar(uint64_t ch)
 	if (ch == c) return 'C';
 	if (ch == g) return 'G';
 	if (ch == dash) return '-';
-	return '.';
+	return '\0';
 }
 
 string UINT64ToString(uint64_t s)
@@ -364,10 +364,6 @@ int verify ( string gene, int position, string seq, Read& read)
 			}
 	}
 
-	// Print the verified words that are not reference.
-	//  if( not read.matches_ref_on_left_and_right() && read.is_right_left_verified() )
-	//    cout << gene << " : " << roa << " : " << seq << " is verified and unique." << read.is_right_left_verified() << endl;
-
 	if( read.is_right_left_verified() &&
 			not read.matches_reference() )
 		return 1;
@@ -375,6 +371,133 @@ int verify ( string gene, int position, string seq, Read& read)
 	return 0;
 
 }
+
+//	SNV calls
+//	----------------------------------
+//	An SNV is called for any base at a position when:
+//
+//		A letter that does not match the reference sequence
+//
+//		- AND -
+//
+//		a) A letter appears in the verified histograms for both start positions.
+//
+//		b) A letter appears in the verified histogram for one of the start positions at a frequency in excess of a first set minimum threshold.
+//		--> the frequency threshold we typically use is 0.3%.  The computed
+//		frequency for each covering collection is the ratio of the verified
+//		histogram count to the coverage at that location, namely the sum of
+//		all letter counts in that covering collection histogram.
+//
+//		c) A letter appears in either all-words histogram at a frequency in excess of a second set minimum threshold.
+//		--> the frequency threshold we typically use is 10%.  The computed
+//		 frequency for each covering collection is the ratio of the all-words
+//		 histogram count to the coverage at that location, namely the sum of
+//		 all letter counts in that covering collection histogram.
+//
+
+//       	-----------------------------------------------------------
+// track 0  [0               16|17               33|34              49]
+//          -------------------------------------------------------------------
+// track 1	         [8               24|25      X        41|42              57]
+// 		             ----------------------------------------------------------------------
+// track 0 	                   [17               33|34               50|51              66]
+// 		                       ---------------------------------------------------------------------
+// track 1	    		                [25               41|42               58|59              74]
+// 		                                ------------------------------------------------------------
+
+int callSNVs( string gene, int position, string seq, Read& read)
+{
+	unsigned int verified = 0;
+	if( not read.matches_reference() and read.is_right_left_verified() ){
+
+		if(not read.matches_ref_on_left() && position > 7){
+
+			// Check at offset of - 8.
+			map<string, Read>::iterator sequence = reads[gene][position-8].begin();
+			for(; sequence != reads[gene][position-8].end(); ++sequence){
+				if(false){
+					cout << "-------------------------"<<endl;
+					// left
+					cout << UINT64ToString( (*sequence).second.left_sequence_half ) << endl;
+					cout << "        " << UINT64ToString( ((*sequence).second.left_sequence_half >> 24 )) << endl;
+
+					// read
+
+					cout << "        " << UINT64ToString( (read.left_sequence_half & 0b1111111111111111111111111111)) << endl;
+					cout << "        " << UINT64ToString( read.left_sequence_half ) << endl;
+					cout << "                 " << UINT64ToString( (read.left_sequence_half >> 27) ) << endl;
+
+					// right
+					cout << "                 " << UINT64ToString( ((*sequence).second.right_sequence_half & 0b1111111111111111111111)) << endl;
+					cout << "                 " << UINT64ToString( (*sequence).second.right_sequence_half ) << endl;
+					cout << "-------------------------"<<endl;
+				}
+
+				if(read.matches_track_left_offset((*sequence).second.left_sequence_half))
+					verified = verified | 0b1;
+				if(read.matches_track_right_offset((*sequence).second.right_sequence_half))
+					verified = verified | 0b10;
+
+			}
+
+			// Check at offset of - 8 - 1/2 ROA.
+			if( not ((verified & 0b1) == 1)  && position > 24){
+				map<string, Read>::iterator sequence = reads[gene][position- 25].begin();
+				for(; sequence != reads[gene][position-25].end(); ++sequence){
+					if(false){
+						cout << "-------------------------"<<endl;
+						// left
+						cout << UINT64ToString( (*sequence).second.right_sequence_half ) << endl;
+						cout << "        " << UINT64ToString( ((*sequence).second.right_sequence_half >> 24 )) << endl;
+						// read
+						cout << "        " << UINT64ToString( (read.left_sequence_half & 0b1111111111111111111111111111)) << endl;
+						cout << "        " << UINT64ToString( read.left_sequence_half ) << endl;
+					}
+
+					if(read.matches_track_left_offset((*sequence).second.right_sequence_half))
+						verified = verified | 0b1;
+				}
+			}
+
+			// Check at offset of - 8 + 1/2 ROA.
+			if( not ((verified & 0b10) == 0b10)){
+				map<string, Read>::iterator sequence = reads[gene][position + 8].begin();
+				for(; sequence != reads[gene][position + 8].end(); ++sequence){
+					if(false){
+						cout << UINT64ToString( read.left_sequence_half ) << endl;
+						cout << "        " << UINT64ToString( (read.left_sequence_half >> 24) ) << endl;
+
+						// right
+						cout << "        " << UINT64ToString( ((*sequence).second.left_sequence_half & 0b111111111111111111111111111)) << endl;
+						cout << "        " << UINT64ToString( (*sequence).second.left_sequence_half ) << endl;
+						cout << "-------------------------"<<endl;
+
+					}
+
+					if(read.matches_track_right_offset_2((*sequence).second.left_sequence_half))
+						verified = verified | 0b10;
+				}
+			}
+
+
+			if(verified == 0b11){
+				cout << "Definitely verified "<< position  << endl;
+				cout << UINT64ToString( read.left_sequence_half ) << endl;
+				cout << "-------------------------"<<endl;
+			}
+
+
+		}
+
+		if(not read.matches_ref_on_right()){
+
+
+		}
+
+	}
+	return 0;
+}
+
 
 
 int buildHistograms(string gene, int position, string seq, Read& read)
@@ -454,12 +577,4 @@ void printHistograms()
 
 		f.close();fc.close();
 	}
-}
-
-
-void callSNVs()
-{
-
-	// For each gene
-	// Look at both start positions and
 }

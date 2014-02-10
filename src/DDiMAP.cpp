@@ -20,11 +20,11 @@
 
 // Default file.
 
-//string file  = "data/128test_Gen1_example_sorted.bam";
-//char  *fasta = "data/128test_Gen1_example.fa";
+string file  = "data/128test_Gen1_example_sorted.bam";
+char  *fasta = "data/128test_Gen1_example.fa";
 
-string file  = "/Dropbox/Google Drive/DataExchangeUR/128_Gen7_BSBSB_VhJ_FragHigh_sorted.bam";
-char  *fasta = "/Dropbox/Google Drive/DataExchangeUR/128_Gen7_BSBSB_VhJ_FragHigh.fa";
+//string file  = "/Dropbox/Google Drive/DataExchangeUR/128_Gen7_BSBSB_VhJ_FragHigh_sorted.bam";
+//char  *fasta = "/Dropbox/Google Drive/DataExchangeUR/128_Gen7_BSBSB_VhJ_FragHigh.fa";
 
 int main (int argc, char **argv)
 {
@@ -76,15 +76,17 @@ int main (int argc, char **argv)
 	t = clock() - t;
 	printf ("It took me %lu ticks (%f seconds) to verify %d | %d.\n",
 			t, ((float)t)/CLOCKS_PER_SEC , verified, unique);
+//
+//
+//t = clock();
+//	verified = iterate(buildHistograms);
+//	t = clock() - t;
+//	printf ("It took me %lu ticks (%f seconds) to build the histogram.\n",
+//			t, ((float)t)/CLOCKS_PER_SEC);
 
+	verified = iterate(callSNVs);
 
-t = clock();
-	verified = iterate(buildHistograms);
-	t = clock() - t;
-	printf ("It took me %lu ticks (%f seconds) to build the histogram.\n",
-			t, ((float)t)/CLOCKS_PER_SEC);
-
-	printHistograms();
+//	printHistograms();
 
   gnuplot_ctrl    *   h1;
   h1 = gnuplot_init() ;
