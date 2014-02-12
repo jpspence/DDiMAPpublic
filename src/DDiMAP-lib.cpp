@@ -500,8 +500,11 @@ int callSNVs( string gene, int position, string seq, Read& read)
 			}
 		}
 
-		if((verified & 0b11) == 0b11){ }
-		if((verified & 0b1100) == 0b1100) {}
+		int count = 0;
+		if((verified & 0b11) == 0b11){ count ++;}
+		if((verified & 0b1100) == 0b1100) { count ++;}
+
+		return count;
 
 	}
 	return 0;
