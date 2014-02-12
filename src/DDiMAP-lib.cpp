@@ -13,8 +13,6 @@
 #include <api/SamSequence.h>
 #include <api/SamSequenceDictionary.h>
 #include <kseq.h>
-#include <stdio.h>
-#include <stdlib.h>
 #include <zlib.h>
 #include <cctype>
 #include <cstdint>
@@ -410,33 +408,88 @@ int callSNVs( string gene, int position, string seq, Read& read)
 	unsigned int verified = 0;
 	if( not read.matches_reference() and read.is_right_left_verified() ){
 
+		if(not read.matches_ref_on_right()){
+
+			// Check at offset of - 8.
+			map<string, Read>::iterator sequence = reads[gene][position+8].begin();
+			for(; sequence != reads[gene][position+8].end(); ++sequence)
+			{
+
+				if(read.right_half_matches_track_left_offset((*sequence).second.left_sequence_half))
+					verified = verified | 0b100;
+
+				if(read.right_half_matches_track_right_offset((*sequence).second.right_sequence_half))
+					verified = verified | 0b1000;
+
+				if((verified & 0b1100) == 0b1100)
+					break;
+			}
+
+			// Check at offset of - 8 - 1/2 ROA.
+			if( not ((verified & 0b100) == 0b100)  && position > 7){
+
+				map<string, Read>::iterator sequence = reads[gene][position - 8].begin();
+				for(; sequence != reads[gene][position-8].end(); ++sequence){
+
+					if(read.right_half_matches_track_left_offset2((*sequence).second.left_sequence_half))
+					{
+						verified = verified | 0b100;
+						break;
+					}
+
+				}
+			}
+
+			//TODO: I think there's a one offset error w/ either backward or forward reads.
+			if( not ((verified & 0b1000) == 0b1000)){
+				map<string, Read>::iterator sequence = reads[gene][position + 25].begin();
+				for(; sequence != reads[gene][position + 25].end(); ++sequence)
+					if(read.right_half_matches_track_right_offset_2((*sequence).second.left_sequence_half))
+					{
+						verified = verified | 0b1000;
+						break;
+					}
+			}
+
+
+
+		}
+
 		if(not read.matches_ref_on_left() && position > 7){
 
 			// Check at offset of - 8.
 			map<string, Read>::iterator sequence = reads[gene][position-8].begin();
 			for(; sequence != reads[gene][position-8].end(); ++sequence){
-				if(false){
-					cout << "-------------------------"<<endl;
-					// left
-					cout << UINT64ToString( (*sequence).second.left_sequence_half ) << endl;
-					cout << "        " << UINT64ToString( ((*sequence).second.left_sequence_half >> 24 )) << endl;
 
-					// read
+				if(read.matches_track_left_offset((*sequence).second.left_sequence_half)){
+					if(false)
+					{
+						cout << "-------------------------"<<endl;
+						// left
+						cout << UINT64ToString( (*sequence).second.left_sequence_half ) << endl;
+						cout << "       " << UINT64ToString( ((*sequence).second.left_sequence_half >>  30)) << endl;
 
-					cout << "        " << UINT64ToString( (read.left_sequence_half & 0b1111111111111111111111111111)) << endl;
-					cout << "        " << UINT64ToString( read.left_sequence_half ) << endl;
-					cout << "                 " << UINT64ToString( (read.left_sequence_half >> 27) ) << endl;
+						// read
 
-					// right
-					cout << "                 " << UINT64ToString( ((*sequence).second.right_sequence_half & 0b1111111111111111111111)) << endl;
-					cout << "                 " << UINT64ToString( (*sequence).second.right_sequence_half ) << endl;
-					cout << "-------------------------"<<endl;
+						cout << "      " << UINT64ToString( (read.left_sequence_half & 0b1111111111111111111111111111111)) << endl;
+						cout << "      " << UINT64ToString( read.left_sequence_half ) << endl;
+					}
+					verified = verified | 0b1;
 				}
 
-				if(read.matches_track_left_offset((*sequence).second.left_sequence_half))
-					verified = verified | 0b1;
-				if(read.matches_track_right_offset((*sequence).second.right_sequence_half))
+				if(read.matches_track_right_offset((*sequence).second.right_sequence_half)){
+					if(false)
+					{
+						cout << "        " << UINT64ToString( read.left_sequence_half ) << endl;
+						cout << "                 " << UINT64ToString( (read.left_sequence_half >> 27) ) << endl;
+
+						// right
+						cout << "                 " << UINT64ToString( ((*sequence).second.right_sequence_half & 0b1111111111111111111111)) << endl;
+						cout << "                 " << UINT64ToString( (*sequence).second.right_sequence_half ) << endl;
+						cout << "-------------------------"<<endl;
+					}
 					verified = verified | 0b10;
+				}
 
 			}
 
@@ -478,20 +531,19 @@ int callSNVs( string gene, int position, string seq, Read& read)
 						verified = verified | 0b10;
 				}
 			}
-
-
-			if(verified == 0b11){
-				cout << "Definitely verified "<< position  << endl;
-				cout << UINT64ToString( read.left_sequence_half ) << endl;
-				cout << "-------------------------"<<endl;
-			}
-
-
 		}
 
-		if(not read.matches_ref_on_right()){
 
+		if((verified & 0b11) == 0b11){
+			cout << "Definitely verified left " << position  << endl;
+			cout << UINT64ToString( read.left_sequence_half ) << endl;
+			cout << "-------------------------"<<endl;
+		}
 
+		if((verified & 0b1100) == 0b1100){
+			cout << "Definitely verified right" << position  << endl;
+			cout << UINT64ToString( read.right_sequence_half ) << endl;
+			cout << "-------------------------"<<endl;
 		}
 
 	}
