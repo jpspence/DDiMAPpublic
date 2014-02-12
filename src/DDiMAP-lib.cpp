@@ -426,22 +426,22 @@ int callSNVs( string gene, int position, string seq, Read& read)
 			}
 
 			// Check at offset of - 8 - 1/2 ROA.
-			if( not ((verified & 0b100) == 0b100)  && position > 7){
+			if( not ((verified & 0b100) == 0b100)  && position > 7)
+			{
 
 				map<string, Read>::iterator sequence = reads[gene][position - 8].begin();
-				for(; sequence != reads[gene][position-8].end(); ++sequence){
+				for(; sequence != reads[gene][position-8].end(); ++sequence)
 
 					if(read.right_half_matches_track_left_offset2((*sequence).second.left_sequence_half))
 					{
 						verified = verified | 0b100;
 						break;
 					}
-
-				}
 			}
 
 			//TODO: I think there's a one offset error w/ either backward or forward reads.
-			if( not ((verified & 0b1000) == 0b1000)){
+			if( not ((verified & 0b1000) == 0b1000))
+			{
 				map<string, Read>::iterator sequence = reads[gene][position + 25].begin();
 				for(; sequence != reads[gene][position + 25].end(); ++sequence)
 					if(read.right_half_matches_track_right_offset_2((*sequence).second.left_sequence_half))
@@ -459,92 +459,49 @@ int callSNVs( string gene, int position, string seq, Read& read)
 
 			// Check at offset of - 8.
 			map<string, Read>::iterator sequence = reads[gene][position-8].begin();
-			for(; sequence != reads[gene][position-8].end(); ++sequence){
+			for(; sequence != reads[gene][position-8].end(); ++sequence)
+			{
 
-				if(read.matches_track_left_offset((*sequence).second.left_sequence_half)){
-					if(false)
-					{
-						cout << "-------------------------"<<endl;
-						// left
-						cout << UINT64ToString( (*sequence).second.left_sequence_half ) << endl;
-						cout << "       " << UINT64ToString( ((*sequence).second.left_sequence_half >>  30)) << endl;
-
-						// read
-
-						cout << "      " << UINT64ToString( (read.left_sequence_half & 0b1111111111111111111111111111111)) << endl;
-						cout << "      " << UINT64ToString( read.left_sequence_half ) << endl;
-					}
+				if(read.matches_track_left_offset((*sequence).second.left_sequence_half))
 					verified = verified | 0b1;
-				}
 
-				if(read.matches_track_right_offset((*sequence).second.right_sequence_half)){
-					if(false)
-					{
-						cout << "        " << UINT64ToString( read.left_sequence_half ) << endl;
-						cout << "                 " << UINT64ToString( (read.left_sequence_half >> 27) ) << endl;
-
-						// right
-						cout << "                 " << UINT64ToString( ((*sequence).second.right_sequence_half & 0b1111111111111111111111)) << endl;
-						cout << "                 " << UINT64ToString( (*sequence).second.right_sequence_half ) << endl;
-						cout << "-------------------------"<<endl;
-					}
+				if(read.matches_track_right_offset((*sequence).second.right_sequence_half))
 					verified = verified | 0b10;
-				}
+
+				if((verified & 0b11) == 0b11)
+					break;
 
 			}
 
 			// Check at offset of - 8 - 1/2 ROA.
-			if( not ((verified & 0b1) == 1)  && position > 24){
+			if( not ((verified & 0b1) == 1)  && position > 24)
+			{
 				map<string, Read>::iterator sequence = reads[gene][position- 25].begin();
-				for(; sequence != reads[gene][position-25].end(); ++sequence){
-					if(false){
-						cout << "-------------------------"<<endl;
-						// left
-						cout << UINT64ToString( (*sequence).second.right_sequence_half ) << endl;
-						cout << "        " << UINT64ToString( ((*sequence).second.right_sequence_half >> 24 )) << endl;
-						// read
-						cout << "        " << UINT64ToString( (read.left_sequence_half & 0b1111111111111111111111111111)) << endl;
-						cout << "        " << UINT64ToString( read.left_sequence_half ) << endl;
-					}
+				for(; sequence != reads[gene][position-25].end(); ++sequence)
 
 					if(read.matches_track_left_offset((*sequence).second.right_sequence_half))
+					{
 						verified = verified | 0b1;
-				}
+						break;
+					}
 			}
 
 			// Check at offset of - 8 + 1/2 ROA.
-			if( not ((verified & 0b10) == 0b10)){
+			if( not ((verified & 0b10) == 0b10))
+			{
+
 				map<string, Read>::iterator sequence = reads[gene][position + 8].begin();
-				for(; sequence != reads[gene][position + 8].end(); ++sequence){
-					if(false){
-						cout << UINT64ToString( read.left_sequence_half ) << endl;
-						cout << "        " << UINT64ToString( (read.left_sequence_half >> 24) ) << endl;
-
-						// right
-						cout << "        " << UINT64ToString( ((*sequence).second.left_sequence_half & 0b111111111111111111111111111)) << endl;
-						cout << "        " << UINT64ToString( (*sequence).second.left_sequence_half ) << endl;
-						cout << "-------------------------"<<endl;
-
-					}
-
+				for(; sequence != reads[gene][position + 8].end(); ++sequence)
 					if(read.matches_track_right_offset_2((*sequence).second.left_sequence_half))
+					{
 						verified = verified | 0b10;
-				}
+						break;
+					}
 			}
 		}
 
-
-		if((verified & 0b11) == 0b11){
-			cout << "Definitely verified left " << position  << endl;
-			cout << UINT64ToString( read.left_sequence_half ) << endl;
-			cout << "-------------------------"<<endl;
-		}
-
-		if((verified & 0b1100) == 0b1100){
-			cout << "Definitely verified right" << position  << endl;
-			cout << UINT64ToString( read.right_sequence_half ) << endl;
-			cout << "-------------------------"<<endl;
-		}
+		if((verified & 0b11) == 0b11){ }
+		if((verified & 0b1100) == 0b1100) {}
 
 	}
 	return 0;
