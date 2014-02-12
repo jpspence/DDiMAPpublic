@@ -85,7 +85,7 @@ int main (int argc, char **argv)
 //			t, ((float)t)/CLOCKS_PER_SEC);
 
 	verified = iterate(callSNVs);
-
+	cout << "I've called " << verified << " SNVs. " << endl;
 //	printHistograms();
 
   gnuplot_ctrl    *   h1;

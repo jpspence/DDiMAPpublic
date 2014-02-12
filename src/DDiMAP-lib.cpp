@@ -38,6 +38,10 @@ map<string , map<int, map<int, int> > > verified_histogram_1;
 map<string , map<int, map<int, int> > > threshold_histogram_0;
 map<string , map<int, map<int, int> > > threshold_histogram_1;
 
+// SNV Calling Data Structures
+//   GENE		Position  SEQ     Count
+map<string , map<int, map<string, int> > > SNVs;
+
 // Map <Reference Name -> < position -> sequence>
 map<string, map<int, uint64_t > > references;
 
@@ -501,15 +505,28 @@ int callSNVs( string gene, int position, string seq, Read& read)
 		}
 
 		int count = 0;
-		if((verified & 0b11) == 0b11){ count ++;}
-		if((verified & 0b1100) == 0b1100) { count ++;}
-
+		if((verified & 0b11) == 0b11){
+			if( SNVs[gene][position][UINT64ToString(read.left_sequence_half)] )
+				SNVs[gene][position][UINT64ToString(read.left_sequence_half)]++;
+			else {
+				cout << gene << " @ L " << (position ) << " : " <<  UINT64ToString(read.left_sequence_half) << endl;
+				SNVs[gene][position][UINT64ToString(read.left_sequence_half)] = 1;
+				count++;
+			}
+		}
+		if((verified & 0b1100) == 0b1100) {
+			if( SNVs[gene][position+17][UINT64ToString(read.right_sequence_half)] )
+				SNVs[gene][position+17][UINT64ToString(read.right_sequence_half)]++;
+			else {
+				cout << gene << " @ R " << (position + 17) << " : " <<  UINT64ToString(read.right_sequence_half) << endl;
+				SNVs[gene][position+17][UINT64ToString(read.right_sequence_half)] = 1;
+				count++;
+			}
+		}
 		return count;
-
 	}
 	return 0;
 }
-
 
 
 int buildHistograms(string gene, int position, string seq, Read& read)
