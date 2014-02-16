@@ -18,6 +18,7 @@
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <regex>
 
 #define THRESHOLD   2
 #define PPM         0.00075
@@ -40,7 +41,7 @@ map<string , map<int, map<int, int> > > threshold_histogram_1;
 
 // SNV Calling Data Structures
 //   GENE		Position  SEQ     Count
-map<string , map<int, map<string, int> > > SNVs;
+map<string , map<int, map<uint64_t, int> > > SNVs;
 
 // Map <Reference Name -> < position -> sequence>
 map<string, map<int, uint64_t > > references;
@@ -62,44 +63,50 @@ uint64_t charToUINT64(char ch)
 	switch(ch){
 	case 'A':
 	case 'a': return a;
-
 	case 'T':
 	case 't': return t;
-
 	case 'C':
-	case 'c':	return c;
-
+	case 'c': return c;
 	case 'G':
-	case 'g':	return g;
-
+	case 'g': return g;
 	case '-': return dash;
-
 	default : return 0;
 	}
 }
 
-char UINT64ToChar(uint64_t ch)
+char UINT64ToChar(uint64_t ch, bool upper_case)
 {
-	if( ch == a) return 'A';
-	if( ch == t) return 'T';
-	if (ch == c) return 'C';
-	if (ch == g) return 'G';
+	if(upper_case){
+		if( ch == a) return 'A';
+		if( ch == t) return 'T';
+		if (ch == c) return 'C';
+		if (ch == g) return 'G';
+	} else {
+		if( ch == a) return 'a';
+		if( ch == t) return 't';
+		if (ch == c) return 'c';
+		if (ch == g) return 'g';
+	}
 	if (ch == dash) return '-';
 	return '\0';
 }
 
-string UINT64ToString(uint64_t s)
+string UINT64ToStringCompare(uint64_t s, uint64_t t)
 {
 
 	std::stringstream temp;
 	while(s!=0){
-		temp << UINT64ToChar( s & 0b00000111 );
-		s = s >> 3;
+		temp << UINT64ToChar( s & 0b111 , ( (s & 0b111) == (t & 0b111)) );
+		s = s >> 3; t = t >> 3;
 	}
 	return temp.str();
 
 }
 
+string UINT64ToString(uint64_t s)
+{
+	return UINT64ToStringCompare(s,s);
+}
 
 uint64_t stringToUINT64(string s)
 {
@@ -111,17 +118,6 @@ uint64_t stringToUINT64(string s)
 
 }
 
-// Build Read converts sequence to INT
-Read buildRead( string &word, int length)
-{
-	Read r;
-	r.count = 1;
-	r.verification_flags = 0;
-	r.left_sequence_half  = stringToUINT64( word.substr(0, length/2));
-	r.right_sequence_half = stringToUINT64( word.substr(length/2 , length/2) );
-	return r;
-}
-
 // Convert does NOT convert sequence to INT
 Read convert(string &word, int length)
 {
@@ -129,6 +125,16 @@ Read convert(string &word, int length)
 	r.count = 1;
 	r.verification_flags = 0;
 	memcpy(r.sequence, word.c_str(), length*sizeof(char));
+	return r;
+}
+
+// Build Read converts sequence to INT
+Read buildRead( string &word, int length)
+{
+	Read r;
+	r = convert(word, length);
+	r.left_sequence_half  = stringToUINT64( word.substr(0, length/2));
+	r.right_sequence_half = stringToUINT64( word.substr(length/2 , length/2) );
 	return r;
 }
 
@@ -182,6 +188,7 @@ int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) )
 		else {
 			Read r;
 			r = f(word, length);
+			r.RefID = ba.RefID;
 
 			if(ba.CigarData[0].Length == 50)
 				r.set_no_indels();
@@ -211,6 +218,7 @@ int readFile(string file, char *fasta, int length, Read (*f)(string &, int))
 	FILE *fast = fopen(fasta,"r");
 	fp = gzdopen(fileno(fast), "r");
 	seq = kseq_init(fp);
+
 	while (kseq_read(seq) >= 0){
 		++n, slen += seq->seq.l, qlen += seq->qual.l;
 
@@ -237,8 +245,21 @@ int readFile(string file, char *fasta, int length, Read (*f)(string &, int))
 	int i =0;
 	int size = bamreader->GetConstSamHeader().Sequences.Size();
 	SamSequenceIterator seqs = bamreader->GetHeader().Sequences.Begin() ;
+
+	regex e ("[a-zA-Z0-9\\-]+");
+
+	// CHECK THE NAMES FOR THIS ...
 	for( int j=0; j< size; j++){
-		genes[i] = (*seqs).Name.substr(0,(*seqs).Name.find_first_of("_"));
+		std::string s ((*seqs).Name);
+		regex e ("[^a-zA-Z0-9\\-]+");
+		string clean = std::regex_replace (s,e,"_");
+
+		if(false && clean.find_first_of("_") == 0){
+			clean = clean.substr(1, clean.size());
+			cout << clean << " | "  <<  clean.substr(0,clean.find_first_of("_")) << endl;
+		}
+
+		genes[i] = clean.substr(0,clean.find_first_of("_"));
 		genes_names[i] = (*seqs).Name;
 		i++;seqs++;
 	}
@@ -409,123 +430,130 @@ int verify ( string gene, int position, string seq, Read& read)
 
 int callSNVs( string gene, int position, string seq, Read& read)
 {
+	int count = 0;
 	unsigned int verified = 0;
 	if( not read.matches_reference() and read.is_right_left_verified() ){
 
 		if(not read.matches_ref_on_right()){
 
-			// Check at offset of - 8.
-			map<string, Read>::iterator sequence = reads[gene][position+8].begin();
-			for(; sequence != reads[gene][position+8].end(); ++sequence)
-			{
+			if( SNVs[gene][position+17][read.right_sequence_half] )
+				SNVs[gene][position+17][read.right_sequence_half]++;
+			else {
 
-				if(read.right_half_matches_track_left_offset((*sequence).second.left_sequence_half))
-					verified = verified | 0b100;
 
-				if(read.right_half_matches_track_right_offset((*sequence).second.right_sequence_half))
-					verified = verified | 0b1000;
+				// Check at offset of - 8.
+				map<string, Read>::iterator sequence = reads[gene][position+8].begin();
+				for(; sequence != reads[gene][position+8].end(); ++sequence)
+				{
+
+					if(read.right_half_matches_track_left_offset((*sequence).second.left_sequence_half))
+						verified = verified | 0b100;
+
+					if(read.right_half_matches_track_right_offset((*sequence).second.right_sequence_half))
+						verified = verified | 0b1000;
+
+					if((verified & 0b1100) == 0b1100)
+						break;
+				}
+
+				// Check at offset of - 8 - 1/2 ROA.
+				if( not ((verified & 0b100) == 0b100)  && position > 7)
+				{
+
+					map<string, Read>::iterator sequence = reads[gene][position - 8].begin();
+					for(; sequence != reads[gene][position-8].end(); ++sequence)
+
+						if(read.right_half_matches_track_left_offset2((*sequence).second.left_sequence_half))
+						{
+							verified = verified | 0b100;
+							break;
+						}
+				}
+
+				//TODO: I think there's a one offset error w/ either backward or forward reads.
+				if( not ((verified & 0b1000) == 0b1000))
+				{
+					map<string, Read>::iterator sequence = reads[gene][position + 25].begin();
+					for(; sequence != reads[gene][position + 25].end(); ++sequence)
+						if(read.right_half_matches_track_right_offset_2((*sequence).second.left_sequence_half))
+						{
+							verified = verified | 0b1000;
+							break;
+						}
+				}
 
 				if((verified & 0b1100) == 0b1100)
-					break;
+				{
+					cout << gene << '\t' << " R " << (position + 17 ) << " \t " <<  UINT64ToStringCompare(read.right_sequence_half, references[genes_names[read.RefID]][position+17]) << endl;
+					SNVs[gene][position+17][read.right_sequence_half] = 1;
+					count++;
+
+				}
+
 			}
-
-			// Check at offset of - 8 - 1/2 ROA.
-			if( not ((verified & 0b100) == 0b100)  && position > 7)
-			{
-
-				map<string, Read>::iterator sequence = reads[gene][position - 8].begin();
-				for(; sequence != reads[gene][position-8].end(); ++sequence)
-
-					if(read.right_half_matches_track_left_offset2((*sequence).second.left_sequence_half))
-					{
-						verified = verified | 0b100;
-						break;
-					}
-			}
-
-			//TODO: I think there's a one offset error w/ either backward or forward reads.
-			if( not ((verified & 0b1000) == 0b1000))
-			{
-				map<string, Read>::iterator sequence = reads[gene][position + 25].begin();
-				for(; sequence != reads[gene][position + 25].end(); ++sequence)
-					if(read.right_half_matches_track_right_offset_2((*sequence).second.left_sequence_half))
-					{
-						verified = verified | 0b1000;
-						break;
-					}
-			}
-
-
 
 		}
 
 		if(not read.matches_ref_on_left() && position > 7){
 
-			// Check at offset of - 8.
-			map<string, Read>::iterator sequence = reads[gene][position-8].begin();
-			for(; sequence != reads[gene][position-8].end(); ++sequence)
-			{
+			if( SNVs[gene][position][read.left_sequence_half] )
+				SNVs[gene][position][read.left_sequence_half]++;
 
-				if(read.matches_track_left_offset((*sequence).second.left_sequence_half))
-					verified = verified | 0b1;
+			else {
 
-				if(read.matches_track_right_offset((*sequence).second.right_sequence_half))
-					verified = verified | 0b10;
+				// Check at offset of - 8.
+				map<string, Read>::iterator sequence = reads[gene][position-8].begin();
+				for(; sequence != reads[gene][position-8].end(); ++sequence)
+				{
 
-				if((verified & 0b11) == 0b11)
-					break;
-
-			}
-
-			// Check at offset of - 8 - 1/2 ROA.
-			if( not ((verified & 0b1) == 1)  && position > 24)
-			{
-				map<string, Read>::iterator sequence = reads[gene][position- 25].begin();
-				for(; sequence != reads[gene][position-25].end(); ++sequence)
-
-					if(read.matches_track_left_offset((*sequence).second.right_sequence_half))
-					{
+					if(read.matches_track_left_offset((*sequence).second.left_sequence_half))
 						verified = verified | 0b1;
-						break;
-					}
-			}
 
-			// Check at offset of - 8 + 1/2 ROA.
-			if( not ((verified & 0b10) == 0b10))
-			{
-
-				map<string, Read>::iterator sequence = reads[gene][position + 8].begin();
-				for(; sequence != reads[gene][position + 8].end(); ++sequence)
-					if(read.matches_track_right_offset_2((*sequence).second.left_sequence_half))
-					{
+					if(read.matches_track_right_offset((*sequence).second.right_sequence_half))
 						verified = verified | 0b10;
+
+					if((verified & 0b11) == 0b11)
 						break;
-					}
+
+				}
+
+				// Check at offset of - 8 - 1/2 ROA.
+				if( not ((verified & 0b1) == 1)  && position > 24)
+				{
+					map<string, Read>::iterator sequence = reads[gene][position- 25].begin();
+					for(; sequence != reads[gene][position-25].end(); ++sequence)
+
+						if(read.matches_track_left_offset((*sequence).second.right_sequence_half))
+						{
+							verified = verified | 0b1;
+							break;
+						}
+				}
+
+				// Check at offset of - 8 + 1/2 ROA.
+				if( not ((verified & 0b10) == 0b10))
+				{
+
+					map<string, Read>::iterator sequence = reads[gene][position + 8].begin();
+					for(; sequence != reads[gene][position + 8].end(); ++sequence)
+						if(read.matches_track_right_offset_2((*sequence).second.left_sequence_half))
+						{
+							verified = verified | 0b10;
+							break;
+						}
+				}
+			}
+
+			if((verified & 0b11) == 0b11){
+				// StartPos	EndPos	#reads	#refreads	#NRwords	Avg#Diffs	RMSDiffs	#topNRdiffs	#topNRreads	#mutantPos
+				cout << gene << '\t' << " L " << (position ) << " \t " <<  UINT64ToStringCompare(read.left_sequence_half, references[genes_names[read.RefID]][position]) << endl;
+				SNVs[gene][position][read.left_sequence_half] = 1;
+				count++;
 			}
 		}
 
-		int count = 0;
-		if((verified & 0b11) == 0b11){
-			if( SNVs[gene][position][UINT64ToString(read.left_sequence_half)] )
-				SNVs[gene][position][UINT64ToString(read.left_sequence_half)]++;
-			else {
-				cout << gene << " @ L " << (position ) << " : " <<  UINT64ToString(read.left_sequence_half) << endl;
-				SNVs[gene][position][UINT64ToString(read.left_sequence_half)] = 1;
-				count++;
-			}
-		}
-		if((verified & 0b1100) == 0b1100) {
-			if( SNVs[gene][position+17][UINT64ToString(read.right_sequence_half)] )
-				SNVs[gene][position+17][UINT64ToString(read.right_sequence_half)]++;
-			else {
-				cout << gene << " @ R " << (position + 17) << " : " <<  UINT64ToString(read.right_sequence_half) << endl;
-				SNVs[gene][position+17][UINT64ToString(read.right_sequence_half)] = 1;
-				count++;
-			}
-		}
-		return count;
 	}
-	return 0;
+	return count;
 }
 
 
