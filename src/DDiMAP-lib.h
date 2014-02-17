@@ -2,22 +2,22 @@
 
 #define DDIMAPLIB_H
 
+
+#include "Read-Helper.h"
 #include <map>
 #include <utility>
 #include <api/BamAlignment.h>
 #include <api/BamReader.h>
 #include <iostream>
-#include <sstream>
 #include <iterator>
 #include <stdio.h>
 #include <stdlib.h>
 
 namespace BamTools {
-struct BamAlignment;
+	struct BamAlignment;
 } /* namespace BamTools */
 
 using namespace BamTools;
-using namespace std;
 
 struct Read {
 
@@ -114,7 +114,7 @@ void iterateAndSet( Read reads_array[]);
 int print (string gene, int position, string seq, Read& read);
 int count (string gene, int position, string seq, Read& read);
 int verify ( string gene, int position, string seq, Read& read);
-int callSNVs( string gene, int position, string seq, Read& read);
+int callSNVs();
 Read convert(string &word, int length);
 Read buildRead(string &word, int length);
 int buildHistograms(string gene, int position, string seq, Read& read);

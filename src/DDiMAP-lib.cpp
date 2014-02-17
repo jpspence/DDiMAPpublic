@@ -6,6 +6,10 @@
 // Description : DDiMAP library used by other programs.
 //============================================================================
 
+// Common & Custom Junctions are causing a lot of trouble for me.
+// Still need to implement frags
+
+
 #include "DDiMAP-lib.h"
 
 #include <api/BamAux.h>
@@ -17,12 +21,14 @@
 #include <cctype>
 #include <cstdint>
 #include <cstring>
-#include <string>
 #include <regex>
+#include <iomanip>
 
 #define THRESHOLD   2
 #define PPM         0.00075
 #define ROA_LENGTH  34
+
+int max_refid = 0;
 
 // Declare the type of file handler for fasta reader
 KSEQ_INIT(gzFile, gzread)
@@ -40,8 +46,8 @@ map<string , map<int, map<int, int> > > threshold_histogram_0;
 map<string , map<int, map<int, int> > > threshold_histogram_1;
 
 // SNV Calling Data Structures
-//   GENE		Position  SEQ     Count
-map<string , map<int, map<uint64_t, int> > > SNVs;
+//   GENE		Position  SEQ         BA.refID Count
+map<string , map<int, map<uint64_t, map <int , int > > > > SNVs;
 
 // Map <Reference Name -> < position -> sequence>
 map<string, map<int, uint64_t > > references;
@@ -50,73 +56,6 @@ map<string, map<int, uint64_t > > references;
 // ----------------------------------------------------------------------------
 // BAM --> Reads
 // ----------------------------------------------------------------------------
-
-// Cipher is given by :
-uint64_t a    = 0b00000001;
-uint64_t c    = 0b00000010;
-uint64_t g    = 0b00000011;
-uint64_t t 	  = 0b00000100;
-uint64_t dash = 0b00000111;
-
-uint64_t charToUINT64(char ch)
-{
-	switch(ch){
-	case 'A':
-	case 'a': return a;
-	case 'T':
-	case 't': return t;
-	case 'C':
-	case 'c': return c;
-	case 'G':
-	case 'g': return g;
-	case '-': return dash;
-	default : return 0;
-	}
-}
-
-char UINT64ToChar(uint64_t ch, bool upper_case)
-{
-	if(upper_case){
-		if( ch == a) return 'A';
-		if( ch == t) return 'T';
-		if (ch == c) return 'C';
-		if (ch == g) return 'G';
-	} else {
-		if( ch == a) return 'a';
-		if( ch == t) return 't';
-		if (ch == c) return 'c';
-		if (ch == g) return 'g';
-	}
-	if (ch == dash) return '-';
-	return '\0';
-}
-
-string UINT64ToStringCompare(uint64_t s, uint64_t t)
-{
-
-	std::stringstream temp;
-	while(s!=0){
-		temp << UINT64ToChar( s & 0b111 , ( (s & 0b111) == (t & 0b111)) );
-		s = s >> 3; t = t >> 3;
-	}
-	return temp.str();
-
-}
-
-string UINT64ToString(uint64_t s)
-{
-	return UINT64ToStringCompare(s,s);
-}
-
-uint64_t stringToUINT64(string s)
-{
-
-	uint64_t temp = 0;
-	for ( int i = 0 ; i < s.length()  ;  i++)
-		temp += charToUINT64(s[i]) << (3 * i);
-	return temp;
-
-}
 
 // Convert does NOT convert sequence to INT
 Read convert(string &word, int length)
@@ -174,7 +113,7 @@ const char *createWordArray(BamAlignment &ba, int length, int &position)
 
 int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) )
 {
-	if(ba.Position > 0)
+	if(ba.Position > 0 and ba.RefID < 194)
 	{
 		int position;
 		string word   = createWordString(ba, length, position);
@@ -217,21 +156,27 @@ int readFile(string file, char *fasta, int length, Read (*f)(string &, int))
 	int n = 0, slen = 0, qlen = 0;
 	FILE *fast = fopen(fasta,"r");
 	fp = gzdopen(fileno(fast), "r");
-	seq = kseq_init(fp);
+	regex e ("[^a-zA-Z0-9\\-]+");
 
+	seq = kseq_init(fp);
 	while (kseq_read(seq) >= 0){
 		++n, slen += seq->seq.l, qlen += seq->qual.l;
 
+		string seq_name = seq->name.s;
 		string s = seq->seq.s;
 		s.erase( std::remove_if( s.begin(), s.end(), ::isspace ), s.end() );
+		string clean = std::regex_replace (seq_name,e,"_");
 
 		map<int, uint64_t> reference;
 		for(int j= 0; j< s.length()-length; j++){
 			reference[j] = stringToUINT64(s.substr(j, length/2));
 		}
-		references[seq->name.s] = reference;
+		references[clean] = reference;
+
+		cout << clean << " : " << n << endl;
 
 	}
+	max_refid = n;
 	printf("I read %d sequences \t of size %d \t Quality scores %d\n", n, slen, qlen);
 	kseq_destroy(seq);
 	gzclose(fp);
@@ -246,12 +191,9 @@ int readFile(string file, char *fasta, int length, Read (*f)(string &, int))
 	int size = bamreader->GetConstSamHeader().Sequences.Size();
 	SamSequenceIterator seqs = bamreader->GetHeader().Sequences.Begin() ;
 
-	regex e ("[a-zA-Z0-9\\-]+");
-
 	// CHECK THE NAMES FOR THIS ...
 	for( int j=0; j< size; j++){
 		std::string s ((*seqs).Name);
-		regex e ("[^a-zA-Z0-9\\-]+");
 		string clean = std::regex_replace (s,e,"_");
 
 		if(false && clean.find_first_of("_") == 0){
@@ -329,11 +271,11 @@ int count (string gene, int position, string seq, Read& read)
 	return 1;
 }
 
-
 void printFasta()
 {
 
 }
+
 int print (string gene, int position, string seq, Read& read)
 {
 
@@ -345,7 +287,6 @@ int print (string gene, int position, string seq, Read& read)
 
 int verify ( string gene, int position, string seq, Read& read)
 {
-
 
 	map<string, Read> roaVerifier;
 
@@ -395,51 +336,20 @@ int verify ( string gene, int position, string seq, Read& read)
 
 }
 
-//	SNV calls
-//	----------------------------------
-//	An SNV is called for any base at a position when:
-//
-//		A letter that does not match the reference sequence
-//
-//		- AND -
-//
-//		a) A letter appears in the verified histograms for both start positions.
-//
-//		b) A letter appears in the verified histogram for one of the start positions at a frequency in excess of a first set minimum threshold.
-//		--> the frequency threshold we typically use is 0.3%.  The computed
-//		frequency for each covering collection is the ratio of the verified
-//		histogram count to the coverage at that location, namely the sum of
-//		all letter counts in that covering collection histogram.
-//
-//		c) A letter appears in either all-words histogram at a frequency in excess of a second set minimum threshold.
-//		--> the frequency threshold we typically use is 10%.  The computed
-//		 frequency for each covering collection is the ratio of the all-words
-//		 histogram count to the coverage at that location, namely the sum of
-//		 all letter counts in that covering collection histogram.
-//
-
-//       	-----------------------------------------------------------
-// track 0  [0               16|17               33|34              49]
-//          -------------------------------------------------------------------
-// track 1	         [8               24|25      X        41|42              57]
-// 		             ----------------------------------------------------------------------
-// track 0 	                   [17               33|34               50|51              66]
-// 		                       ---------------------------------------------------------------------
-// track 1	    		                [25               41|42               58|59              74]
-// 		                                ------------------------------------------------------------
-
-int callSNVs( string gene, int position, string seq, Read& read)
+int reduceSNVs(string gene, int position, string seq, Read& read)
 {
 	int count = 0;
 	unsigned int verified = 0;
 	if( not read.matches_reference() and read.is_right_left_verified() ){
 
-		if(not read.matches_ref_on_right()){
+		if(not read.matches_ref_on_right() && not hasDash(read.right_sequence_half) )
+		{
 
-			if( SNVs[gene][position+17][read.right_sequence_half] )
-				SNVs[gene][position+17][read.right_sequence_half]++;
-			else {
+			if( SNVs[gene][position+17][read.right_sequence_half][read.RefID] )
+				SNVs[gene][position+17][read.right_sequence_half][read.RefID]+= read.count;
 
+			else
+			{
 
 				// Check at offset of - 8.
 				map<string, Read>::iterator sequence = reads[gene][position+8].begin();
@@ -484,22 +394,21 @@ int callSNVs( string gene, int position, string seq, Read& read)
 
 				if((verified & 0b1100) == 0b1100)
 				{
-					cout << gene << '\t' << " R " << (position + 17 ) << " \t " <<  UINT64ToStringCompare(read.right_sequence_half, references[genes_names[read.RefID]][position+17]) << endl;
-					SNVs[gene][position+17][read.right_sequence_half] = 1;
+					SNVs[gene][position+17][read.right_sequence_half][read.RefID] = read.count;
 					count++;
-
 				}
-
 			}
 
 		}
 
-		if(not read.matches_ref_on_left() && position > 7){
+		if(not read.matches_ref_on_left() && position > 7  && not hasDash(read.left_sequence_half))
+		{
 
-			if( SNVs[gene][position][read.left_sequence_half] )
-				SNVs[gene][position][read.left_sequence_half]++;
+			if( SNVs[gene][position][read.left_sequence_half][read.RefID])
+				SNVs[gene][position][read.left_sequence_half][read.RefID]+= read.count;
 
-			else {
+			else
+			{
 
 				// Check at offset of - 8.
 				map<string, Read>::iterator sequence = reads[gene][position-8].begin();
@@ -514,15 +423,14 @@ int callSNVs( string gene, int position, string seq, Read& read)
 
 					if((verified & 0b11) == 0b11)
 						break;
-
 				}
 
 				// Check at offset of - 8 - 1/2 ROA.
 				if( not ((verified & 0b1) == 1)  && position > 24)
 				{
+
 					map<string, Read>::iterator sequence = reads[gene][position- 25].begin();
 					for(; sequence != reads[gene][position-25].end(); ++sequence)
-
 						if(read.matches_track_left_offset((*sequence).second.right_sequence_half))
 						{
 							verified = verified | 0b1;
@@ -542,18 +450,90 @@ int callSNVs( string gene, int position, string seq, Read& read)
 							break;
 						}
 				}
-			}
 
-			if((verified & 0b11) == 0b11){
-				// StartPos	EndPos	#reads	#refreads	#NRwords	Avg#Diffs	RMSDiffs	#topNRdiffs	#topNRreads	#mutantPos
-				cout << gene << '\t' << " L " << (position ) << " \t " <<  UINT64ToStringCompare(read.left_sequence_half, references[genes_names[read.RefID]][position]) << endl;
-				SNVs[gene][position][read.left_sequence_half] = 1;
-				count++;
+				if((verified & 0b11) == 0b11)
+				{
+					SNVs[gene][position][read.left_sequence_half][read.RefID] = read.count;
+					count++;
+				}
 			}
 		}
 
 	}
 	return count;
+}
+
+
+//	SNV calls
+//	----------------------------------
+//	An SNV is called for any base at a position when:
+//
+//		A letter that does not match the reference sequence
+//
+//		- AND -
+//
+//		a) A letter appears in the verified histograms for both start positions.
+//
+//		b) A letter appears in the verified histogram for one of the start positions at a frequency in excess of a first set minimum threshold.
+//		--> the frequency threshold we typically use is 0.3%.  The computed
+//		frequency for each covering collection is the ratio of the verified
+//		histogram count to the coverage at that location, namely the sum of
+//		all letter counts in that covering collection histogram.
+//
+//		c) A letter appears in either all-words histogram at a frequency in excess of a second set minimum threshold.
+//		--> the frequency threshold we typically use is 10%.  The computed
+//		 frequency for each covering collection is the ratio of the all-words
+//		 histogram count to the coverage at that location, namely the sum of
+//		 all letter counts in that covering collection histogram.
+//
+
+//       	-----------------------------------------------------------
+// track 0  [0               16|17               33|34              49]
+//          -------------------------------------------------------------------
+// track 1	         [8               24|25      X        41|42              57]
+// 		             ----------------------------------------------------------------------
+// track 0 	                   [17               33|34               50|51              66]
+// 		                       ---------------------------------------------------------------------
+// track 1	    		                [25               41|42               58|59              74]
+// 		                                ------------------------------------------------------------
+
+int callSNVs()
+{
+
+	int count = iterate(reduceSNVs);
+
+	cout << "StartPos \t EndPos \t #reads \t #refreads \t #NRwords \t Avg#Diffs \t RMSDiffs \t #topNRdiffs \t #topNRreads \t #mutantPos" << endl;
+
+	map<string , map<int, map<uint64_t, map <int , int > > > >::iterator genes = SNVs.begin();
+	for(; genes != SNVs.end(); ++genes)
+	{
+		map<int, map<uint64_t, map <int , int > > >::iterator positions = (*genes).second.begin();
+		for (; positions != (*genes).second.end(); ++positions)
+		{
+			map<uint64_t, map <int , int > >::iterator sequences = (*positions).second.begin();
+			for (; sequences != (*positions).second.end(); ++sequences)
+			{
+				map <int , int >::iterator refIDs = (*sequences).second.begin();
+				for (; refIDs != (*sequences).second.end(); ++refIDs)
+				{
+					if((*refIDs).second > 0){
+						// #refreads	#NRwords	Avg#Diffs	RMSDiffs	#topNRdiffs	#topNRreads	#mutantPos
+						cout << std::setw(20) << genes_names[(*refIDs).first] << " ["; // Gene Name
+						cout << std::setw(4)  << (*positions).first << " - "; // StartPos
+						cout << std::setw(4)  << (*positions).first + 17	<< "] "; // EndPos
+						cout << std::setw(3)  << (*refIDs).second << " "; // Count
+						cout << UINT64ToStringCompare((*sequences).first, references[genes_names[(*refIDs).first]][(*positions).first] ) << '\t';
+						cout << CalculateGC((*sequences).first) << endl;
+					}
+				}
+
+			}
+		}
+	}
+
+	cout << "I called " << count << " SNVs.";
+
+	return 0;
 }
 
 

@@ -84,9 +84,7 @@ int main (int argc, char **argv)
 //	printf ("It took me %lu ticks (%f seconds) to build the histogram.\n",
 //			t, ((float)t)/CLOCKS_PER_SEC);
 
-	cout << "StartPos \t EndPos \t #reads \t #refreads \t #NRwords \t Avg#Diffs \t RMSDiffs \t #topNRdiffs \t #topNRreads \t #mutantPos" << endl;
-	verified = iterate(callSNVs);
-	cout << "I've called " << verified << " SNVs. " << endl;
+	verified = callSNVs();
 //	printHistograms();
 
   gnuplot_ctrl    *   h1;
