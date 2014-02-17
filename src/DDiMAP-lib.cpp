@@ -356,10 +356,10 @@ int reduceSNVs(string gene, int position, string seq, Read& read)
 				for(; sequence != reads[gene][position+8].end(); ++sequence)
 				{
 
-					if(read.right_half_matches_track_left_offset((*sequence).second.left_sequence_half))
+					if(read.eight_match( (*sequence).second.left_sequence_half, read.right_sequence_half))
 						verified = verified | 0b100;
 
-					if(read.right_half_matches_track_right_offset((*sequence).second.right_sequence_half))
+					if(read.nine_match(read.right_sequence_half, (*sequence).second.right_sequence_half))
 						verified = verified | 0b1000;
 
 					if((verified & 0b1100) == 0b1100)
@@ -373,7 +373,7 @@ int reduceSNVs(string gene, int position, string seq, Read& read)
 					map<string, Read>::iterator sequence = reads[gene][position - 8].begin();
 					for(; sequence != reads[gene][position-8].end(); ++sequence)
 
-						if(read.right_half_matches_track_left_offset2((*sequence).second.left_sequence_half))
+						if(read.nine_match((*sequence).second.left_sequence_half, read.right_sequence_half))
 						{
 							verified = verified | 0b100;
 							break;
@@ -385,7 +385,7 @@ int reduceSNVs(string gene, int position, string seq, Read& read)
 				{
 					map<string, Read>::iterator sequence = reads[gene][position + 25].begin();
 					for(; sequence != reads[gene][position + 25].end(); ++sequence)
-						if(read.right_half_matches_track_right_offset_2((*sequence).second.left_sequence_half))
+						if(read.eight_match( read.right_sequence_half, (*sequence).second.left_sequence_half))
 						{
 							verified = verified | 0b1000;
 							break;
@@ -415,10 +415,10 @@ int reduceSNVs(string gene, int position, string seq, Read& read)
 				for(; sequence != reads[gene][position-8].end(); ++sequence)
 				{
 
-					if(read.matches_track_left_offset((*sequence).second.left_sequence_half))
+					if(read.nine_match((*sequence).second.left_sequence_half , read.left_sequence_half))
 						verified = verified | 0b1;
 
-					if(read.matches_track_right_offset((*sequence).second.right_sequence_half))
+					if(read.eight_match(read.left_sequence_half, (*sequence).second.right_sequence_half))
 						verified = verified | 0b10;
 
 					if((verified & 0b11) == 0b11)
@@ -431,7 +431,7 @@ int reduceSNVs(string gene, int position, string seq, Read& read)
 
 					map<string, Read>::iterator sequence = reads[gene][position- 25].begin();
 					for(; sequence != reads[gene][position-25].end(); ++sequence)
-						if(read.matches_track_left_offset((*sequence).second.right_sequence_half))
+						if(read.nine_match( (*sequence).second.right_sequence_half, read.left_sequence_half))
 						{
 							verified = verified | 0b1;
 							break;
@@ -444,7 +444,7 @@ int reduceSNVs(string gene, int position, string seq, Read& read)
 
 					map<string, Read>::iterator sequence = reads[gene][position + 8].begin();
 					for(; sequence != reads[gene][position + 8].end(); ++sequence)
-						if(read.matches_track_right_offset_2((*sequence).second.left_sequence_half))
+						if(read.nine_match(read.left_sequence_half, (*sequence).second.left_sequence_half))
 						{
 							verified = verified | 0b10;
 							break;

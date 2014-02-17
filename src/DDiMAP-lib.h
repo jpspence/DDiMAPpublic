@@ -14,7 +14,7 @@
 #include <stdlib.h>
 
 namespace BamTools {
-	struct BamAlignment;
+struct BamAlignment;
 } /* namespace BamTools */
 
 using namespace BamTools;
@@ -72,38 +72,12 @@ struct Read {
 	bool is_above_ppm()
 	{ return (verification_flags & 0b0100000) == 0b0100000;}
 
-	bool right_half_matches_track_left_offset(uint64_t other_track)
-	{
-		return (right_sequence_half & 0b111111111111111111111111) == (other_track >> 27) ;
-	}
+	bool nine_match(uint64_t front, uint64_t back)
+	{ return   (front >> 24) == (back & 0b111111111111111111111111111); }
 
-	bool right_half_matches_track_left_offset2(uint64_t other_track)
-	{
-		return (right_sequence_half & 0b111111111111111111111111111) == (other_track >> 24) ;
-	}
+	bool eight_match(uint64_t front, uint64_t back)
+	{ return (front >> 27)   == (back & 0b111111111111111111111111); }
 
-	bool right_half_matches_track_right_offset(uint64_t other_track){
-		return (right_sequence_half >> 24) == (other_track & 0b111111111111111111111111111 ) ;
-	}
-
-	bool right_half_matches_track_right_offset_2(uint64_t other_track){
-		return (right_sequence_half >> 27) == (other_track & 0b111111111111111111111111 ) ;
-	}
-
-
-	bool matches_track_left_offset(uint64_t other_track)
-	{
-		return (left_sequence_half & 0b111111111111111111111111111) == (other_track >> 24) ;
-	}
-
-	bool matches_track_right_offset(uint64_t other_track){
-		return (left_sequence_half >> 27) == (other_track & 0b111111111111111111111111 ) ;
-	}
-
-
-	bool matches_track_right_offset_2(uint64_t other_track){
-		return (left_sequence_half >> 24) == (other_track & 0b111111111111111111111111111) ;
-	}
 
 };
 
