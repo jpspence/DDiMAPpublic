@@ -1,3 +1,4 @@
+
 //============================================================================
 // Name        : DDiMAP-lib.c
 // Author      : Androwis Abumoussa
@@ -9,6 +10,7 @@
 // Common & Custom Junctions are causing a lot of trouble for me.
 // Still need to implement frags
 
+// TODO : Compare against NCBI only
 
 #include "DDiMAP-lib.h"
 
@@ -23,12 +25,16 @@
 #include <cstring>
 #include <regex>
 #include <iomanip>
+#include <ostream>
 
+#define TEST        0
 #define THRESHOLD   2
-#define PPM         0.00075
+#define PPM         0.01
 #define ROA_LENGTH  34
 
 int max_refid = 0;
+int tracks [2] = {0, 8};
+
 
 // Declare the type of file handler for fasta reader
 KSEQ_INIT(gzFile, gzread)
@@ -53,6 +59,7 @@ map<string , map<int, map<uint64_t, map <int , int > > > > SNVs;
 map<string, map<int, uint64_t > > references;
 
 
+
 // ----------------------------------------------------------------------------
 // BAM --> Reads
 // ----------------------------------------------------------------------------
@@ -61,7 +68,8 @@ map<string, map<int, uint64_t > > references;
 Read convert(string &word, int length)
 {
 	Read r;
-	r.count = 1;
+	r.forward_count = 2;
+	r.reverse_count = 2;
 	r.verification_flags = 0;
 	memcpy(r.sequence, word.c_str(), length*sizeof(char));
 	return r;
@@ -81,103 +89,177 @@ Read buildRead( string &word, int length)
 // Reading Files : Convenience Functions
 // ----------------------------------------------------------------------------
 
-// We assign each read to only 1 Track
-string createWordString(BamAlignment &ba, int length, int &position)
+string createWordString(BamAlignment &ba, int length, int &position, int track)
 {
 	int to_roa    = ( length/2 - ba.Position ) % (length/2);
+
 	if(to_roa < 0) to_roa+=length/2;
 	int offset    = (ba.IsReverseStrand()) ? ba.AlignedBases.length() - ( (ba.Position + ba.AlignedBases.length())%(length/2)) - length  : to_roa ;
 
-	// Place the read in one of two tracks.
-	if(ba.IsReverseStrand() && ba.AlignedBases.length() - offset > 8 )
-		offset+=8;
-	else if((to_roa % length/2) > 8)
-		offset-=8;
+
+	if(ba.IsReverseStrand() )
+		offset+=track;
+	else
+		offset-=(length/2-track);
+
+	if(offset < 0) offset+=length/2;
+	if( offset + length > ba.AlignedBases.length()) offset-=length/2;
+
 
 	position = ba.Position + offset;
+	string word = ba.AlignedBases.substr(offset, length);
 
-	//cout << (ba.IsReverseStrand() ? "reverse " : "forward ") << "[" << ba.Position << " - " << (ba.Position+ba.AlignedBases.length()) << "] @" << position << endl;
-	string word   = ba.AlignedBases.substr(offset, length);
+	// ensuring this is correct.
+	if(TEST){
+		// Check that there isn't a more approriate ROA
+		if(ba.IsReverseStrand()){
+			for(int i = ba.Position+ba.AlignedBases.length(); i > ba.Position; i--)
+				if(i%(length/2) == track and i > position+length){
+					cout << " Problem with the reverse. Read [" << ba.Position << " - " << (ba.Position + ba.AlignedBases.length() ) << "] " << endl;
+					cout << " ROA should end at " << i << " not " << position + length << endl;
+					cout << ((ba.IsReverseStrand()) ? " <<<  "  :" >>> ") << " track : " << track << " Starting : " << ba.Position << endl;
+					cout << ba.AlignedBases << endl;
+					for(int i =0; i < offset; i++)
+						cout << " ";
+					cout << word << endl;
+				}
+		}
+		else
+		{
+			for(int i = ba.Position; i < ba.Position + ba.AlignedBases.length(); i++)
+				if(i%(length/2) == track and i < position){
+					cout << " Problem with the forward. Read [" << ba.Position << " - " << (ba.Position + ba.AlignedBases.length()) << "] " << endl;
+					cout << " ROA should start at " << i << " not! " << position << endl;
+					cout << ((ba.IsReverseStrand()) ? " <<<  "  :" >>> ") << " track : " << track << " Starting : " << ba.Position << endl;
+					cout << ba.AlignedBases << endl;
+					for(int i =0; i < offset; i++)
+						cout << " ";
+					cout << word << endl;
+				}
+		}
+	}
 	return word;
 }
 
-const char *createWordArray(BamAlignment &ba, int length, int &position)
+const char *createWordArray(BamAlignment &ba, int length, int &position, int track)
 {
-	string word = createWordString(ba, length, position);
+	string word = createWordString(ba, length, position, track);
 	return word.c_str();
+}
+
+// ----------------------------------------------------------------------------
+// DDiMAP
+// ----------------------------------------------------------------------------
+
+int cntr = 0;
+int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) )
+{
+	int uniques = 0;
+
+	if( references[genes[ba.RefID]].size() > 0)
+	{
+		for(int track : tracks){
+
+			if(TEST){
+				cntr++;
+				cout << "I'm Reduce()ing " << cntr << endl;
+			}
+
+			int position;
+			string word   = createWordString(ba, length, position, track);
+
+			if(word.size() > 0){
+
+				string name   = genes[ba.RefID];
+
+				// Increment counter for the observed sequence
+				if( reads[name][position][word].total_count() )
+					if(ba.IsReverseStrand())
+						reads[name][position][word].reverse_count+=1;
+					else
+						reads[name][position][word].forward_count+=1;
+
+				// Create a new read for the position on this track
+				else {
+					Read r;
+					r = f(word, length);
+					if(ba.IsReverseStrand())
+						++r.reverse_count;
+					else
+						++r.forward_count;
+
+					r.RefID = ba.RefID;
+
+					if(ba.CigarData[0].Length == 50)
+						r.set_no_indels();
+
+					// Check NCBI
+					if(references[name][position] == r.left_sequence_half)
+						r.set_matches_ref_on_left();
+
+					if(references[name][position+length/2] == r.right_sequence_half)
+						r.set_matches_ref_on_right();
+
+					reads[name][position][word] = r;
+
+					uniques++;
+				}
+			}
+		}
+	}
+	return uniques;
 }
 
 // ----------------------------------------------------------------------------
 // Reading Files
 // ----------------------------------------------------------------------------
 
-int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) )
-{
-	if(ba.Position > 0 and ba.RefID < 194)
-	{
-		int position;
-		string word   = createWordString(ba, length, position);
-		string name   = genes[ba.RefID];
-
-		// Increment counter for the observed sequence
-		if(reads[name][position][word].count)
-			reads[name][position][word].count+=1;
-
-		// Create a new read for the position on this track
-		else {
-			Read r;
-			r = f(word, length);
-			r.RefID = ba.RefID;
-
-			if(ba.CigarData[0].Length == 50)
-				r.set_no_indels();
-
-			if(references[genes_names[ba.RefID]][position] == r.left_sequence_half)
-				r.set_matches_ref_on_left();
-
-			if(references[genes_names[ba.RefID]][position+length/2] == r.right_sequence_half)
-				r.set_matches_ref_on_right();
-
-			reads[name][position][word] = r;
-
-			return 1;
-		}
-	}
-	return 0;
-}
+// ref_id --> offset
+map < int, int> 	frag_offset;
 
 // Returns the number of unique reads in the file.
 int readFile(string file, char *fasta, int length, Read (*f)(string &, int))
 {
 
-	// Read the fasta file
+	// Read in the NCBI sequences from Fasta File, assign appropriate offsets
 	gzFile fp;
 	kseq_t *seq;
-	int n = 0, slen = 0, qlen = 0;
+	int n = 0;
 	FILE *fast = fopen(fasta,"r");
 	fp = gzdopen(fileno(fast), "r");
-	regex e ("[^a-zA-Z0-9\\-]+");
 
+	regex e ("[^a-zA-Z0-9\\-]+");
+	regex frag ("[fF][rR][aA][gG][0-9]+_([0-9]*)");
 	seq = kseq_init(fp);
 	while (kseq_read(seq) >= 0){
-		++n, slen += seq->seq.l, qlen += seq->qual.l;
 
 		string seq_name = seq->name.s;
-		string s = seq->seq.s;
-		s.erase( std::remove_if( s.begin(), s.end(), ::isspace ), s.end() );
 		string clean = std::regex_replace (seq_name,e,"_");
 
-		map<int, uint64_t> reference;
-		for(int j= 0; j< s.length()-length; j++){
-			reference[j] = stringToUINT64(s.substr(j, length/2));
+		string s = seq->seq.s;
+		s.erase( std::remove_if( s.begin(), s.end(), ::isspace ), s.end() );
+
+		std::smatch m;
+		std::regex_search(clean, m, frag);
+
+		if(m.size()>1)
+			frag_offset[n] = atoi(m[1].str().c_str());
+		else
+			frag_offset[n] = 0;
+
+		if(clean.find("NCBI") != -1){
+			map<int, uint64_t> reference;
+			for(int j= 0; j< s.length()-length; j++){
+				reference[j] = stringToUINT64(s.substr(j, length/2));
+			}
+			references[clean] = reference;
 		}
-		references[clean] = reference;
 
-		cout << clean << " : " << n << endl;
-
+		genes[n] = clean;
+		++n;
 	}
-	max_refid = n;
-	printf("I read %d sequences \t of size %d \t Quality scores %d\n", n, slen, qlen);
+
+	printf("I read %d sequences from the fasta file \n",n);
 	kseq_destroy(seq);
 	gzclose(fp);
 
@@ -186,77 +268,35 @@ int readFile(string file, char *fasta, int length, Read (*f)(string &, int))
 	BamReader *bamreader = new BamReader();
 	bamreader->Open(file);
 
-	// --- Read the header file and assign the gene ID to the names
-	int i =0;
-	int size = bamreader->GetConstSamHeader().Sequences.Size();
-	SamSequenceIterator seqs = bamreader->GetHeader().Sequences.Begin() ;
-
-	// CHECK THE NAMES FOR THIS ...
-	for( int j=0; j< size; j++){
-		std::string s ((*seqs).Name);
-		string clean = std::regex_replace (s,e,"_");
-
-		if(false && clean.find_first_of("_") == 0){
-			clean = clean.substr(1, clean.size());
-			cout << clean << " | "  <<  clean.substr(0,clean.find_first_of("_")) << endl;
-		}
-
-		genes[i] = clean.substr(0,clean.find_first_of("_"));
-		genes_names[i] = (*seqs).Name;
-		i++;seqs++;
-	}
-
 	// --- Begin the alignment search
 	BamAlignment ba;
-	int counter = 0;
-	while(bamreader->GetNextAlignment(ba))
+	int counter = 0, total = 0;
+	while(bamreader->GetNextAlignment(ba)){
+		(&ba)->Position += frag_offset[ba.RefID];
 		counter += reduce(ba, length, f);
+		if(TEST && references[genes[ba.RefID]].size())
+			total++;
+	}
+
+	if(TEST)
+		cout << "I read a total of " << total << " reads that matched NCBI"<< endl;
 	bamreader->Close();
 
 	return counter;
 }
 
-
 // ----------------------------------------------------------------------------
 // Iterators
 // ----------------------------------------------------------------------------
 
-void iterateAndSet( Read reads_array[])
-{
-	long count = 0;
-	map<string , map<int, map<string, Read> > >::iterator genes = reads.begin();
-	for(; genes != reads.end(); ++genes)
-	{
-		map<int, map<string, Read> >::iterator ROAs = (*genes).second.begin();
-		for (; ROAs != (*genes).second.end(); ++ROAs)
-		{
-			map<string, Read>::iterator sequences = (*ROAs).second.begin();
-			for (; sequences != (*ROAs).second.end(); ++sequences)
-			{
-				reads_array[count] = (*sequences).second;
-				count++;
-			}
-		}
-	}
-
-}
-
 int iterate ( int (*f)(string, int, string, Read&) )
 {
 	long count = 0;
-	map<string , map<int, map<string, Read> > >::iterator genes = reads.begin();
-	for(; genes != reads.end(); ++genes)
-	{
-		map<int, map<string, Read> >::iterator positions = (*genes).second.begin();
-		for (; positions != (*genes).second.end(); ++positions)
-		{
-			map<string, Read>::iterator sequences = (*positions).second.begin();
-			for (; sequences != (*positions).second.end(); ++sequences)
-			{
+
+	for(auto genes = reads.begin(); genes != reads.end(); ++genes)
+		for (auto positions = (*genes).second.begin(); positions != (*genes).second.end(); ++positions)
+			for (auto sequences = (*positions).second.begin(); sequences != (*positions).second.end(); ++sequences)
 				count += (*f)((*genes).first, (*positions).first, (*sequences).first, (*sequences).second);
-			}
-		}
-	}
 
 	return count;
 }
@@ -265,277 +305,153 @@ int iterate ( int (*f)(string, int, string, Read&) )
 // Iterator Functions
 // ----------------------------------------------------------------------------
 
-
 int count (string gene, int position, string seq, Read& read)
+{ return 1; }
+
+map<string, int> frag_counts;
+
+ofstream fasta_file;
+
+int count_verified (string gene, int position, string seq, Read& read)
 {
-	return 1;
-}
+	int frags = 0;
+	if(read.is_right_left_verified() and
+	   position % 17 == 0 and
+	   not read.matches_reference() and
+	   not hasDash(read.left_sequence_half) and
+	   not hasDash(read.right_sequence_half)){
 
-void printFasta()
-{
+		map<string, Read> left_track = reads[gene][position  - ROA_LENGTH/2];
+		map<string, Read> right_track = reads[gene][position + ROA_LENGTH/2];
 
-}
+		for (auto left = left_track.begin(); left != left_track.end(); ++left)
+			if( (*left).second.is_above_ppm() &&
+				not hasDash((*left).second.left_sequence_half) &&
+					(*left).second.right_sequence_half == read.left_sequence_half)
+				for(auto right = right_track.begin(); right != right_track.end(); ++right)
+					if((*right).second.is_above_ppm() &&
+					   (*right).second.left_sequence_half == read.right_sequence_half&&
+					   not hasDash((*right).second.right_sequence_half))
+					{
+						if(frag_counts[gene])
+							++frag_counts[gene];
+						else
+							frag_counts[gene] = 1;
+						frags++;
+						fasta_file << ">" << gene << "_Frag_" << (position-17) << endl;;
+						fasta_file << UINT64ToString((*left).second.left_sequence_half);
+						fasta_file << UINT64ToString((*left).second.right_sequence_half);
+						fasta_file << UINT64ToString((*right).second.left_sequence_half);
+						fasta_file << UINT64ToString((*right).second.right_sequence_half);
+						fasta_file << endl;
 
-int print (string gene, int position, string seq, Read& read)
-{
+					}
 
-	if( read.count > 10000 )
-		cout << gene << " [" << position << "][" << read.count << "] "  << seq << endl;
-
-	return 1;
-}
-
-int verify ( string gene, int position, string seq, Read& read)
-{
-
-	map<string, Read> roaVerifier;
-
-	// Verify the left
-	if((roaVerifier = reads[gene][position - seq.length()/2 ]).size() > 0)
-	{
-		map<string, Read>::iterator sequences = roaVerifier.begin();
-		for (; sequences != roaVerifier.end(); ++sequences)
-			if(read.left_sequence_half == (*sequences).second.right_sequence_half &&
-					(*sequences).second.count > THRESHOLD )
-			{
-				read.set_left_verified();
-				break;
-			}
 	}
+	return frags;
+}
 
-	// Verify the frequency
-	double count = 0;
+int printFasta()
+{
+	fasta_file.open ("/Users/androwis/Desktop/fasta.fa");
+	int frags = iterate(count_verified);
+	fasta_file.close();
+
+	return frags;
+}
+
+
+void frequency_filter(string gene, int position)
+{
+	map<string, Read> roaVerifier;
 	if((roaVerifier = reads[gene][position]).size() > 0)
 	{
-		map<string, Read>::iterator sequences = roaVerifier.begin();
-		for (; sequences != roaVerifier.end(); ++sequences)
-			count+=(*sequences).second.count;
+
+		// Count the number of reads at each location.
+		int forward_count = 0;
+		int reverse_count = 0;
+
+		for (auto sequences = roaVerifier.begin(); sequences != roaVerifier.end(); ++sequences)
+		{
+			forward_count+=(*sequences).second.forward_count;
+			reverse_count+=(*sequences).second.reverse_count;
+		}
+
+		// Apply frequency filter
+		int forward_threshold = ((2 > PPM * forward_count) ? 2 : PPM * forward_count);
+		int reverse_threshold = ((2 > PPM * reverse_count) ? 2 : PPM * reverse_count);
+
+		for (auto sequences = roaVerifier.begin(); sequences != roaVerifier.end(); ++sequences)
+			if( (*sequences).second.forward_count >= forward_threshold &&
+				(*sequences).second.reverse_count >= reverse_threshold )
+				reads[gene][position][(*sequences).first].set_above_ppm_threshold();
+
 	}
-	if( (double)read.count / count > PPM)
-		read.set_above_ppm_threshold();
-
-
-	// Verify the right
-	if((roaVerifier = reads[gene][position + seq.length()/2 ]).size() > 0)
-	{
-		map<string, Read>::iterator sequences = roaVerifier.begin();
-		for (; sequences != roaVerifier.end(); ++sequences)
-			if(read.right_sequence_half == (*sequences).second.left_sequence_half &&
-					(*sequences).second.count > THRESHOLD )
-			{
-				read.set_right_verified();
-				break;
-			}
-	}
-
-	if( read.is_right_left_verified() &&
-			not read.matches_reference() )
-		return 1;
-
-	return 0;
-
 }
 
-int reduceSNVs(string gene, int position, string seq, Read& read)
+void verify( map<string, Read> *left_track, map<string, Read> *right_track)
 {
-	int count = 0;
-	unsigned int verified = 0;
-	if( not read.matches_reference() and read.is_right_left_verified() ){
-
-		if(not read.matches_ref_on_right() && not hasDash(read.right_sequence_half) )
-		{
-
-			if( SNVs[gene][position+17][read.right_sequence_half][read.RefID] )
-				SNVs[gene][position+17][read.right_sequence_half][read.RefID]+= read.count;
-
-			else
-			{
-
-				// Check at offset of - 8.
-				map<string, Read>::iterator sequence = reads[gene][position+8].begin();
-				for(; sequence != reads[gene][position+8].end(); ++sequence)
-				{
-
-					if(read.eight_match( (*sequence).second.left_sequence_half, read.right_sequence_half))
-						verified = verified | 0b100;
-
-					if(read.nine_match(read.right_sequence_half, (*sequence).second.right_sequence_half))
-						verified = verified | 0b1000;
-
-					if((verified & 0b1100) == 0b1100)
-						break;
-				}
-
-				// Check at offset of - 8 - 1/2 ROA.
-				if( not ((verified & 0b100) == 0b100)  && position > 7)
-				{
-
-					map<string, Read>::iterator sequence = reads[gene][position - 8].begin();
-					for(; sequence != reads[gene][position-8].end(); ++sequence)
-
-						if(read.nine_match((*sequence).second.left_sequence_half, read.right_sequence_half))
+	if((*left_track).size() > 0 && (*right_track).size() > 0)
+		for (auto left = (*left_track).begin(); left != (*left_track).end(); ++left)
+			if((*left).second.is_above_ppm())
+				for(auto right = (*right_track).begin(); right != (*right_track).end(); ++right)
+					if((*right).second.is_above_ppm())
+						if((*left).second.right_sequence_half == (*right).second.left_sequence_half)
 						{
-							verified = verified | 0b100;
-							break;
+							((*left_track)[(*left).first]).set_right_verified();
+							((*right_track)[(*right).first]).set_left_verified();
 						}
-				}
-
-				//TODO: I think there's a one offset error w/ either backward or forward reads.
-				if( not ((verified & 0b1000) == 0b1000))
-				{
-					map<string, Read>::iterator sequence = reads[gene][position + 25].begin();
-					for(; sequence != reads[gene][position + 25].end(); ++sequence)
-						if(read.eight_match( read.right_sequence_half, (*sequence).second.left_sequence_half))
-						{
-							verified = verified | 0b1000;
-							break;
-						}
-				}
-
-				if((verified & 0b1100) == 0b1100)
-				{
-					SNVs[gene][position+17][read.right_sequence_half][read.RefID] = read.count;
-					count++;
-				}
-			}
-
-		}
-
-		if(not read.matches_ref_on_left() && position > 7  && not hasDash(read.left_sequence_half))
-		{
-
-			if( SNVs[gene][position][read.left_sequence_half][read.RefID])
-				SNVs[gene][position][read.left_sequence_half][read.RefID]+= read.count;
-
-			else
-			{
-
-				// Check at offset of - 8.
-				map<string, Read>::iterator sequence = reads[gene][position-8].begin();
-				for(; sequence != reads[gene][position-8].end(); ++sequence)
-				{
-
-					if(read.nine_match((*sequence).second.left_sequence_half , read.left_sequence_half))
-						verified = verified | 0b1;
-
-					if(read.eight_match(read.left_sequence_half, (*sequence).second.right_sequence_half))
-						verified = verified | 0b10;
-
-					if((verified & 0b11) == 0b11)
-						break;
-				}
-
-				// Check at offset of - 8 - 1/2 ROA.
-				if( not ((verified & 0b1) == 1)  && position > 24)
-				{
-
-					map<string, Read>::iterator sequence = reads[gene][position- 25].begin();
-					for(; sequence != reads[gene][position-25].end(); ++sequence)
-						if(read.nine_match( (*sequence).second.right_sequence_half, read.left_sequence_half))
-						{
-							verified = verified | 0b1;
-							break;
-						}
-				}
-
-				// Check at offset of - 8 + 1/2 ROA.
-				if( not ((verified & 0b10) == 0b10))
-				{
-
-					map<string, Read>::iterator sequence = reads[gene][position + 8].begin();
-					for(; sequence != reads[gene][position + 8].end(); ++sequence)
-						if(read.nine_match(read.left_sequence_half, (*sequence).second.left_sequence_half))
-						{
-							verified = verified | 0b10;
-							break;
-						}
-				}
-
-				if((verified & 0b11) == 0b11)
-				{
-					SNVs[gene][position][read.left_sequence_half][read.RefID] = read.count;
-					count++;
-				}
-			}
-		}
-
-	}
-	return count;
 }
 
+void callSNVs()
+{
+}
 
-//	SNV calls
-//	----------------------------------
-//	An SNV is called for any base at a position when:
-//
-//		A letter that does not match the reference sequence
-//
-//		- AND -
-//
-//		a) A letter appears in the verified histograms for both start positions.
-//
-//		b) A letter appears in the verified histogram for one of the start positions at a frequency in excess of a first set minimum threshold.
-//		--> the frequency threshold we typically use is 0.3%.  The computed
-//		frequency for each covering collection is the ratio of the verified
-//		histogram count to the coverage at that location, namely the sum of
-//		all letter counts in that covering collection histogram.
-//
-//		c) A letter appears in either all-words histogram at a frequency in excess of a second set minimum threshold.
-//		--> the frequency threshold we typically use is 10%.  The computed
-//		 frequency for each covering collection is the ratio of the all-words
-//		 histogram count to the coverage at that location, namely the sum of
-//		 all letter counts in that covering collection histogram.
-//
-
-//       	-----------------------------------------------------------
-// track 0  [0               16|17               33|34              49]
-//          -------------------------------------------------------------------
-// track 1	         [8               24|25      X        41|42              57]
-// 		             ----------------------------------------------------------------------
-// track 0 	                   [17               33|34               50|51              66]
-// 		                       ---------------------------------------------------------------------
-// track 1	    		                [25               41|42               58|59              74]
-// 		                                ------------------------------------------------------------
-
-int callSNVs()
+void sequential()
 {
 
-	int count = iterate(reduceSNVs);
+	// Frequency Filter.
+	for(auto genes = reads.begin(); genes != reads.end(); ++genes)
+		for (auto positions = (*genes).second.begin() ; positions != (*genes).second.end(); ++positions)
+			frequency_filter((*genes).first, (*positions).first);
 
-	cout << "StartPos \t EndPos \t #reads \t #refreads \t #NRwords \t Avg#Diffs \t RMSDiffs \t #topNRdiffs \t #topNRreads \t #mutantPos" << endl;
 
-	map<string , map<int, map<uint64_t, map <int , int > > > >::iterator genes = SNVs.begin();
-	for(; genes != SNVs.end(); ++genes)
+	// Verify
+	for(auto genes2 = reads.begin(); genes2 != reads.end(); ++genes2)
 	{
-		map<int, map<uint64_t, map <int , int > > >::iterator positions = (*genes).second.begin();
-		for (; positions != (*genes).second.end(); ++positions)
+		auto positions = (*genes2).second.begin();
+		positions++; positions++;
+		for (; positions != --(--((*genes2).second.end())); ++positions)
 		{
-			map<uint64_t, map <int , int > >::iterator sequences = (*positions).second.begin();
-			for (; sequences != (*positions).second.end(); ++sequences)
-			{
-				map <int , int >::iterator refIDs = (*sequences).second.begin();
-				for (; refIDs != (*sequences).second.end(); ++refIDs)
-				{
-					if((*refIDs).second > 0){
-						// #refreads	#NRwords	Avg#Diffs	RMSDiffs	#topNRdiffs	#topNRreads	#mutantPos
-						cout << std::setw(20) << genes_names[(*refIDs).first] << " ["; // Gene Name
-						cout << std::setw(4)  << (*positions).first << " - "; // StartPos
-						cout << std::setw(4)  << (*positions).first + 17	<< "] "; // EndPos
-						cout << std::setw(3)  << (*refIDs).second << " "; // Count
-						cout << UINT64ToStringCompare((*sequences).first, references[genes_names[(*refIDs).first]][(*positions).first] ) << '\t';
-						cout << CalculateGC((*sequences).first) << endl;
-					}
-				}
 
-			}
+			int size = sizeof(tracks)/sizeof(tracks[0]);
+
+			for(int i = 0; i < size; i ++)
+				--positions;
+
+			map<string, Read> * left_track = &reads[(*genes2).first][(*positions).first];
+
+			for(int i = 0; i < 2; i ++)
+				++positions;
+
+			map<string, Read> * track = &reads[(*genes2).first][(*positions).first];
+
+			verify(left_track, track);
+
+			for(int i = 0; i < size; i ++)
+				++positions;
+
+			map<string, Read> * right_track = &reads[(*genes2).first][(*positions).first];
+
+			for(int i = 0; i < size; i ++)
+				--positions;
+
+			verify(track, right_track);
+
 		}
 	}
 
-	cout << "I called " << count << " SNVs.";
-
-	return 0;
 }
-
 
 int buildHistograms(string gene, int position, string seq, Read& read)
 {
@@ -561,9 +477,9 @@ int buildHistograms(string gene, int position, string seq, Read& read)
 		while(s!=0)
 		{
 			if( read.is_right_left_verified() )
-				(*verified)[gene][position + i][ s & 0b00000111] += read.count;
+				(*verified)[gene][position + i][  s & 0b00000111] += read.total_count();
 			if( read.is_above_ppm() )
-				(*frequency)[gene][position + i][ s & 0b00000111] += read.count;
+				(*frequency)[gene][position + i][ s & 0b00000111] += read.total_count();
 			s = s>>3;i++;
 		}
 
@@ -572,9 +488,9 @@ int buildHistograms(string gene, int position, string seq, Read& read)
 		while(s!=0)
 		{
 			if( read.is_right_left_verified() )
-				(*verified)[gene][position + i][ s & 0b00000111] += read.count;
+				(*verified)[gene][position + i][ s & 0b00000111] += read.total_count();
 			if( read.is_above_ppm() )
-				(*frequency)[gene][position + i][ s & 0b00000111] += read.count;
+				(*frequency)[gene][position + i][ s & 0b00000111] += read.total_count();
 			s=s>>3;i++;
 		}
 
@@ -584,8 +500,10 @@ int buildHistograms(string gene, int position, string seq, Read& read)
 
 void printHistograms()
 {
-	map<string , map<int, map<int, int> > >::iterator genes = verified_histogram_0.begin();
-	for(; genes != verified_histogram_0.end(); ++genes)
+	for(auto frag = frag_counts.begin(); frag !=frag_counts.end(); ++frag)
+		cout << "I have " << (*frag).second << " frags for "<< (*frag).first << endl;
+
+	for(auto genes = verified_histogram_0.begin(); genes != verified_histogram_0.end(); ++genes)
 	{
 		string filename = "/Users/androwis/Desktop/"+(*genes).first+"AT.txt";
 		string filenameC = "/Users/androwis/Desktop/"+(*genes).first+"CG.txt";
@@ -594,8 +512,7 @@ void printHistograms()
 		f.open(filename.c_str());
 		fc.open(filenameC.c_str());
 
-		map<int, map<int, int> >::iterator positions = (*genes).second.begin();
-		for (; positions != (*genes).second.end(); ++positions)
+		for (auto positions = (*genes).second.begin(); positions != (*genes).second.end(); ++positions)
 		{
 			map<int, int> counts = (*positions).second;
 			double total = counts[1]+counts[2]+counts[3]+counts[4] +

@@ -26,7 +26,8 @@ struct Read {
 	char sequence[34];
 	uint64_t right_sequence_half;
 	uint64_t  left_sequence_half;
-	unsigned int count;
+	unsigned int forward_count;
+	unsigned int reverse_count;
 
 	unsigned int verification_flags;
 	//	0b00000000
@@ -58,7 +59,7 @@ struct Read {
 	{ verification_flags = verification_flags | 0b0100000; }
 
 	bool is_right_left_verified()
-	{ return (verification_flags & 0b0000011) == 0b0000010;}
+	{ return (verification_flags & 0b0000011) == 0b0000011;}
 
 	bool matches_reference()
 	{ return (verification_flags & 0b0011000) == 0b0011000;}
@@ -72,25 +73,22 @@ struct Read {
 	bool is_above_ppm()
 	{ return (verification_flags & 0b0100000) == 0b0100000;}
 
-	bool nine_match(uint64_t front, uint64_t back)
-	{ return   (front >> 24) == (back & 0b111111111111111111111111111); }
-
-	bool eight_match(uint64_t front, uint64_t back)
-	{ return (front >> 27)   == (back & 0b111111111111111111111111); }
-
+	unsigned int total_count()
+	{ return forward_count + reverse_count;}
 
 };
 
-int readFile(string file, char *fasta, int length, Read (*f)(string &, int));
-int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) );
-int iterate ( int (*f)(string, int, string, Read&) );
-void iterateAndSet( Read reads_array[]);
-int print (string gene, int position, string seq, Read& read);
-int count (string gene, int position, string seq, Read& read);
-int verify ( string gene, int position, string seq, Read& read);
-int callSNVs();
-Read convert(string &word, int length);
 Read buildRead(string &word, int length);
+int readFile(string file, char *fasta, int length, Read (*f)(string &, int));
+//int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) );
+int iterate ( int (*f)(string, int, string, Read&) );
+//void iterateAndSet( Read reads_array[]);
+//int print (string gene, int position, string seq, Read& read);
+int printFasta();
+//int count (string gene, int position, string seq, Read& read);
+void sequential();
+//int count_verified (string gene, int position, string seq, Read& read);
+//int callSNVs();
 int buildHistograms(string gene, int position, string seq, Read& read);
 void printHistograms();
 #endif

@@ -95,7 +95,7 @@ TARGET   = DDiMAP
 OBJST 	= bin/DDiMAP-threads.o bin/DDiMAP-lib.o bin/Read-Helper.o
 TARGETT = DDiMAP-threads 
 
-all: $(TARGET) $(TARGETT) # DDiMAPGPU 
+all: $(TARGET) #  $(TARGETT)  DDiMAPGPU 
 
 $(TARGETT): bin $(OBJST)
 	$(CXX) -o bin/$(TARGETT) $(OBJST) $(LIBS)

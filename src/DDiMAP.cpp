@@ -20,11 +20,11 @@
 
 // Default file.
 
-string file  = "data/128test_Gen1_example_sorted.bam";
-char  *fasta = "data/128test_Gen1_example.fa";
+//string file  = "data/128test_Gen1_example_sorted.bam";
+//char  *fasta = "data/128test_Gen1_example.fa";
 
-//string file  = "/Dropbox/Google Drive/DataExchangeUR/128_Gen7_BSBSB_VhJ_FragHigh_sorted.bam";
-//char  *fasta = "/Dropbox/Google Drive/DataExchangeUR/128_Gen7_BSBSB_VhJ_FragHigh.fa";
+string file  = "/Dropbox/Google Drive/DataExchangeUR/128_Gen7_BSBSB_VhJ_FragHigh_sorted.bam";
+char  *fasta = "/Dropbox/Google Drive/DataExchangeUR/128_Gen7_BSBSB_VhJ_FragHigh.fa";
 
 int main (int argc, char **argv)
 {
@@ -59,10 +59,10 @@ int main (int argc, char **argv)
 		printf ("\n");
 	}
 
+
 	// ------------------------------------------------------------------------
 	// DDiMAP
 	// ------------------------------------------------------------------------
-
 
 	t = clock();
 	unique = readFile(file, fasta, 34, buildRead);
@@ -71,47 +71,49 @@ int main (int argc, char **argv)
 			t, ((float)t)/CLOCKS_PER_SEC, unique, total);
 
 
+
 	t = clock();
-	int verified = iterate(verify);
+	sequential();
+	int verified = printFasta();
 	t = clock() - t;
 	printf ("It took me %lu ticks (%f seconds) to verify %d | %d.\n",
 			t, ((float)t)/CLOCKS_PER_SEC , verified, unique);
-//
-//
-//t = clock();
-//	verified = iterate(buildHistograms);
-//	t = clock() - t;
-//	printf ("It took me %lu ticks (%f seconds) to build the histogram.\n",
-//			t, ((float)t)/CLOCKS_PER_SEC);
 
-	verified = callSNVs();
-//	printHistograms();
 
-  gnuplot_ctrl    *   h1;
-  h1 = gnuplot_init() ;
-  gnuplot_resetplot(h1) ;
-  gnuplot_cmd(h1, "set xrange [0:1200]");
-  gnuplot_cmd(h1, "set yrange [0.0001:0.9999]");
-  gnuplot_cmd(h1, "set multiplot title \"GC Content for different genes\" layout 3,4");
-  gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/Bcl2CG.txt\" 	with points ls 1 title \"Bcl2\"");
-  gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/Bcl6CG.txt\" 	with points ls 1 title \"Bcl6\"");
-  gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/CD83CG.txt\" 	with points ls 1 title \"CD83\"");
-  gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/EmuCG.txt\"	with points ls 1 title \"Emu\"");
-  gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/J6-J4CG.txt\"	with points ls 1 title \"j6-j4\"");
-  gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/KSCG.txt\" 	with points ls 1 title \"KSCG\"");
-  gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/Pax5CG.txt\" 	with points ls 1 title \"Pax5\"");
-  gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/Pim1CG.txt\" 	with points ls 1 title \"Pim1\"");
-  gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/RhoHCG.txt\" 	with points ls 1 title \"RhoH\"");
-  gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/Vh1-18CG.txt\" with points ls 1 title \"vh1\"");
-  gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/myc-1CG.txt\"	with points ls 1 title \"myc-1\"");
-  gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/myc-2CG.txt\" with points ls 1 title \"myc-2\"");
-  gnuplot_cmd(h1, "unset multiplot") ;
+	t = clock();
+	verified = iterate(buildHistograms);
+	t = clock() - t;
+	printf ("It took me %lu ticks (%f seconds) to build the histogram.\n",
+			t, ((float)t)/CLOCKS_PER_SEC);
 
-  cin.get();
+	printHistograms();
+
+	gnuplot_ctrl    *   h1;
+	h1 = gnuplot_init() ;
+	gnuplot_resetplot(h1) ;
+	gnuplot_cmd(h1, "set xrange [0:1200]");
+	gnuplot_cmd(h1, "set yrange [0.0001:0.9999]");
+	gnuplot_cmd(h1, "set multiplot title \"GC Content for different genes\" layout 3,4");
+	gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/Bcl2_NCBICG.txt\"     with points ls 1 title \"Bcl2\"");
+	gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/Bcl6_NCBICG.txt\"     with points ls 1 title \"Bcl6\"");
+	gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/CD83_NCBICG.txt\"     with points ls 1 title \"CD83\"");
+	gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/Emu_NCBICG.txt\"      with points ls 1 title \"Emu\"");
+	gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/J6-J4_NCBICG.txt\"    with points ls 1 title \"j6-j4\"");
+	gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/KS_NCBICG.txt\"       with points ls 1 title \"KSCG\"");
+	gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/Pax5_NCBICG.txt\"     with points ls 1 title \"Pax5\"");
+	gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/Pim1_NCBICG.txt\"     with points ls 1 title \"Pim1\"");
+	gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/RhoH_NCBICG.txt\"     with points ls 1 title \"RhoH\"");
+	gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/Vh1-18_NCBICG.txt\" with points ls 1 title \"vh1\"");
+	gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/myc-1_NCBICG.txt\"    with points ls 1 title \"myc-1\"");
+	gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/myc-2_NCBICG.txt\" with points ls 1 title \"myc-2\"");
+	gnuplot_cmd(h1, "unset multiplot") ;
+
+	cin.get();
 
 	// ------------------------------------------------------------------------
-	// End. 
+	// End.
 	// ------------------------------------------------------------------------
+
 	return EXIT_SUCCESS;
 
 }
