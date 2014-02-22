@@ -88,6 +88,8 @@ int main (int argc, char **argv)
 
 	printHistograms();
 
+	callSNVs();
+
 	gnuplot_ctrl    *   h1;
 	h1 = gnuplot_init() ;
 	gnuplot_resetplot(h1) ;

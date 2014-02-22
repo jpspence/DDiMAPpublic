@@ -36,42 +36,6 @@
 // ----------------------------------------------------------------------------
 
 
-
-
-int printFasta(string gene, int position, string seq, Read& read)
-{
-	//	if(not read.matches_reference() and read.is_right_left_verified())
-	//	{
-	//		cout <<( position - ROA_LENGTH/2) << " " << position <<( position + ROA_LENGTH/2) << endl;
-	//		map<string, Read> left_track = reads[gene][position  - ROA_LENGTH/2];
-	//		map<string, Read> right_track = reads[gene][position + ROA_LENGTH/2];
-	//
-	//		for (map<string, Read>::iterator left = left_track.begin(); left != left_track.end(); ++left){
-	//
-	//			cout << (*left).second.reverse_count << " " << (*left).second.forward_count << endl;
-	//
-	//			if((*left).second.is_above_ppm() && (*left).second.right_sequence_half == read.left_sequence_half)
-	//				for(map<string, Read>::iterator right = right_track.begin(); right != right_track.end(); ++right)
-	//					if((*right).second.is_above_ppm() && (*right).second.left_sequence_half == read.right_sequence_half)
-	//					{
-	//						cout << gene << "_Frag_" << position << " : " << endl;
-	//						for(int i = 0; i<17; i++)
-	//							cout << " ";
-	//						cout << seq << endl;
-	//						cout << UINT64ToString((*left).second.left_sequence_half);
-	//						cout << UINT64ToString((*left).second.right_sequence_half);
-	//						cout << UINT64ToString((*right).second.left_sequence_half);
-	//						cout << UINT64ToString((*right).second.right_sequence_half);
-	//						cout << endl;
-	//
-	//					}
-	//		}
-	//	}
-
-	return 0;
-}
-
-
 //	SNV calls | Only in histograms.
 
 //  Both non-zero --> call 1.

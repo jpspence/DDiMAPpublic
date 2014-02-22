@@ -88,7 +88,7 @@ int printFasta();
 //int count (string gene, int position, string seq, Read& read);
 void sequential();
 //int count_verified (string gene, int position, string seq, Read& read);
-//int callSNVs();
+void callSNVs();
 int buildHistograms(string gene, int position, string seq, Read& read);
 void printHistograms();
 #endif
