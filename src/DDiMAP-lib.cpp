@@ -511,91 +511,83 @@ void callSNVs()
 			double total2 = counts2[1]+counts2[2]+counts2[3]+counts2[4];
 
 			double freq_total  = threshold_histogram_0[(*genes).first][(*positions).first][1]+
-				threshold_histogram_0[(*genes).first][(*positions).first][2]+
-				threshold_histogram_0[(*genes).first][(*positions).first][3]+
-				threshold_histogram_0[(*genes).first][(*positions).first][4];
+					threshold_histogram_0[(*genes).first][(*positions).first][2]+
+					threshold_histogram_0[(*genes).first][(*positions).first][3]+
+					threshold_histogram_0[(*genes).first][(*positions).first][4];
 
 			double freq_total2  = threshold_histogram_1[(*genes).first][(*positions).first][1]+
-				threshold_histogram_1[(*genes).first][(*positions).first][2]+
-				threshold_histogram_1[(*genes).first][(*positions).first][3]+
-				threshold_histogram_1[(*genes).first][(*positions).first][4];
+					threshold_histogram_1[(*genes).first][(*positions).first][2]+
+					threshold_histogram_1[(*genes).first][(*positions).first][3]+
+					threshold_histogram_1[(*genes).first][(*positions).first][4];
 
 
-		for (int i = 1; i < 5; i++)
-		{
+			for (int i = 1; i < 5; i++)
+				if((references[(*genes).first][(*positions).first] & 0b111) != i)
+				{
 
-			// --- Call type #1
-			// If the reads are in both verified histograms.
+					// --- Call type #1
+					// If the reads are in both verified histograms.
 
-			if( ((references[(*genes).first][(*positions).first] & 0b111) != i)  and
-					(*positions).second[i] > 0 and
-					verified_histogram_1[(*genes).first][(*positions).first][i] > 0
-			){
+					if( (*positions).second[i] > 0 and
+						verified_histogram_1[(*genes).first][(*positions).first][i] > 0
+					){
 
-				cout << "1 Reference @ " <<(*positions).first << " is : " << UINT64ToString(references[(*genes).first][(*positions).first])<< endl;
+						cout << "1 Reference @ " <<(*positions).first << " is : " << UINT64ToString(references[(*genes).first][(*positions).first])<< endl;
 
-				uint64_t convert (i);
-				cout << UINT64ToString(references[(*genes).first][(*positions).first] & 0b111) << " -> " << UINT64ToString(convert) << " : ";
-				cout << ((double) (counts[i]+ counts2[i]) / (total2+total)) << "\n";
+						uint64_t convert (i);
+						cout << UINT64ToString(references[(*genes).first][(*positions).first] & 0b111) << " -> " << UINT64ToString(convert) << " : ";
+						cout << ((double) (counts[i]+ counts2[i]) / (total2+total)) << "\n";
 
-				snvs++;
+						snvs++;
 
-			}
+					}
 
-			// --- Call type #2
-			// If the reads are only in one histogram
+					// --- Call type #2
+					// If the reads are only in one histogram
 
-			else if( ((references[(*genes).first][(*positions).first] & 0b111) != i)  and
-					((double)(*positions).second[i]) / total > .003
-			){
+					else if( ((double)(*positions).second[i]) / total > .003 ){
 
-				cout << "2 Reference @ " <<(*positions).first << " is : " << UINT64ToString(references[(*genes).first][(*positions).first])<< endl;
-				uint64_t convert (i);
-				cout << UINT64ToString(references[(*genes).first][(*positions).first] & 0b111) << " -> " << UINT64ToString(convert) << " : ";
-				cout << ((double) (counts[i] ) / total) << "\n";
-				snvs++;
+						cout << "2 Reference @ " <<(*positions).first << " is : " << UINT64ToString(references[(*genes).first][(*positions).first])<< endl;
+						uint64_t convert (i);
+						cout << UINT64ToString(references[(*genes).first][(*positions).first] & 0b111) << " -> " << UINT64ToString(convert) << " : ";
+						cout << ((double) (counts[i] ) / total) << "\n";
+						snvs++;
 
-			}
+					}
 
-			else if( ((references[(*genes).first][(*positions).first] & 0b111) != i)  and
-					verified_histogram_1[(*genes).first][(*positions).first][i] / total2 > .003
-			){
+					else if( verified_histogram_1[(*genes).first][(*positions).first][i] / total2 > .003 ){
 
-				cout << "2 Reference @ " <<(*positions).first << " is : " << UINT64ToString(references[(*genes).first][(*positions).first])<< endl;
-				uint64_t convert (i);
-				cout << UINT64ToString(references[(*genes).first][(*positions).first] & 0b111) << " -> " << UINT64ToString(convert) << " : ";
-				cout << ((double) ( verified_histogram_1[(*genes).first][(*positions).first][i] ) / total2) << "\n";
-				snvs++;
+						cout << "2 Reference @ " <<(*positions).first << " is : " << UINT64ToString(references[(*genes).first][(*positions).first])<< endl;
+						uint64_t convert (i);
+						cout << UINT64ToString(references[(*genes).first][(*positions).first] & 0b111) << " -> " << UINT64ToString(convert) << " : ";
+						cout << ((double) ( verified_histogram_1[(*genes).first][(*positions).first][i] ) / total2) << "\n";
+						snvs++;
 
-			}
+					}
 
-			// # Call type 3
-			// If the reads are in both verified histograms.
+					// # Call type 3
+					// If the reads are in both verified histograms.
 
-			else if( ((references[(*genes).first][(*positions).first] & 0b111) != i)  and
-					((double) threshold_histogram_0[(*genes).first][(*positions).first][i]) / freq_total > .1
-			){
+					else if(((double) threshold_histogram_0[(*genes).first][(*positions).first][i]) / freq_total > .1 ){
 
-				cout << "3 Reference @ " <<(*positions).first << " is : " << UINT64ToString(references[(*genes).first][(*positions).first])<< endl;
-				uint64_t convert (i);
-				cout << UINT64ToString(references[(*genes).first][(*positions).first] & 0b111) << " -> " << UINT64ToString(convert) << " : ";
-				cout << (((double) threshold_histogram_1[(*genes).first][(*positions).first][i]) / freq_total) << "\n";
-				snvs++;
+						cout << "3 Reference @ " <<(*positions).first << " is : " << UINT64ToString(references[(*genes).first][(*positions).first])<< endl;
+						uint64_t convert (i);
+						cout << UINT64ToString(references[(*genes).first][(*positions).first] & 0b111) << " -> " << UINT64ToString(convert) << " : ";
+						cout << (((double) threshold_histogram_1[(*genes).first][(*positions).first][i]) / freq_total) << "\n";
+						snvs++;
 
-			}
+					}
 
-			else if( ((references[(*genes).first][(*positions).first] & 0b111) != i)  and
-					((double) threshold_histogram_1[(*genes).first][(*positions).first][i]) / freq_total2 > .1
-			){
+					else if( ((double) threshold_histogram_1[(*genes).first][(*positions).first][i]) / freq_total2 > .1 ){
 
-				cout << "3 Reference @ " <<(*positions).first << " is : " << UINT64ToString(references[(*genes).first][(*positions).first])<< endl;
-				uint64_t convert (i);
-				cout << UINT64ToString(references[(*genes).first][(*positions).first] & 0b111) << " -> " << UINT64ToString(convert) << " : ";
-				cout << (((double) threshold_histogram_1[(*genes).first][(*positions).first][i]) / freq_total2) << "\n";
-				snvs++;
+						cout << "3 Reference @ " <<(*positions).first << " is : " << UINT64ToString(references[(*genes).first][(*positions).first])<< endl;
+						uint64_t convert (i);
+						cout << UINT64ToString(references[(*genes).first][(*positions).first] & 0b111) << " -> " << UINT64ToString(convert) << " : ";
+						cout << (((double) threshold_histogram_1[(*genes).first][(*positions).first][i]) / freq_total2) << "\n";
+						snvs++;
 
-			}
-		}
+					}
+				}
 
 		}
 	cout << " I read " << snvs << " SNVs";
