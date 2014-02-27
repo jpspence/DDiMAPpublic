@@ -33,6 +33,9 @@ int main (int argc, char **argv)
 	int total = 0, unique = 0;
 
 	// Default values
+	// FLAGS
+	// TODO: -dropID
+	// TODO: -uniqueThreshold
 	int VERIFY_THRESHOLD  =  2;
 	double PPM = 0.00075;
 	double SNV_VERIFIED_THRESHOLD = .003;

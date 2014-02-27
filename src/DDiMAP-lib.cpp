@@ -155,7 +155,15 @@ int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) )
 {
 	int uniques = 0;
 
-	if( references[genes[ba.RefID]].size() > 0)
+	bool hasDeletion  = false;
+	bool hasInsertion = false;
+
+	for(auto element = ba.CigarData.begin(); element < ba.CigarData.end(); element++){
+		if((*element).Type == 'D') hasDeletion = true;
+		else if((*element).Type == 'I') hasInsertion = true;
+	}
+
+	if( references[genes[ba.RefID]].size() > 0 && not (hasInsertion == true && hasDeletion == true))
 	{
 		for(int track : tracks){
 
@@ -205,7 +213,6 @@ int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) )
 				}
 			}
 		}
-	}
 	return uniques;
 }
 
