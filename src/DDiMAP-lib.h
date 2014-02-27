@@ -80,15 +80,11 @@ struct Read {
 
 Read buildRead(string &word, int length);
 int readFile(string file, char *fasta, int length, Read (*f)(string &, int));
-//int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) );
 int iterate ( int (*f)(string, int, string, Read&) );
-//void iterateAndSet( Read reads_array[]);
-//int print (string gene, int position, string seq, Read& read);
 int printFasta();
-//int count (string gene, int position, string seq, Read& read);
-void sequential();
-//int count_verified (string gene, int position, string seq, Read& read);
-void callSNVs();
+void sequential(int threshold, double ppm);
+void callSNVs(double snv_verified_threshold, double snv_total_threshold);
 int buildHistograms(string gene, int position, string seq, Read& read);
 void printHistograms();
+int count (string gene, int position, string seq, Read& read);
 #endif

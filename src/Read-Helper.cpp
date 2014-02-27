@@ -31,10 +31,10 @@ uint64_t charToUINT64(char ch)
 char UINT64ToChar(uint64_t ch, bool upper_case)
 {
 	if(upper_case){
-		if( ch == a) return ' ';
-		if( ch == t) return ' ';
-		if (ch == c) return ' ';
-		if (ch == g) return ' ';
+		if( ch == a) return 'A';
+		if( ch == t) return 'T';
+		if (ch == c) return 'C';
+		if (ch == g) return 'G';
 	} else {
 		if( ch == a) return 'a';
 		if( ch == t) return 't';
