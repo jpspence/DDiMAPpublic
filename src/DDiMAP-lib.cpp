@@ -213,6 +213,7 @@ int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) )
 				}
 			}
 		}
+	}
 	return uniques;
 }
 
@@ -400,7 +401,7 @@ void frequency_filter(string gene, int position, int threshold, double ppm)
 
 		for (auto sequences = roaVerifier.begin(); sequences != roaVerifier.end(); ++sequences)
 			if( (*sequences).second.forward_count >= total_threshold &&
-				(*sequences).second.reverse_count >= total_threshold )
+					(*sequences).second.reverse_count >= total_threshold )
 				reads[gene][position][(*sequences).first].set_above_ppm_threshold();
 
 	}
