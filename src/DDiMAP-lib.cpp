@@ -163,7 +163,7 @@ int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) )
 		else if((*element).Type == 'I') hasInsertion = true;
 	}
 
-	if( references[genes[ba.RefID]].size() > 0 && not (hasInsertion == true && hasDeletion == true))
+	if( references[genes[ba.RefID]].size() > 0 && not (hasInsertion && hasDeletion) )
 	{
 		for(int track : tracks){
 
@@ -523,13 +523,13 @@ int buildHistograms(string gene, int position, string seq, Read& read)
 	return 0;
 }
 
-void printSNV(int reason, string gene, int pos, int i, uint64_t ref, double freq )
+int printSNV(int reason, string gene, int pos, int i, uint64_t ref, double freq )
 {
 	cout << reason <<" Reference " << gene << " @ " << pos << " is : " << UINT64ToString(ref)<< endl;
 	uint64_t convert (i);
 	cout << UINT64ToString(ref & 0b111) << " -> " << UINT64ToString(convert) << " : ";
 	cout << freq << "\n";
-
+	return 1;
 }
 
 void callSNVs(double snv_verified_threshold, double snv_total_threshold)
@@ -569,38 +569,25 @@ void callSNVs(double snv_verified_threshold, double snv_total_threshold)
 					// --- Call type #1
 					// If the reads are in both verified histograms.
 					if( (freq = ((double) (verified_counts[i]+ verified_counts2[i]) / verified)) and verified_counts[i] and verified_counts2[i])
-					{
-						printSNV(1, (*genes).first,(*positions).first, i, ref, freq );
-						snvs++;
-					}
+						snvs += printSNV(1, (*genes).first,(*positions).first, i, ref, freq );
 
 					// --- Call type #2
 					// If the reads are only in one histogram
 					else if( (freq = ((double) verified_counts[i]) / verified_total) > snv_verified_threshold )
-					{
-						printSNV(2, (*genes).first,(*positions).first, i, ref, freq );
-						snvs++;
-					}
+						snvs += printSNV(2, (*genes).first,(*positions).first, i, ref, freq );
 
 					else if( (freq = ((double) verified_counts2[i]) / verified_total2) > snv_verified_threshold )
-					{
-						printSNV(2, (*genes).first,(*positions).first, i, ref, freq );
-						snvs++;
-					}
+						snvs += printSNV(2, (*genes).first,(*positions).first, i, ref, freq );
+
 
 					// # Call type 3
 					// If the reads exceed a 3rd threshold in either track
 					else if( (freq = ((double) ppm_histogram_0[(*genes).first][(*positions).first][i]) / ppm_total) > snv_total_threshold)
-					{
-						printSNV(3, (*genes).first,(*positions).first, i, ref, freq );
-						snvs++;
-					}
+						snvs += printSNV(3, (*genes).first,(*positions).first, i, ref, freq );
 
 					else if( (freq = ((double) ppm_histogram_1[(*genes).first][(*positions).first][i]) / ppm_total2) > snv_total_threshold)
-					{
-						printSNV(3, (*genes).first,(*positions).first, i, ref, freq );
-						snvs++;
-					}
+						snvs += printSNV(3, (*genes).first,(*positions).first, i, ref, freq );
+
 				}
 
 		}

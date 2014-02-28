@@ -38,6 +38,7 @@ int main (int argc, char **argv)
 	// TODO: -uniqueThreshold
 	int VERIFY_THRESHOLD  =  2;
 	double PPM = 0.00075;
+	double FRAG_THRESHOLD = .01;
 	double SNV_VERIFIED_THRESHOLD = .003;
 	double SNV_TOTAL_THRESHOLD = .1;
 
@@ -104,7 +105,7 @@ int main (int argc, char **argv)
 
 
 	t = clock();
-	sequential(VERIFY_THRESHOLD, PPM, SNV_TOTAL_THRESHOLD);
+	sequential(VERIFY_THRESHOLD, PPM, FRAG_THRESHOLD);
 	int verified = printFasta();
 	t = clock() - t;
 //	printf ("It took me %lu ticks (%f seconds) to verify %d | %d.\n",
