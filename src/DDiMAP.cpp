@@ -39,7 +39,7 @@ int main (int argc, char **argv)
 	int VERIFY_THRESHOLD  =  2;
 	double PPM = 0.00075;
 	double SNV_VERIFIED_THRESHOLD = .003;
-	double SNV_TOTAL_THRESHOLD = .01;
+	double SNV_TOTAL_THRESHOLD = .1;
 
 	// ------------------------------------------------------------------------
 	// Parameter Parsing

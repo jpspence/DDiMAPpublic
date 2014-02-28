@@ -270,7 +270,7 @@ int readFile(string file, char *fasta, int length, Read (*f)(string &, int))
 		++n;
 	}
 
-//	printf("I read %d sequences from the fasta file \n",n);
+	//	printf("I read %d sequences from the fasta file \n",n);
 	kseq_destroy(seq);
 	gzclose(fp);
 
@@ -346,13 +346,13 @@ int generateFrags (string gene, int position, string seq, Read& read)
 		for (auto left = left_track.begin(); left != left_track.end(); ++left)
 
 			if( (*left).second.is_above_frag() &&
-				(*left).second.right_sequence_half == read.left_sequence_half &&
-				not hasDash((*left).second.left_sequence_half))
+					(*left).second.right_sequence_half == read.left_sequence_half &&
+					not hasDash((*left).second.left_sequence_half))
 
 				for(auto right = right_track.begin(); right != right_track.end(); ++right)
 					if((*right).second.is_above_frag() &&
-					   (*right).second.left_sequence_half == read.right_sequence_half &&
-						not hasDash((*right).second.right_sequence_half))
+							(*right).second.left_sequence_half == read.right_sequence_half &&
+							not hasDash((*right).second.right_sequence_half))
 					{
 						if(frag_counts[gene])
 							++frag_counts[gene];
@@ -406,11 +406,11 @@ void frequency_filter(string gene, int position, int threshold, double ppm, doub
 		for (auto sequences = roaVerifier.begin(); sequences != roaVerifier.end(); ++sequences)
 		{
 			if( (*sequences).second.forward_count >= total_threshold &&
-				(*sequences).second.reverse_count >= total_threshold )
+					(*sequences).second.reverse_count >= total_threshold )
 				reads[gene][position][(*sequences).first].set_above_ppm_threshold();
 
 			if( (*sequences).second.forward_count >= frag_threshold &&
-				(*sequences).second.reverse_count >= frag_threshold )
+					(*sequences).second.reverse_count >= frag_threshold )
 				reads[gene][position][(*sequences).first].set_above_frag_threshold();
 
 		}
@@ -523,6 +523,14 @@ int buildHistograms(string gene, int position, string seq, Read& read)
 	return 0;
 }
 
+void printSNV(int reason, string gene, int pos, int i, uint64_t ref, double freq )
+{
+	cout << reason <<" Reference " << gene << " @ " << pos << " is : " << UINT64ToString(ref)<< endl;
+	uint64_t convert (i);
+	cout << UINT64ToString(ref & 0b111) << " -> " << UINT64ToString(convert) << " : ";
+	cout << freq << "\n";
+
+}
 
 void callSNVs(double snv_verified_threshold, double snv_total_threshold)
 {
@@ -536,84 +544,62 @@ void callSNVs(double snv_verified_threshold, double snv_total_threshold)
 			map<int, int> verified_counts = (*positions).second;
 			map<int, int> verified_counts2 = verified_histogram_1[(*genes).first][(*positions).first];
 
-			double verified_total = verified_counts[1]+ verified_counts[2]+ verified_counts[3]+ verified_counts[4];
-			double verified_total2 = verified_counts2[1]+verified_counts2[2]+verified_counts2[3]+verified_counts2[4];
+			double verified_total  	= 0;
+			double verified_total2 	= 0;
+			double ppm_total 		= 0;
+			double ppm_total2		= 0;
 
-			double ppm_total  = ppm_histogram_0[(*genes).first][(*positions).first][1]+
-					ppm_histogram_0[(*genes).first][(*positions).first][2]+
-					ppm_histogram_0[(*genes).first][(*positions).first][3]+
-					ppm_histogram_0[(*genes).first][(*positions).first][4];
+			for(int i = 1; i < 5; i++)
+			{
+				verified_total 	+= verified_counts[i];
+				verified_total2 += verified_counts2[i];
+				ppm_total  		+= ppm_histogram_0[(*genes).first][(*positions).first][i];
+				ppm_total2  	+= ppm_histogram_1[(*genes).first][(*positions).first][i];
+			}
 
-			double ppm_total2  = ppm_histogram_1[(*genes).first][(*positions).first][1]+
-					ppm_histogram_1[(*genes).first][(*positions).first][2]+
-					ppm_histogram_1[(*genes).first][(*positions).first][3]+
-					ppm_histogram_1[(*genes).first][(*positions).first][4];
+			double verified = verified_total + verified_total2;
+			double ppm = ppm_total + ppm_total2;
 
-
+			double freq;
 			for (int i = 1; i < 5; i++)
 				if((references[(*genes).first][(*positions).first] & 0b111) != i)
 				{
+					uint64_t ref = references[(*genes).first][(*positions).first];
 
 					// --- Call type #1
 					// If the reads are in both verified histograms.
-
-					if( (*positions).second[i] > 0 and
-						verified_histogram_1[(*genes).first][(*positions).first][i] > 0
-					){
-
-						cout << "1 Reference " << (*genes).first << " @ " <<(*positions).first << " is : " << UINT64ToString(references[(*genes).first][(*positions).first])<< endl;
-
-						uint64_t convert (i);
-						cout << UINT64ToString(references[(*genes).first][(*positions).first] & 0b111) << " -> " << UINT64ToString(convert) << " : ";
-						cout << ((double) (verified_counts[i]+ verified_counts2[i]) / (verified_total2+verified_total)) << "\n";
+					if( (freq = ((double) (verified_counts[i]+ verified_counts2[i]) / verified)) and verified_counts[i] and verified_counts2[i])
+					{
+						printSNV(1, (*genes).first,(*positions).first, i, ref, freq );
 						snvs++;
-
 					}
 
 					// --- Call type #2
 					// If the reads are only in one histogram
-
-					else if( ((double)(*positions).second[i]) / verified_total > snv_verified_threshold ){
-
-						cout << "2 Reference  " << (*genes).first << " @ " <<(*positions).first << " is : " << UINT64ToString(references[(*genes).first][(*positions).first])<< endl;
-						uint64_t convert (i);
-						cout << UINT64ToString(references[(*genes).first][(*positions).first] & 0b111) << " -> " << UINT64ToString(convert) << " : ";
-						cout << ((double) (verified_counts[i] ) / verified_total) << "\n";
+					else if( (freq = ((double) verified_counts[i]) / verified_total) > snv_verified_threshold )
+					{
+						printSNV(2, (*genes).first,(*positions).first, i, ref, freq );
 						snvs++;
-
 					}
 
-					else if( verified_histogram_1[(*genes).first][(*positions).first][i] / verified_total2 > snv_verified_threshold ){
-
-						cout << "2 Reference  " << (*genes).first << " @ " <<(*positions).first << " is : " << UINT64ToString(references[(*genes).first][(*positions).first])<< endl;
-						uint64_t convert (i);
-						cout << UINT64ToString(references[(*genes).first][(*positions).first] & 0b111) << " -> " << UINT64ToString(convert) << " : ";
-						cout << ((double) ( verified_histogram_1[(*genes).first][(*positions).first][i] ) / verified_total2) << "\n";
+					else if( (freq = ((double) verified_counts2[i]) / verified_total2) > snv_verified_threshold )
+					{
+						printSNV(2, (*genes).first,(*positions).first, i, ref, freq );
 						snvs++;
-
 					}
 
 					// # Call type 3
 					// If the reads exceed a 3rd threshold in either track
-
-					else if(((double) ppm_histogram_0[(*genes).first][(*positions).first][i]) / ppm_total > snv_total_threshold){
-
-						cout << "3 Reference  " << (*genes).first << " @ " <<(*positions).first << " is : " << UINT64ToString(references[(*genes).first][(*positions).first])<< endl;
-						uint64_t convert (i);
-						cout << UINT64ToString(references[(*genes).first][(*positions).first] & 0b111) << " -> " << UINT64ToString(convert) << " : ";
-						cout << (((double) ppm_histogram_0[(*genes).first][(*positions).first][i]) / ppm_total) << "\n";
+					else if( (freq = ((double) ppm_histogram_0[(*genes).first][(*positions).first][i]) / ppm_total) > snv_total_threshold)
+					{
+						printSNV(3, (*genes).first,(*positions).first, i, ref, freq );
 						snvs++;
-
 					}
 
-					else if( ((double) ppm_histogram_1[(*genes).first][(*positions).first][i]) / ppm_total2 > snv_total_threshold ){
-
-						cout << "3 Reference  " << (*genes).first << " @ " <<(*positions).first << " is : " << UINT64ToString(references[(*genes).first][(*positions).first])<< endl;
-						uint64_t convert (i);
-						cout << UINT64ToString(references[(*genes).first][(*positions).first] & 0b111) << " -> " << UINT64ToString(convert) << " : ";
-						cout << (((double) ppm_histogram_1[(*genes).first][(*positions).first][i]) / ppm_total2) << "\n";
+					else if( (freq = ((double) ppm_histogram_1[(*genes).first][(*positions).first][i]) / ppm_total2) > snv_total_threshold)
+					{
+						printSNV(3, (*genes).first,(*positions).first, i, ref, freq );
 						snvs++;
-
 					}
 				}
 
