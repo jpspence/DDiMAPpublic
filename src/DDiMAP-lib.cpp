@@ -334,9 +334,10 @@ ofstream fasta_file;
 int generateFrags (string gene, int position, string seq, Read& read)
 {
 	int frags = 0;
-	if(read.is_right_left_verified() and
-			position % 17 == 0 and
+	if(position % 17 == 0 and
 			not read.matches_reference() and
+			read.is_above_frag() and
+			read.is_right_left_verified() and
 			not hasDash(read.left_sequence_half) and
 			not hasDash(read.right_sequence_half)){
 
@@ -359,11 +360,11 @@ int generateFrags (string gene, int position, string seq, Read& read)
 						else
 							frag_counts[gene] = 1;
 						frags++;
-						fasta_file << ">" << gene << "_Frag_" << (position-17) << endl;;
-						fasta_file << UINT64ToString((*left).second.left_sequence_half);
+						fasta_file << ">" << gene << "_Frag_" << (position-17) << "@" <<read.total_count()<< endl;;
+						fasta_file << UINT64ToString((*left).second.left_sequence_half)<< " ";
 						fasta_file << UINT64ToString((*left).second.right_sequence_half);
 						fasta_file << UINT64ToString((*right).second.left_sequence_half);
-						fasta_file << UINT64ToString((*right).second.right_sequence_half);
+						fasta_file << " "<<UINT64ToString((*right).second.right_sequence_half);
 						fasta_file << endl;
 
 					}
@@ -392,26 +393,25 @@ void frequency_filter(string gene, int position, int threshold, double ppm, doub
 		int total = 0;
 
 		for (auto sequences = roaVerifier.begin(); sequences != roaVerifier.end(); ++sequences)
-		{
-			total+=(*sequences).second.forward_count;
-			total+=(*sequences).second.reverse_count;
-		}
+			total+=(*sequences).second.forward_count + (*sequences).second.reverse_count;
+
+		double value = 0;
 
 		// Apply frequency filter
-		int total_threshold = (( threshold > ppm * (double)total) ? threshold : ppm * (double) total);
+		double total_threshold = (( threshold > (value = ppm * (double)total)) ? threshold : value);
 
 		// Apply frag threshold
-		int frag_threshold = (( threshold > frag * (double)total) ? threshold : frag * (double) total);
+		double frag_threshold = (( threshold > (value = frag * (double)total)) ? threshold : value);
 
 		for (auto sequences = roaVerifier.begin(); sequences != roaVerifier.end(); ++sequences)
 		{
-			if( (*sequences).second.forward_count >= total_threshold &&
-					(*sequences).second.reverse_count >= total_threshold )
-				reads[gene][position][(*sequences).first].set_above_ppm_threshold();
-
 			if( (*sequences).second.forward_count >= frag_threshold &&
-					(*sequences).second.reverse_count >= frag_threshold )
+				(*sequences).second.reverse_count >= frag_threshold )
 				reads[gene][position][(*sequences).first].set_above_frag_threshold();
+
+			else if( (*sequences).second.forward_count >= total_threshold &&
+				(*sequences).second.reverse_count >= total_threshold )
+				reads[gene][position][(*sequences).first].set_above_ppm_threshold();
 
 		}
 	}
@@ -578,7 +578,6 @@ void callSNVs(double snv_verified_threshold, double snv_total_threshold)
 
 					else if( (freq = ((double) verified_counts2[i]) / verified_total2) > snv_verified_threshold )
 						snvs += printSNV(2, (*genes).first,(*positions).first, i, ref, freq );
-
 
 					// # Call type 3
 					// If the reads exceed a 3rd threshold in either track

@@ -99,8 +99,8 @@ int main (int argc, char **argv)
 	t = clock();
 	unique = readFile(file, fasta, 34, buildRead);
 	t = clock() - t;
-//	printf ("It took me %lu ticks (%f seconds) to read %d | %d reads from BAM file.\n",
-//			t, ((float)t)/CLOCKS_PER_SEC, unique, total);
+	printf ("It took me %lu ticks (%f seconds) to read %d | %d reads from BAM file.\n",
+			t, ((float)t)/CLOCKS_PER_SEC, unique, total);
 
 
 
@@ -108,21 +108,35 @@ int main (int argc, char **argv)
 	sequential(VERIFY_THRESHOLD, PPM, FRAG_THRESHOLD);
 	int verified = printFasta();
 	t = clock() - t;
-//	printf ("It took me %lu ticks (%f seconds) to verify %d | %d.\n",
-//			t, ((float)t)/CLOCKS_PER_SEC , verified, unique);
+	printf ("It took me %lu ticks (%f seconds) to verify %d | %d.\n",
+			t, ((float)t)/CLOCKS_PER_SEC , verified, unique);
 
 
 	t = clock();
 	verified = iterate(buildHistograms);
 	t = clock() - t;
-//	printf ("It took me %lu ticks (%f seconds) to build the histogram.\n",
-//			t, ((float)t)/CLOCKS_PER_SEC);
+	printf ("It took me %lu ticks (%f seconds) to build the histogram.\n",
+			t, ((float)t)/CLOCKS_PER_SEC);
 
+	t = clock();
 	printHistograms();
+	t = clock() - t;
+	printf ("It took me %lu ticks (%f seconds) to print the histogram.\n",
+			t, ((float)t)/CLOCKS_PER_SEC);
 
+
+	t = clock();
 	iterate(count);
+	t = clock() - t;
+	printf ("It took me %lu ticks (%f seconds) to count.\n",
+			t, ((float)t)/CLOCKS_PER_SEC);
 
+
+	t = clock();
 	callSNVs(SNV_VERIFIED_THRESHOLD, SNV_TOTAL_THRESHOLD);
+	t = clock() - t;
+	printf ("It took me %lu ticks (%f seconds) to call SNVs.\n",
+			t, ((float)t)/CLOCKS_PER_SEC);
 
 	gnuplot_ctrl    *   h1;
 	h1 = gnuplot_init() ;

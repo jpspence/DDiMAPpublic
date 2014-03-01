@@ -41,40 +41,40 @@ struct Read {
 	//    |_ 		128
 
 	void set_left_verified()
-	{ verification_flags = verification_flags | 0b0000001; }
+	{ verification_flags = verification_flags |       0b1; }
 
 	void set_right_verified()
-	{ verification_flags = verification_flags | 0b0000010; }
+	{ verification_flags = verification_flags |      0b10; }
 
 	void set_no_indels()
-	{ verification_flags = verification_flags | 0b0000100; }
+	{ verification_flags = verification_flags |     0b100; }
 
 	void set_matches_ref_on_left()
-	{ verification_flags = verification_flags | 0b0001000; }
+	{ verification_flags = verification_flags |    0b1000; }
 
 	void set_matches_ref_on_right()
-	{ verification_flags = verification_flags | 0b0010000; }
+	{ verification_flags = verification_flags |   0b10000; }
 
 	void set_above_ppm_threshold()
-	{ verification_flags = verification_flags | 0b0100000; }
+	{ verification_flags = verification_flags |  0b100000; }
 
 	void set_above_frag_threshold()
-	{ verification_flags = verification_flags | 0b1000000; }
+	{ verification_flags = verification_flags | 0b1100000; }
 
 	bool is_right_left_verified()
-	{ return (verification_flags & 0b0000011) == 0b0000011;}
-
-	bool matches_reference()
-	{ return (verification_flags & 0b0011000) == 0b0011000;}
+	{ return (verification_flags & 0b0000011) ==      0b11;}
 
 	bool matches_ref_on_left()
-	{ return (verification_flags & 0b0001000) == 0b0001000;}
+	{ return (verification_flags & 0b0001000) ==    0b1000;}
 
 	bool matches_ref_on_right()
-	{ return (verification_flags & 0b0010000) == 0b0010000;}
+	{ return (verification_flags & 0b0010000) ==   0b10000;}
+
+	bool matches_reference()
+	{ return (verification_flags & 0b0011000) ==   0b11000;}
 
 	bool is_above_ppm()
-	{ return (verification_flags & 0b0100000) == 0b0100000;}
+	{ return (verification_flags & 0b0100000) ==  0b100000;}
 
 	bool is_above_frag()
 	{ return (verification_flags & 0b1000000) == 0b1000000;}
