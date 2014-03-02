@@ -331,44 +331,68 @@ map<string, int> frag_counts;
 
 ofstream fasta_file;
 
+map<string, Read> returnMatches(string gene, int position, int offset, Read& read)
+{
+
+	map<string, Read> matches;
+	map<string, Read> track = reads[gene][position  + offset];
+	for (auto seq = track.begin(); seq != track.end(); ++seq)
+
+		if(offset < 0 and
+				(*seq).second.is_above_frag() and
+				(*seq).second.right_sequence_half == read.left_sequence_half and
+				not hasDash((*seq).second.left_sequence_half))
+			matches[(*seq).first] = (*seq).second;
+
+		else if((*seq).second.is_above_frag() &&
+				(*seq).second.left_sequence_half == read.right_sequence_half &&
+				not hasDash((*seq).second.right_sequence_half))
+			matches[(*seq).first] = (*seq).second;
+
+	// Append reference if no matches.
+	if(matches.size() == 0)
+	{
+		Read ref;
+		ref.left_sequence_half = read.right_sequence_half;
+		ref.right_sequence_half = read.left_sequence_half;
+		if(offset < 0) // add the left reference
+			ref.left_sequence_half = references[gene][position+offset];
+		else
+			ref.right_sequence_half = references[gene][position+offset];
+		matches["ref"] = ref;
+	}
+	return matches;
+}
+
 int generateFrags (string gene, int position, string seq, Read& read)
 {
 	int frags = 0;
-	if(position % 17 == 0 and
-			not read.matches_reference() and
+	if(     not read.matches_reference() and
 			read.is_above_frag() and
 			read.is_right_left_verified() and
 			not hasDash(read.left_sequence_half) and
-			not hasDash(read.right_sequence_half)){
+			not hasDash(read.right_sequence_half))
+	{
 
-		map<string, Read> left_track = reads[gene][position  - ROA_LENGTH/2];
-		map<string, Read> right_track = reads[gene][position + ROA_LENGTH/2];
+		map<string, Read> left_track = returnMatches(gene, position, (-1*ROA_LENGTH/2), read);
+		map<string, Read> right_track = returnMatches(gene, position,    ROA_LENGTH/2,  read);
 
 		for (auto left = left_track.begin(); left != left_track.end(); ++left)
+			for(auto right = right_track.begin(); right != right_track.end(); ++right)
+			{
+				if(frag_counts[gene])
+					++frag_counts[gene];
+				else
+					frag_counts[gene] = 1;
+				frags++;
+				fasta_file << ">" << gene << "_Frag_" << (position-17) << "@" <<read.total_count()<< endl;;
+				fasta_file << UINT64ToString((*left).second.left_sequence_half);
+				fasta_file << UINT64ToString((*left).second.right_sequence_half);
+				fasta_file << UINT64ToString((*right).second.left_sequence_half);
+				fasta_file << UINT64ToString((*right).second.right_sequence_half);
+				fasta_file << endl;
 
-			if( (*left).second.is_above_frag() &&
-					(*left).second.right_sequence_half == read.left_sequence_half &&
-					not hasDash((*left).second.left_sequence_half))
-
-				for(auto right = right_track.begin(); right != right_track.end(); ++right)
-					if((*right).second.is_above_frag() &&
-							(*right).second.left_sequence_half == read.right_sequence_half &&
-							not hasDash((*right).second.right_sequence_half))
-					{
-						if(frag_counts[gene])
-							++frag_counts[gene];
-						else
-							frag_counts[gene] = 1;
-						frags++;
-						fasta_file << ">" << gene << "_Frag_" << (position-17) << "@" <<read.total_count()<< endl;;
-						fasta_file << UINT64ToString((*left).second.left_sequence_half)<< " ";
-						fasta_file << UINT64ToString((*left).second.right_sequence_half);
-						fasta_file << UINT64ToString((*right).second.left_sequence_half);
-						fasta_file << " "<<UINT64ToString((*right).second.right_sequence_half);
-						fasta_file << endl;
-
-					}
-
+			}
 	}
 	return frags;
 }
@@ -406,11 +430,11 @@ void frequency_filter(string gene, int position, int threshold, double ppm, doub
 		for (auto sequences = roaVerifier.begin(); sequences != roaVerifier.end(); ++sequences)
 		{
 			if( (*sequences).second.forward_count >= frag_threshold &&
-				(*sequences).second.reverse_count >= frag_threshold )
+					(*sequences).second.reverse_count >= frag_threshold )
 				reads[gene][position][(*sequences).first].set_above_frag_threshold();
 
 			else if( (*sequences).second.forward_count >= total_threshold &&
-				(*sequences).second.reverse_count >= total_threshold )
+					(*sequences).second.reverse_count >= total_threshold )
 				reads[gene][position][(*sequences).first].set_above_ppm_threshold();
 
 		}
