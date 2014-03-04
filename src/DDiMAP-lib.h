@@ -37,8 +37,8 @@ struct Read {
 	//    |||||_ 	8   Does read match reference on left
 	//    ||||_		16  Does read match reference on right
 	//    |||_ 		32  Does read show up in at least 750ppm
-	//    ||_ 		64  Does read show up in at least 1% for frag
-	//    |_ 		128
+	//    ||_ 		64  Does read show up in at least 1% as a verified frag
+	//    |_ 		128 Does read show up in at least 10% non-verified frag
 
 	void set_left_verified()
 	{ verification_flags = verification_flags |       0b1; }
@@ -61,6 +61,18 @@ struct Read {
 	void set_above_frag_threshold()
 	{ verification_flags = verification_flags | 0b1100000; }
 
+	void set_above_nv_threshold()
+	{ verification_flags = verification_flags | 0b11100000; }
+
+	void set_above_nv_threshold_only()
+	{ verification_flags = verification_flags | 0b10000000; }
+
+	bool is_left_verified()
+	{ return (verification_flags & 0b0000001) ==       0b1;}
+
+	bool is_right_verified()
+	{ return (verification_flags & 0b0000010) ==      0b10;}
+
 	bool is_right_left_verified()
 	{ return (verification_flags & 0b0000011) ==      0b11;}
 
@@ -79,6 +91,9 @@ struct Read {
 	bool is_above_frag()
 	{ return (verification_flags & 0b1000000) == 0b1000000;}
 
+	bool is_above_non_verified()
+	{ return (verification_flags & 0b10000000) == 0b10000000;}
+
 	unsigned int total_count()
 	{ return forward_count + reverse_count;}
 
@@ -88,9 +103,10 @@ Read buildRead(string &word, int length);
 int readFile(string file, char *fasta, int length, Read (*f)(string &, int));
 int iterate ( int (*f)(string, int, string, Read&) );
 int printFasta();
-void sequential(int threshold, double ppm, double frag);
+void sequential(int threshold, double ppm, double frag, double non_verified);
 void callSNVs(double snv_verified_threshold, double snv_total_threshold);
 int buildHistograms(string gene, int position, string seq, Read& read);
 void printHistograms();
 int count (string gene, int position, string seq, Read& read);
+void test();
 #endif

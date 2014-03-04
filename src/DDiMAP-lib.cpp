@@ -67,8 +67,8 @@ map<string, map<int, uint64_t > > references;
 Read convert(string &word, int length)
 {
 	Read r;
-	r.forward_count = 2;
-	r.reverse_count = 2;
+	r.forward_count = 0;
+	r.reverse_count = 0;
 	r.verification_flags = 0;
 	memcpy(r.sequence, word.c_str(), length*sizeof(char));
 	return r;
@@ -90,11 +90,31 @@ Read buildRead( string &word, int length)
 
 string createWordString(BamAlignment &ba, int length, int &position, int track)
 {
+	string read;
+	int i = 0;
+	for(auto element = ba.CigarData.begin(); element < ba.CigarData.end(); element++)
+	{
+		//		if(genes[ba.RefID] == "CD83" && ba.Position > 688 && ba.Position < 730)
+		//			cout << (*element).Length << (*element).Type << " being processed on CD83 @ "<< ba.Position << endl;
+
+		if((*element).Type != 'I'){
+			read.append( ba.AlignedBases.substr(i, (*element).Length));
+		}
+		//			else if(genes[ba.RefID] == "CD83" && ba.Position > 688 && ba.Position < 730)
+		//				cout << "I'm getting rid of an insertion on " << ba.AlignedBases << " @ "<< ba.Position << endl;
+		i+=(*element).Length;
+
+	}
+
+	//	if(genes[ba.RefID] == "CD83" && ba.Position > 688 && ba.Position < 730){
+	//		cout << ba.AlignedBases << " Original"<< endl;
+	//		cout << read << " processed" << endl;
+	//	}
+
 	int to_roa    = ( length/2 - ba.Position ) % (length/2);
-
 	if(to_roa < 0) to_roa+=length/2;
-	int offset    = (ba.IsReverseStrand()) ? ba.AlignedBases.length() - ( (ba.Position + ba.AlignedBases.length())%(length/2)) - length  : to_roa ;
 
+	int offset    = (ba.IsReverseStrand()) ? read.length() - ( (ba.Position + read.length())%(length/2)) - length  : to_roa ;
 
 	if(ba.IsReverseStrand() )
 		offset+=track;
@@ -102,41 +122,48 @@ string createWordString(BamAlignment &ba, int length, int &position, int track)
 		offset-=(length/2-track);
 
 	if(offset < 0) offset+=length/2;
-	if( offset + length > ba.AlignedBases.length()) offset-=length/2;
-
+	if( offset + length > read.length()) offset-=length/2;
 
 	position = ba.Position + offset;
-	string word = ba.AlignedBases.substr(offset, length);
 
-	// ensuring this is correct.
-	if(TEST){
-		// Check that there isn't a more approriate ROA
-		if(ba.IsReverseStrand()){
-			for(int i = ba.Position+ba.AlignedBases.length(); i > ba.Position; i--)
-				if(i%(length/2) == track and i > position+length){
-					cout << " Problem with the reverse. Read [" << ba.Position << " - " << (ba.Position + ba.AlignedBases.length() ) << "] " << endl;
-					cout << " ROA should end at " << i << " not " << position + length << endl;
-					cout << ((ba.IsReverseStrand()) ? " <<<  "  :" >>> ") << " track : " << track << " Starting : " << ba.Position << endl;
-					cout << ba.AlignedBases << endl;
-					for(int i =0; i < offset; i++)
-						cout << " ";
-					cout << word << endl;
-				}
-		}
-		else
-		{
-			for(int i = ba.Position; i < ba.Position + ba.AlignedBases.length(); i++)
-				if(i%(length/2) == track and i < position){
-					cout << " Problem with the forward. Read [" << ba.Position << " - " << (ba.Position + ba.AlignedBases.length()) << "] " << endl;
-					cout << " ROA should start at " << i << " not! " << position << endl;
-					cout << ((ba.IsReverseStrand()) ? " <<<  "  :" >>> ") << " track : " << track << " Starting : " << ba.Position << endl;
-					cout << ba.AlignedBases << endl;
-					for(int i =0; i < offset; i++)
-						cout << " ";
-					cout << word << endl;
-				}
-		}
+	if(offset < 0 || offset + length > read.length()){
+		//		cout << endl;
+		//		cout << track << " dropping a read ["<< position << " , " << position+read.length() << "]" << endl;
+		//		cout << " bc offset " << offset<< " & " << read.length() << " on is Reverse " <<ba.IsReverseStrand() << endl;
+		return "";
 	}
+
+	string word = read.substr(offset, length);
+
+	//	// ensuring this is correct.
+	//	if(TEST){
+	//		// Check that there isn't a more approriate ROA
+	//		if(ba.IsReverseStrand()){
+	//			for(int i = ba.Position+ba.AlignedBases.length(); i > ba.Position; i--)
+	//				if(i%(length/2) == track and i > position+length){
+	//					cout << " Problem with the reverse. Read [" << ba.Position << " - " << (ba.Position + ba.AlignedBases.length() ) << "] " << endl;
+	//					cout << " ROA should end at " << i << " not " << position + length << endl;
+	//					cout << ((ba.IsReverseStrand()) ? " <<<  "  :" >>> ") << " track : " << track << " Starting : " << ba.Position << endl;
+	//					cout << ba.AlignedBases << endl;
+	//					for(int i =0; i < offset; i++)
+	//						cout << " ";
+	//					cout << word << endl;
+	//				}
+	//		}
+	//		else
+	//		{
+	//			for(int i = ba.Position; i < ba.Position + ba.AlignedBases.length(); i++)
+	//				if(i%(length/2) == track and i < position){
+	//					cout << " Problem with the forward. Read [" << ba.Position << " - " << (ba.Position + ba.AlignedBases.length()) << "] " << endl;
+	//					cout << " ROA should start at " << i << " not! " << position << endl;
+	//					cout << ((ba.IsReverseStrand()) ? " <<<  "  :" >>> ") << " track : " << track << " Starting : " << ba.Position << endl;
+	//					cout << ba.AlignedBases << endl;
+	//					for(int i =0; i < offset; i++)
+	//						cout << " ";
+	//					cout << word << endl;
+	//				}
+	//		}
+	//	}
 	return word;
 }
 
@@ -160,7 +187,8 @@ int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) )
 
 	for(auto element = ba.CigarData.begin(); element < ba.CigarData.end(); element++){
 		if((*element).Type == 'D') hasDeletion = true;
-		else if((*element).Type == 'I') hasInsertion = true;
+		else if((*element).Type == 'I')hasInsertion = true;
+
 	}
 
 	if( references[genes[ba.RefID]].size() > 0 && not (hasInsertion && hasDeletion) )
@@ -260,6 +288,18 @@ int readFile(string file, char *fasta, int length, Read (*f)(string &, int))
 			map<int, uint64_t> reference;
 			for(int j= 0; j< s.length()-length; j++){
 				reference[j] = stringToUINT64(s.substr(j, length/2));
+
+				// Add reference to ROAs
+				if(j % 17 == 0  || j % 17 == 8){
+					Read r;
+					string seq = s.substr(j, length);
+					r = buildRead( seq , length);
+					r.set_matches_ref_on_right();
+					r.set_matches_ref_on_left();
+					r.RefID = n;
+					reads[clean][j][r.sequence] = r;
+				}
+
 			}
 			references[clean] = reference;
 		}
@@ -318,7 +358,7 @@ int iterate ( int (*f)(string, int, string, Read&) )
 
 int count (string gene, int position, string seq, Read& read)
 {
-	if(false && position == 34 && read.is_right_left_verified()){
+	if( false && position > 990 && read.is_right_left_verified()){
 		cout << gene << "  " <<  position <<" ";
 		cout << UINT64ToStringCompare(read.left_sequence_half, references[gene][position]) ;
 		cout << UINT64ToStringCompare(read.right_sequence_half, references[gene][position+17]) ;
@@ -332,22 +372,22 @@ map<string, int> frag_counts;
 ofstream fasta_file;
 
 map<string, Read> returnMatches(string gene, int position, int offset, Read& read)
-{
+		{
 
 	map<string, Read> matches;
 	map<string, Read> track = reads[gene][position  + offset];
-	for (auto seq = track.begin(); seq != track.end(); ++seq)
+	if( (offset < 0 and read.is_left_verified()) || (offset > 0 and read.is_right_verified()))
+		for (auto seq = track.begin(); seq != track.end(); ++seq)
+			if((*seq).second.is_right_left_verified() and ((*seq).second.is_above_frag() || (*seq).second.matches_reference()) )
+				if(offset < 0 and
+						(*seq).second.right_sequence_half == read.left_sequence_half and
+						not hasDash((*seq).second.left_sequence_half))
+					matches[(*seq).first] = (*seq).second;
 
-		if(offset < 0 and
-				(*seq).second.is_above_frag() and
-				(*seq).second.right_sequence_half == read.left_sequence_half and
-				not hasDash((*seq).second.left_sequence_half))
-			matches[(*seq).first] = (*seq).second;
+				else if( (*seq).second.left_sequence_half == read.right_sequence_half and
+						not hasDash((*seq).second.right_sequence_half))
+					matches[(*seq).first] = (*seq).second;
 
-		else if((*seq).second.is_above_frag() &&
-				(*seq).second.left_sequence_half == read.right_sequence_half &&
-				not hasDash((*seq).second.right_sequence_half))
-			matches[(*seq).first] = (*seq).second;
 
 	// Append reference if no matches.
 	if(matches.size() == 0)
@@ -355,21 +395,25 @@ map<string, Read> returnMatches(string gene, int position, int offset, Read& rea
 		Read ref;
 		ref.left_sequence_half = read.right_sequence_half;
 		ref.right_sequence_half = read.left_sequence_half;
-		if(offset < 0) // add the left reference
-			ref.left_sequence_half = references[gene][position+offset];
-		else
-			ref.right_sequence_half = references[gene][position+offset];
-		matches["ref"] = ref;
+		uint64_t reference = references[gene][position+offset];
+		if(reference){
+			if(offset < 0) // add the left reference
+				ref.left_sequence_half = reference;
+			else
+				ref.right_sequence_half = reference;
+			matches["ref"] = ref;
+		}
 	}
 	return matches;
-}
+		}
 
 int generateFrags (string gene, int position, string seq, Read& read)
 {
 	int frags = 0;
 	if(     not read.matches_reference() and
-			read.is_above_frag() and
-			read.is_right_left_verified() and
+			(  read.is_above_non_verified() ||
+					(read.is_right_left_verified() and read.is_above_frag())
+			) and
 			not hasDash(read.left_sequence_half) and
 			not hasDash(read.right_sequence_half))
 	{
@@ -377,22 +421,23 @@ int generateFrags (string gene, int position, string seq, Read& read)
 		map<string, Read> left_track = returnMatches(gene, position, (-1*ROA_LENGTH/2), read);
 		map<string, Read> right_track = returnMatches(gene, position,    ROA_LENGTH/2,  read);
 
-		for (auto left = left_track.begin(); left != left_track.end(); ++left)
-			for(auto right = right_track.begin(); right != right_track.end(); ++right)
-			{
-				if(frag_counts[gene])
-					++frag_counts[gene];
-				else
-					frag_counts[gene] = 1;
-				frags++;
-				fasta_file << ">" << gene << "_Frag_" << (position-17) << "@" <<read.total_count()<< endl;;
-				fasta_file << UINT64ToString((*left).second.left_sequence_half);
-				fasta_file << UINT64ToString((*left).second.right_sequence_half);
-				fasta_file << UINT64ToString((*right).second.left_sequence_half);
-				fasta_file << UINT64ToString((*right).second.right_sequence_half);
-				fasta_file << endl;
+		if(left_track.size() && right_track.size())
+			for (auto left = left_track.begin(); left != left_track.end(); ++left)
+				for(auto right = right_track.begin(); right != right_track.end(); ++right)
+				{
+					if(frag_counts[gene])
+						++frag_counts[gene];
+					else
+						frag_counts[gene] = 1;
+					frags++;
+					fasta_file << ">" << gene << "_Frag_" << (position-17) << "@" <<read.total_count()<< endl;;
+					fasta_file << UINT64ToString((*left).second.left_sequence_half);
+					fasta_file << UINT64ToString((*left).second.right_sequence_half);
+					fasta_file << UINT64ToString((*right).second.left_sequence_half);
+					fasta_file << UINT64ToString((*right).second.right_sequence_half);
+					fasta_file << endl;
 
-			}
+				}
 	}
 	return frags;
 }
@@ -407,7 +452,32 @@ int printFasta()
 }
 
 
-void frequency_filter(string gene, int position, int threshold, double ppm, double frag)
+void check(int total, int position,int i, string name, string seq, Read read)
+{
+	// Check the left half.
+	if( position == i &&
+			read.left_sequence_half == stringToUINT64(seq.substr(0,17)) &&
+			read.right_sequence_half == stringToUINT64(seq.substr(17,17))){
+		cout << seq << " " << name << endl;
+		cout << read.sequence;
+		for (int j = 0; j<34; j++)
+			cout << " ";
+		cout << " (f " <<read.forward_count <<"-" <<read.matches_ref_on_left()<< " + " <<read.reverse_count << "-"<<read.matches_ref_on_right()<<" / " << total  << ")"<< endl << endl;
+	}
+
+	// Check the right half
+	if( position == i+34 &&
+			read.left_sequence_half == stringToUINT64(seq.substr(34,17)) &&
+			read.right_sequence_half == stringToUINT64(seq.substr(51,17))){
+		cout << seq << " " << name << endl;
+		for (int j = 0; j<34; j++)
+			cout << " ";
+		cout << read.sequence;
+		cout << " (f " <<read.forward_count <<"-" <<read.matches_ref_on_left()<< " + " <<read.reverse_count << "-"<<read.matches_ref_on_right()<<" / " << total  << ")"<< endl << endl;
+	}
+
+}
+void frequency_filter(string gene, int position, int threshold, double ppm, double frag, double non_verified)
 {
 	map<string, Read> roaVerifier;
 	if((roaVerifier = reads[gene][position]).size() > 0)
@@ -415,29 +485,48 @@ void frequency_filter(string gene, int position, int threshold, double ppm, doub
 
 		// Count the number of reads at each location.
 		int total = 0;
-
 		for (auto sequences = roaVerifier.begin(); sequences != roaVerifier.end(); ++sequences)
-			total+=(*sequences).second.forward_count + (*sequences).second.reverse_count;
+			total+=(*sequences).second.total_count();
 
 		double value = 0;
+		double  ppm_threshold = (( threshold > (value = ppm * (double)total)) ? threshold : value);
+		for (auto sequences = roaVerifier.begin(); sequences != roaVerifier.end(); ++sequences){
+			Read read = (*sequences).second;
+			if( ( read.forward_count >= ppm_threshold && read.reverse_count >= ppm_threshold ) || read.matches_reference())
+				reads[gene][position][(*sequences).first].set_above_ppm_threshold();
+			else
+				total -= read.total_count();
+		}
 
-		// Apply frequency filter
-		double total_threshold = (( threshold > (value = ppm * (double)total)) ? threshold : value);
-
-		// Apply frag threshold
 		double frag_threshold = (( threshold > (value = frag * (double)total)) ? threshold : value);
+		double   nv_threshold = (( threshold > (value = non_verified * (double)total)) ? threshold : value);
 
+		// apply frequency filters.
 		for (auto sequences = roaVerifier.begin(); sequences != roaVerifier.end(); ++sequences)
 		{
-			if( (*sequences).second.forward_count >= frag_threshold &&
-					(*sequences).second.reverse_count >= frag_threshold )
-				reads[gene][position][(*sequences).first].set_above_frag_threshold();
+			Read read = (*sequences).second;
+			if( (read.forward_count >= frag_threshold && read.reverse_count >= frag_threshold) || read.matches_reference() )
+				if(read.forward_count + read.reverse_count >= nv_threshold )
+					reads[gene][position][(*sequences).first].set_above_nv_threshold();
+				else
+					reads[gene][position][(*sequences).first].set_above_frag_threshold();
 
-			else if( (*sequences).second.forward_count >= total_threshold &&
-					(*sequences).second.reverse_count >= total_threshold )
-				reads[gene][position][(*sequences).first].set_above_ppm_threshold();
+			if(genes[read.RefID] == "Bcl2")
+			{
+				check(total, position,  722 ,"Bcl2_128_Frag_723_790" , "GTTGGCCCCCGTTGCTTTTCCTCTGGAAACAATGGCGCACACTGGGAGAACGGGGTACGATAATCGGG", read);
+				check(total, position,  799 ,"Bcl2_128_Frag_800_867" , "TGAAGTACATCCATTATAAGCTGTCGCAGAGGGGCTACGAGTGGGATGCGCAAGCTGTCGCAGAGGGG", read);
+				check(total, position,  807 ,"Bcl2_128_Frag_808_875" , "ATCCATTATAAGCTGTCGCAGAGGGGCTACGAGTGGGATGCGCGAGATGTGGCAGAGGGGCTACGAGT", read);
+				check(total, position,  816 ,"Bcl2_128_Frag_817_884" , "AAGCTGTCGCAGAGGGGCTACGAGTGGGATGCGCGAGATGTGGTCGCCGCGCTACGAGTGGGATGCGG", read);
+				check(total, position,  824 ,"Bcl2_128_Frag_825_892" , "GCAGAGGGGCTACGAGTGGGATGCGCGAGATGTGGTCGCCGCGCCCCCGGGGGGATGCGGGAGATGTG", read);
 
+			} else if(genes[read.RefID] == "J6-J4") {
+				check(total, position,  986 ,"J6-J4_128_Frag_987_1054" , "CCTCAGGGCATCCTCCTGAGCCCCCCAGGCTGCTCCGGGGCTCTCTTGGCAGGAGACCCAGCACCCTT", read);
+				check(total, position,  994 ,"J6-J4_128_Frag_995_1062" , "CATCCTCCTGAGCCCCCCAGGCTGCTCCGGGGCTCTCTTGGCAGGAGACCCAGCACCCTTATTTCCCC", read);
+				check(total, position, 1011, "core_995", "CAGGCTGCTCCGGGGCTCTCTTGGCAGGAGACCCCAGGCTGCTCCGGGGCTCTCTTGGCAGGAGACCC", read);
+				check(total, position, 1003, "core_987", "GAGCCCCCCAGGCTGCTCCGGGGCTCTCTTGGCAGAGCCCCCCAGGCTGCTCCGGGGCTCTCTTGGCA", read);
+			}
 		}
+
 	}
 }
 
@@ -457,13 +546,13 @@ void verify( map<string, Read> *left_track, map<string, Read> *right_track)
 
 
 
-void sequential(int threshold, double ppm, double frag)
+void sequential(int threshold, double ppm, double frag, double non_verified)
 {
 
 	// Frequency Filter.
 	for(auto genes = reads.begin(); genes != reads.end(); ++genes)
 		for (auto positions = (*genes).second.begin() ; positions != (*genes).second.end(); ++positions)
-			frequency_filter((*genes).first, (*positions).first, threshold, ppm, frag);
+			frequency_filter((*genes).first, (*positions).first, threshold, ppm, frag, non_verified);
 
 
 	// Verify
@@ -652,3 +741,90 @@ void printHistograms()
 	}
 }
 
+
+void test()
+{
+
+	map <string, string> johns, johns_alph;
+	map <string, string> mine, mine_alph;
+
+	char  *fasta = "/Users/androwis/Downloads/128_Gen8_BSBSB_VhJ_FragHigh-4.fa";
+	char  *fasta2 = "/Users/androwis/Desktop/fasta.fa";
+
+
+	// Read in the NCBI sequences from Fasta File, assign appropriate offsets
+	gzFile fp, fp2;
+	kseq_t *seq, *seq2;
+	int n = 0;
+	FILE *fast = fopen(fasta,"r");
+	fp = gzdopen(fileno(fast), "r");
+
+	regex e ("[^a-zA-Z0-9\\-]+");
+	regex frag ("[fF][rR][aA][gG][0-9]+_([0-9]*)");
+
+	// Read Johns
+	seq = kseq_init(fp);
+	while (kseq_read(seq) >= 0){
+
+		string seq_name = seq->name.s;
+		string clean = std::regex_replace (seq_name,e,"_");
+
+		string s = seq->seq.s;
+		s.erase( std::remove_if( s.begin(), s.end(), ::isspace ), s.end() );
+
+		std::smatch m;
+		std::regex_search(clean, m, frag);
+
+		if(m.size()>1)
+			frag_offset[n] = (atoi(m[1].str().c_str()) - 1);
+		else
+			frag_offset[n] = 0;
+
+		if(clean.find("Frag") && clean.find("NCBI") == -1 && clean.find("Junction") == -1)
+			johns[s] = clean;
+	}
+
+	FILE *fast2 = fopen(fasta2,"r");
+	fp2 = gzdopen(fileno(fast2), "r");
+	seq2 = kseq_init(fp2);
+	while (kseq_read(seq2) >= 0){
+
+		string seq_name = seq2->name.s;
+		string clean = std::regex_replace (seq_name,e,"_");
+
+		string s = seq2->seq.s;
+		s.erase( std::remove_if( s.begin(), s.end(), ::isspace ), s.end() );
+
+		std::smatch m;
+		std::regex_search(clean, m, frag);
+
+		if(m.size()>1)
+			frag_offset[n] = (atoi(m[1].str().c_str()) - 1);
+		else
+			frag_offset[n] = 0;
+
+		if(clean.find("Frag") && clean.find("NCBI") == -1 && clean.find("Junction") == -1)
+			mine[s] = clean;
+	}
+
+	int a =0,b=0;
+	for(auto my = mine.begin(); my != mine.end(); ++my)
+		if( johns[(*my).first].length() == 0)
+			mine_alph[(*my).second] = (*my).first;
+
+	for(auto my = mine_alph.begin(); my!=mine_alph.end(); ++my)
+		cout << (*my).second<< " "<< (*my).first << " <-- me " << (a++)<< endl;
+
+
+	for(auto his = johns.begin(); his != johns.end(); ++his)
+		if( mine[(*his).first].length() == 0 )
+			johns_alph[(*his).second] = (*his).first;
+
+	for(auto his = johns_alph.begin(); his!=johns_alph.end(); ++his)
+		cout << (*his).first << " " << (*his).second << " <-- John " << (b++)<< endl;
+
+	cout << " I had " << a <<" unique | John had "<< b << " unique"<< endl;
+
+
+
+}

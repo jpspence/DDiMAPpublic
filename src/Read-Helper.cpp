@@ -59,7 +59,7 @@ string UINT64ToStringCompare(uint64_t s, uint64_t t)
 
 string UINT64ToString(uint64_t s)
 {
-	return UINT64ToStringCompare(s,0);
+	return UINT64ToStringCompare(s,s);
 }
 
 uint64_t stringToUINT64(string s)
