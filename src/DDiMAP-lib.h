@@ -64,9 +64,6 @@ struct Read {
 	void set_above_nv_threshold()
 	{ verification_flags = verification_flags | 0b11100000; }
 
-	void set_above_nv_threshold_only()
-	{ verification_flags = verification_flags | 0b10000000; }
-
 	bool is_left_verified()
 	{ return (verification_flags & 0b0000001) ==       0b1;}
 
