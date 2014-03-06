@@ -371,39 +371,61 @@ map<string, int> frag_counts;
 
 ofstream fasta_file;
 
+//OK, so here's the 10% frag making rule one more time:
+//
+//If over 10%  && not right/left verified at 1%,
+//then extend in any unverified direction using ref sequence.
+//
+//If a core word is over 1% and fully verified,
+// then
+//    if there are any unverified verifiers in either direction,
+//       replace the unverified half of the verifier with ref sequence and treat the synthetic sequence as if it is verified
+//    extend using all combinations of verified verifiers in each direction
+
+// At this point, I know that
+// 1) not read.matches_reference() and
+// 2) read.is_above_non_verified() OR (read.is_right_left_verified() and read.is_above_frag())
+// 3) not hasDash(read.left_sequence_half)
+// 4) not hasDash(read.right_sequence_half)
+
 map<string, Read> returnMatches(string gene, int position, int offset, Read& read)
 		{
 
-	map<string, Read> matches;
-	map<string, Read> track = reads[gene][position  + offset];
-	if( (offset < 0 and read.is_left_verified()) || (offset > 0 and read.is_right_verified()))
-		for (auto seq = track.begin(); seq != track.end(); ++seq)
-			if((*seq).second.is_right_left_verified() and ((*seq).second.is_above_frag() || (*seq).second.matches_reference()) )
-				if(offset < 0 and
-						(*seq).second.right_sequence_half == read.left_sequence_half and
-						not hasDash((*seq).second.left_sequence_half))
-					matches[(*seq).first] = (*seq).second;
 
-				else if( (*seq).second.left_sequence_half == read.right_sequence_half and
-						not hasDash((*seq).second.right_sequence_half))
-					matches[(*seq).first] = (*seq).second;
+	map<string, Read> matches;
+	map<string, Read> roa = reads[gene][position  + offset];
+	bool add_ref = false;
+
+	if( (offset < 0 and read.is_left_verified()) || (offset > 0 and read.is_right_verified()))
+			for (auto seq = roa.begin(); seq != roa.end(); ++seq)
+				if((*seq).second.is_right_left_verified() and ((*seq).second.is_above_frag() || (*seq).second.matches_reference()) )
+					if(offset < 0
+							and (*seq).second.right_sequence_half == read.left_sequence_half
+							and not hasDash((*seq).second.left_sequence_half))
+						matches[(*seq).first] = (*seq).second;
+
+					else if( offset > 0
+							and(*seq).second.left_sequence_half == read.right_sequence_half
+							and not hasDash((*seq).second.right_sequence_half))
+						matches[(*seq).first] = (*seq).second;
 
 
 	// Append reference if no matches.
-	if(matches.size() == 0)
+	if(matches.size() == 0 || add_ref)
 	{
 		Read ref;
 		ref.left_sequence_half = read.right_sequence_half;
 		ref.right_sequence_half = read.left_sequence_half;
-		uint64_t reference = references[gene][position+offset];
+		uint64_t reference = references[gene][position+2*offset];
 		if(reference){
 			if(offset < 0) // add the left reference
 				ref.left_sequence_half = reference;
-			else
+			else 		   // add the right reference
 				ref.right_sequence_half = reference;
-			matches["ref"] = ref;
+			matches[UINT64ToString(ref.left_sequence_half)+UINT64ToString(ref.right_sequence_half)] = ref;
 		}
 	}
+
 	return matches;
 		}
 
@@ -420,6 +442,9 @@ int generateFrags (string gene, int position, string seq, Read& read)
 
 		map<string, Read> left_track = returnMatches(gene, position, (-1*ROA_LENGTH/2), read);
 		map<string, Read> right_track = returnMatches(gene, position,    ROA_LENGTH/2,  read);
+
+		if(read.is_above_non_verified() and not read.is_right_left_verified())
+			cout << " NV " << read.sequence << left_track.size() << " : "<< right_track.size()<< endl;
 
 		if(left_track.size() && right_track.size())
 			for (auto left = left_track.begin(); left != left_track.end(); ++left)
@@ -454,7 +479,7 @@ int printFasta()
 
 void check(int total, int position,int i, string name, string seq, Read read)
 {
-	// Check the left half.
+	//	 Check the left half.
 	if( position == i &&
 			read.left_sequence_half == stringToUINT64(seq.substr(0,17)) &&
 			read.right_sequence_half == stringToUINT64(seq.substr(17,17))){
@@ -465,10 +490,25 @@ void check(int total, int position,int i, string name, string seq, Read read)
 		cout << " (f " <<read.forward_count <<"-" <<read.matches_ref_on_left()<< " + " <<read.reverse_count << "-"<<read.matches_ref_on_right()<<" / " << total  << ")"<< endl << endl;
 	}
 
+	// Check the middle
+	//	if( position == i+17
+	//			&& read.left_sequence_half == stringToUINT64(seq.substr(17,17))
+	//			&& read.right_sequence_half == stringToUINT64(seq.substr(34,17))
+	//	){
+	//		cout << seq << " " << name << endl;
+	//		for (int j = 0; j<17; j++)
+	//			cout << " ";
+	//		cout << read.sequence;
+	//		for (int j = 0; j<17; j++)
+	//			cout << " ";
+	//		cout << " (f " <<read.forward_count <<"-" <<read.matches_ref_on_left()<< " + " <<read.reverse_count << "-"<<read.matches_ref_on_right()<<" / " << total  << ")"<< endl << endl;
+	//	}
+
 	// Check the right half
-	if( position == i+34 &&
-			read.left_sequence_half == stringToUINT64(seq.substr(34,17)) &&
-			read.right_sequence_half == stringToUINT64(seq.substr(51,17))){
+	if( position == i+34
+			&& read.left_sequence_half == stringToUINT64(seq.substr(34,17))
+			&& read.right_sequence_half == stringToUINT64(seq.substr(51,17))
+	){
 		cout << seq << " " << name << endl;
 		for (int j = 0; j<34; j++)
 			cout << " ";
@@ -493,7 +533,28 @@ void frequency_filter(string gene, int position, int threshold, double ppm, doub
 		for (auto sequences = roaVerifier.begin(); sequences != roaVerifier.end(); ++sequences){
 			Read read = (*sequences).second;
 			if( ( read.forward_count >= ppm_threshold && read.reverse_count >= ppm_threshold ) || read.matches_reference())
+			{
 				reads[gene][position][(*sequences).first].set_above_ppm_threshold();
+				if(genes[read.RefID] == "Bcl2")
+				{
+					check(total, position,  127 ,"Bcl6_128_Frag45_128_195" , "TGATCATTATTTTACCTTTTAATTCTTTTTTTTTTCGCTCTTGCCAAATGCTTTGGCTCCAAGTTTTC", read);
+
+					check(total, position,  654 ,"Bcl2_128_Frag236_655_722" , "AATAGCTGGATTATAACTCCTCTTCTTTCTCTGGGGGCCGTGGGGTGGGAACTGGGGCGAGAGGTGCC", read);
+
+					check(total, position,  663 ,"Bcl2_128_Frag104_664_731" , "ATTATAACTCCTCTTCTTTCTCTGGGGGCCGTGGGGTGGGAACTGGGGCGAGAGGTGCCGTTGGCCCC", read);
+					check(total, position,  663 ,"Bcl2_128_Frag105_664_731" , "ATTATAATTCCTCTTCTTTCTCTGGGGGCCGTGGGGTGGGAACTGGGGCGAGAGGTGCCGTTGGCCCC", read);
+
+					check(total, position,  722 ,"Bcl2_128_Frag232_723_790" , "GTTGGCCCCCGTTGCTTTTCCTCTGGAAACAATGGCGCACACTGGGAGAACGGGGTACGATAATCGGG", read);
+
+					check(total, position,  824 ,"Bcl2_128_Frag252_825_892" , "GCAGAGGGGCTACGAGTGGGATGCGCGAGATGTGGTCGCCGCGCCCCCGGGGGCCGCCCCCGCACCGG", read);
+
+
+				} else if(genes[read.RefID] == "J6-J4"){
+					check(total, position,  986 ,"J4_128_Frag52_987_1054" , "CCTCAGGGCATCCTCCTGAGCCCCCCAGGCTGCTCCGGGGCTCTCTTGAGAGGAGACCCAGCACCCTT", read);
+
+				}
+
+			}
 			else
 				total -= read.total_count();
 		}
@@ -510,21 +571,6 @@ void frequency_filter(string gene, int position, int threshold, double ppm, doub
 					reads[gene][position][(*sequences).first].set_above_nv_threshold();
 				else
 					reads[gene][position][(*sequences).first].set_above_frag_threshold();
-
-			if(genes[read.RefID] == "Bcl2")
-			{
-				check(total, position,  722 ,"Bcl2_128_Frag_723_790" , "GTTGGCCCCCGTTGCTTTTCCTCTGGAAACAATGGCGCACACTGGGAGAACGGGGTACGATAATCGGG", read);
-				check(total, position,  799 ,"Bcl2_128_Frag_800_867" , "TGAAGTACATCCATTATAAGCTGTCGCAGAGGGGCTACGAGTGGGATGCGCAAGCTGTCGCAGAGGGG", read);
-				check(total, position,  807 ,"Bcl2_128_Frag_808_875" , "ATCCATTATAAGCTGTCGCAGAGGGGCTACGAGTGGGATGCGCGAGATGTGGCAGAGGGGCTACGAGT", read);
-				check(total, position,  816 ,"Bcl2_128_Frag_817_884" , "AAGCTGTCGCAGAGGGGCTACGAGTGGGATGCGCGAGATGTGGTCGCCGCGCTACGAGTGGGATGCGG", read);
-				check(total, position,  824 ,"Bcl2_128_Frag_825_892" , "GCAGAGGGGCTACGAGTGGGATGCGCGAGATGTGGTCGCCGCGCCCCCGGGGGGATGCGGGAGATGTG", read);
-
-			} else if(genes[read.RefID] == "J6-J4") {
-				check(total, position,  986 ,"J6-J4_128_Frag_987_1054" , "CCTCAGGGCATCCTCCTGAGCCCCCCAGGCTGCTCCGGGGCTCTCTTGGCAGGAGACCCAGCACCCTT", read);
-				check(total, position,  994 ,"J6-J4_128_Frag_995_1062" , "CATCCTCCTGAGCCCCCCAGGCTGCTCCGGGGCTCTCTTGGCAGGAGACCCAGCACCCTTATTTCCCC", read);
-				check(total, position, 1011, "core_995", "CAGGCTGCTCCGGGGCTCTCTTGGCAGGAGACCCCAGGCTGCTCCGGGGCTCTCTTGGCAGGAGACCC", read);
-				check(total, position, 1003, "core_987", "GAGCCCCCCAGGCTGCTCCGGGGCTCTCTTGGCAGAGCCCCCCAGGCTGCTCCGGGGCTCTCTTGGCA", read);
-			}
 		}
 
 	}
@@ -748,7 +794,7 @@ void test()
 	map <string, string> johns, johns_alph;
 	map <string, string> mine, mine_alph;
 
-	char  *fasta = "/Users/androwis/Downloads/128_Gen8_BSBSB_VhJ_FragHigh-4.fa";
+	char  *fasta = "/Users/androwis/Downloads/TestCaseFixedHigh.fa";
 	char  *fasta2 = "/Users/androwis/Desktop/fasta.fa";
 
 
@@ -823,7 +869,7 @@ void test()
 	for(auto his = johns_alph.begin(); his!=johns_alph.end(); ++his)
 		cout << (*his).first << " " << (*his).second << " <-- John " << (b++)<< endl;
 
-	cout << " I had " << a <<" unique | John had "<< b << " unique"<< endl;
+	cout << " I had " << a <<" / " << mine_alph.size() << " unique | John had "<< b <<" / " << johns_alph.size()<< " unique"<< endl;
 
 
 
