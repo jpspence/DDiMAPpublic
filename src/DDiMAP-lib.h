@@ -12,6 +12,7 @@
 #include <iterator>
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdint.h>
 
 namespace BamTools {
 struct BamAlignment;
@@ -29,22 +30,29 @@ struct Read {
 	unsigned int forward_count;
 	unsigned int reverse_count;
 
-	unsigned int verification_flags;
-	//	0b00000000
-	//    ||||||||_	1   Is the read verified on left
-	//    |||||||_  2   Is the read verified on right
-	//    ||||||_   4   Is this a 50 BP READ (e.g. 50M)
-	//    |||||_ 	8   Does read match reference on left
-	//    ||||_		16  Does read match reference on right
-	//    |||_ 		32  Does read show up in at least 750ppm
-	//    ||_ 		64  Does read show up in at least 1% as a verified frag
-	//    |_ 		128 Does read show up in at least 10% non-verified frag
+	int16_t verification_flags;
+	//	0b 0000  0000  0000
+	//           ||||  ||||_ 1   Is the read verified on left
+	//           ||||  |||__ 2   Is the read verified on right
+	//           ||||  ||___ 4   Is this a 50 BP READ (e.g. 50M)
+	//           ||||  |____ 8   Does read match reference on left
+	//           ||||_		16  Does read match reference on right
+	//           |||_ 		32  Does read show up in at least 750ppm
+	//           ||_ 		64  Does read show up in at least 1% as a verified frag
+	//           |_ 		128 Does read show up in at least 10% non-verified frag
 
 	void set_left_verified()
 	{ verification_flags = verification_flags |       0b1; }
 
 	void set_right_verified()
 	{ verification_flags = verification_flags |      0b10; }
+
+	void set_left_verified_at_frag()
+	{ verification_flags = verification_flags | 0b100000001; }
+
+	void set_right_verified_at_frag()
+	{ verification_flags = verification_flags |  0b1000000010; }
+
 
 	void set_no_indels()
 	{ verification_flags = verification_flags |     0b100; }
@@ -72,6 +80,9 @@ struct Read {
 
 	bool is_right_left_verified()
 	{ return (verification_flags & 0b0000011) ==      0b11;}
+
+	bool is_right_left_verified_at_frag()
+	{ return (verification_flags & 0b1100000011) == 0b1100000011;}
 
 	bool matches_ref_on_left()
 	{ return (verification_flags & 0b0001000) ==    0b1000;}
