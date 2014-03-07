@@ -401,9 +401,9 @@ map<string, Read> returnMatches(string gene, int position, int offset, Read& rea
 			if( (*seq).second.right_sequence_half == read.left_sequence_half
 					and not hasDash((*seq).second.left_sequence_half))
 				if((*seq).second.is_above_frag() || (*seq).second.matches_reference())
-					if((*seq).second.is_right_left_verified() || (*seq).second.is_above_non_verified())
+					if((*seq).second.is_right_left_verified())
 						matches[(*seq).first] = (*seq).second;
-					else
+					else if (read.is_above_non_verified())
 						add_ref = true;
 
 
@@ -412,18 +412,18 @@ map<string, Read> returnMatches(string gene, int position, int offset, Read& rea
 			if((*seq).second.left_sequence_half == read.right_sequence_half
 					and not hasDash((*seq).second.right_sequence_half))
 				if((*seq).second.is_above_frag() || (*seq).second.matches_reference())
-					if( (*seq).second.is_right_left_verified() || (*seq).second.is_above_non_verified())
+					if( (*seq).second.is_right_left_verified())
 						matches[(*seq).first] = (*seq).second;
-					else
+					else if (read.is_above_non_verified())
 						add_ref = true;
 
 	// Append reference if no matches.
-	if(matches.size() == 0 || add_ref)
+	if((matches.size() == 0 and read.is_above_non_verified()) || add_ref)
 	{
 		Read ref;
 		ref.left_sequence_half = read.right_sequence_half;
 		ref.right_sequence_half = read.left_sequence_half;
-		uint64_t reference = references[gene][position+2*offset];
+		uint64_t reference = references[gene][position + ( (offset > 0) ? 2 : 1) * offset];
 		if(reference){
 			if(offset < 0) // add the left reference
 				ref.left_sequence_half = reference;
@@ -494,6 +494,8 @@ void frequency_filter(string gene, int position, int threshold, double ppm, doub
 
 		double value = 0;
 		double  ppm_threshold = (( threshold > (value = ppm * (double)total)) ? threshold : value);
+		double frag_threshold = (( threshold > (value = frag * (double)total)) ? threshold : value);
+
 		for (auto sequences = roaVerifier.begin(); sequences != roaVerifier.end(); ++sequences){
 			Read read = (*sequences).second;
 			if( ( read.forward_count >= ppm_threshold && read.reverse_count >= ppm_threshold ) || read.matches_reference())
@@ -501,8 +503,6 @@ void frequency_filter(string gene, int position, int threshold, double ppm, doub
 			else
 				total -= read.total_count();
 		}
-
-		double frag_threshold = (( threshold > (value = frag * (double)total)) ? threshold : value);
 		double   nv_threshold = (( threshold > (value = non_verified * (double)total)) ? threshold : value);
 
 		// apply frequency filters.
@@ -732,7 +732,7 @@ void printHistograms()
 
 
 
-void check(int total, int position,int i, string name, string seq, Read read, int above)
+void check(int total, double ppm, double frag,  int position,int i, string name, string seq, Read read, int above)
 {
 	//	 Check the left half.
 	if( position == i &&
@@ -741,7 +741,7 @@ void check(int total, int position,int i, string name, string seq, Read read, in
 		cout << read.sequence;
 		for (int j = 0; j<34; j++)
 			cout << " ";
-		cout << " (f " <<read.forward_count <<"-" <<read.matches_ref_on_left()<< " + " <<read.reverse_count << "-"<<read.matches_ref_on_right()<<" / " << total  << ")" << (( above > 9 )? " > 10% ": (( above > 0) ? " > 1%" : (( above == 0) ? " > ppm" : "  NOT PPM"))) << endl ;
+		cout << " (f " <<read.forward_count <<"-" <<read.matches_ref_on_left()<< " + " <<read.reverse_count << "-"<<read.matches_ref_on_right()<<" / " << ((above > 0) ?  total : ((above == 0) ? frag :  ppm))  << ")" << (( above > 9 )? " > 10% ": (( above > 0) ? " > 1%" : (( above == 0) ? " > ppm" :  " :  NOT PPM"))) << endl ;
 	}
 
 	//	 Check the middle
@@ -765,7 +765,7 @@ void check(int total, int position,int i, string name, string seq, Read read, in
 		for (int j = 0; j<34; j++)
 			cout << " ";
 		cout << read.sequence;
-		cout << " (f " <<read.forward_count <<"-" <<read.matches_ref_on_left()<< " + " <<read.reverse_count << "-"<<read.matches_ref_on_right()<<" / " << total  << ")" << (( above > 9 )? " > 10% ": (( above > 0) ? " > 1%" : (( above == 0) ? " > ppm" : "  NOT PPM"))) << endl ;
+		cout << " (f " <<read.forward_count <<"-" <<read.matches_ref_on_left()<< " + " <<read.reverse_count << "-"<<read.matches_ref_on_right()<<" / " << ((above > 0) ?  total : ((above == 0) ? frag :  ppm))  << ")" << (( above > 9 )? " > 10% ": (( above > 0) ? " > 1%" : (( above == 0) ? " > ppm" :  " :  NOT PPM"))) << endl ;
 	}
 
 }
@@ -787,7 +787,9 @@ void check_frequency_filter(string gene, int position, string name, string seque
 			total+=(*sequences).second.total_count();
 
 		double value = 0;
-		double  ppm_threshold = (( VERIFY_THRESHOLD > (value = PPM * (double)total)) ? VERIFY_THRESHOLD : value);
+		double ppm_threshold = (( VERIFY_THRESHOLD > (value = PPM * (double)total)) ? VERIFY_THRESHOLD : value);
+		double frag_threshold = (( VERIFY_THRESHOLD > (value = FRAG_THRESHOLD * (double)total)) ? VERIFY_THRESHOLD : value);
+
 		for (auto sequences = roaVerifier.begin(); sequences != roaVerifier.end(); ++sequences){
 			Read read = (*sequences).second;
 			if( ( read.forward_count >= ppm_threshold && read.reverse_count >= ppm_threshold ) || read.matches_reference()){ }
@@ -795,7 +797,6 @@ void check_frequency_filter(string gene, int position, string name, string seque
 				total -= read.total_count();
 		}
 
-		double frag_threshold = (( VERIFY_THRESHOLD > (value = FRAG_THRESHOLD * (double)total)) ? VERIFY_THRESHOLD : value);
 		double   nv_threshold = (( VERIFY_THRESHOLD > (value = NON_VERIFIED_THRESHOLD * (double)total)) ? VERIFY_THRESHOLD : value);
 
 		// apply frequency filters.
@@ -804,14 +805,14 @@ void check_frequency_filter(string gene, int position, string name, string seque
 			Read read = (*sequences).second;
 			if( (read.forward_count >= frag_threshold && read.reverse_count >= frag_threshold) || read.matches_reference() )
 				if(read.forward_count + read.reverse_count >= nv_threshold )
-					check(total, position+i*17,  position , name , sequence, read, 10);
+					check(total,ppm_threshold, frag_threshold,  position+i*17,  position , name , sequence, read, 10);
 				else
-					check(total, position+i*17,  position , name , sequence, read, 1);
+					check(total,ppm_threshold, frag_threshold, position+i*17,  position , name , sequence, read, 1);
 
 			else if( ( read.forward_count >= ppm_threshold && read.reverse_count >= ppm_threshold ) || read.matches_reference()){
-				check(total, position+i*17,  position , name , sequence, read, 0);
+				check(total, ppm_threshold, frag_threshold,  position+i*17,  position , name , sequence, read, 0);
 			} else {
-				check(total, position+i*17,  position , name , sequence, read, -1);
+				check(total,ppm_threshold, frag_threshold,  position+i*17,  position , name , sequence, read, -1);
 			}
 		}
 
