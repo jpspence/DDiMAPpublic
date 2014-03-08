@@ -491,14 +491,15 @@ void verify( map<string, Read> *left_track, map<string, Read> *right_track)
 					if((*right).second.is_above_ppm())
 						if((*left).second.right_sequence_half == (*right).second.left_sequence_half)
 						{
-							if((*left).second.is_above_frag() == (*right).second.is_above_frag()){
-								((*left_track)[(*left).first]).set_right_verified_at_frag();
+							if((*left).second.is_above_frag())
 								((*right_track)[(*right).first]).set_left_verified_at_frag();
-							}
-							else {
-								((*left_track)[(*left).first]).set_right_verified();
+							else
 								((*right_track)[(*right).first]).set_left_verified();
-							}
+
+							if ((*right).second.is_above_frag())
+								((*left_track)[(*left).first]).set_right_verified_at_frag();
+							else
+								((*left_track)[(*left).first]).set_right_verified();
 
 						}
 }
