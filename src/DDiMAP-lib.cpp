@@ -369,8 +369,6 @@ map<string, Read> returnMatches(string gene, int position, int offset, Read& rea
 				if((*seq).second.is_above_frag() || (*seq).second.matches_reference())
 					if((*seq).second.is_right_left_verified_at_frag())
 						matches[(*seq).first] = (*seq).second;
-					else
-						add_ref = true;
 
 
 	} else if(offset > 0 and read.is_right_verified() )
@@ -380,11 +378,9 @@ map<string, Read> returnMatches(string gene, int position, int offset, Read& rea
 				if((*seq).second.is_above_frag() || (*seq).second.matches_reference())
 					if( (*seq).second.is_right_left_verified_at_frag())
 						matches[(*seq).first] = (*seq).second;
-					else
-						add_ref = true;
 
 	// Append reference if no matches.
-	if((matches.size() == 0 and read.is_above_non_verified()) || add_ref)
+	if(matches.size() == 0)
 	{
 		Read ref;
 		ref.left_sequence_half = read.right_sequence_half;
