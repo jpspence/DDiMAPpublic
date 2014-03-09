@@ -89,7 +89,7 @@ FASTQ		 = include/readfq
 CXXFLAGS = -O2 -g -Wall -fmessage-length=0 -I$(BAMTOOLS)/src -I$(FASTQ) -I$(BAMTOOLS)
 LIBS 	 = -L$(BAMTOOLS)/lib -lbamtools -lz
 
-OBJS 	 = bin/DDiMAP.o bin/DDiMAP-lib.o bin/gnuplot_i.o bin/Read-Helper.o
+OBJS 	 = bin/DDiMAP.o bin/DDiMAP-lib.o bin/DDiMAP-test.o bin/gnuplot_i.o bin/Read-Helper.o
 TARGET   = DDiMAP
 
 OBJST 	= bin/DDiMAP-threads.o bin/DDiMAP-lib.o bin/Read-Helper.o

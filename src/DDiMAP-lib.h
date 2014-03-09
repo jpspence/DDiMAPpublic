@@ -1,7 +1,5 @@
 #ifndef DDIMAPLIB_H
-
 #define DDIMAPLIB_H
-
 
 #include "Read-Helper.h"
 #include <map>
@@ -13,6 +11,21 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
+#include <kseq.h>
+#include <api/BamAux.h>
+#include <api/SamHeader.h>
+#include <api/SamSequence.h>
+#include <api/SamSequenceDictionary.h>
+#include <kseq.h>
+#include <zlib.h>
+#include <cctype>
+#include <cstdint>
+#include <cstring>
+#include <regex>
+#include <iomanip>
+#include <ostream>
+
+
 
 namespace BamTools {
 struct BamAlignment;
@@ -72,6 +85,9 @@ struct Read {
 	void set_above_nv_threshold()
 	{ verification_flags = verification_flags | 0b11100000; }
 
+	void set_above_nv_threshold_only()
+	{ verification_flags = verification_flags | 0b10000000; }
+
 	bool is_left_verified()
 	{ return (verification_flags & 0b0000001) ==       0b1;}
 
@@ -116,5 +132,6 @@ void callSNVs(double snv_verified_threshold, double snv_total_threshold);
 int buildHistograms(string gene, int position, string seq, Read& read);
 void printHistograms();
 int count (string gene, int position, string seq, Read& read);
-void test();
+void frequency_filter(string gene, int position, int threshold, double ppm, double frag, double non_verified, bool testing, string name, string sequence, int test_position);
+void check_verify ( Read r, bool is_right, string gene, int position);
 #endif
