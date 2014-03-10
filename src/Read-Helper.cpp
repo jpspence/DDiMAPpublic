@@ -10,7 +10,7 @@ uint64_t a    = 0b00000001;
 uint64_t c    = 0b00000010;
 uint64_t g    = 0b00000011;
 uint64_t t 	  = 0b00000100;
-uint64_t dash = 0b00000111;
+uint64_t dash = 0b00000101;
 
 uint64_t charToUINT64(char ch)
 {

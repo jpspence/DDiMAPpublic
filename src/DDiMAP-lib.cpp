@@ -640,7 +640,7 @@ void callSNVs(double snv_verified_threshold, double snv_total_threshold)
 			double ppm_total 		= 0;
 			double ppm_total2		= 0;
 
-			for(int i = 1; i < 5; i++)
+			for(int i = 1; i < 6; i++)
 			{
 				verified_total 	+= verified_counts[i];
 				verified_total2 += verified_counts2[i];
@@ -652,11 +652,12 @@ void callSNVs(double snv_verified_threshold, double snv_total_threshold)
 			double ppm = ppm_total + ppm_total2;
 
 			double freq;
-			for (int i = 1; i < 5; i++)
+			for (int i = 1; i < 6; i++)
 				if((references[(*genes).first][(*positions).first] & 0b111) != i)
 				{
 					uint64_t ref = references[(*genes).first][(*positions).first];
 
+					if(ref){
 					// --- Call type #1
 					// If the reads are in both verified histograms.
 					if( (freq = ((double) (verified_counts[i]+ verified_counts2[i]) / verified)) and verified_counts[i] > 0 and verified_counts2[i] > 0)
@@ -677,6 +678,7 @@ void callSNVs(double snv_verified_threshold, double snv_total_threshold)
 
 					else if( (freq = ((double) ppm_histogram_1[(*genes).first][(*positions).first][i]) / ppm_total2) > snv_total_threshold)
 						snvs += callSNV(3, (*genes).first,(*positions).first, i, ref, freq );
+					}
 
 				}
 
