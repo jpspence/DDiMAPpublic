@@ -29,7 +29,31 @@ char  *fasta;// = "/Dropbox/Google Drive/DataExchangeUR/128_Gen7_BSBSB_VhJ_FragH
 
 void usage()
 {
-	cout << "usage : DDiMAP -f <fasta> -b <bam> <args>" << endl << endl;
+	cout << "usage : DDiMAP [-f <fasta> -b <bam> <args>] [--help]" << endl;
+
+	cout << endl << "Basic Parameters:" << endl;
+	cout << "   --bam              | -b   This specifies the path to the bam file" << endl;
+	cout << "   --fasta            | -f   This specifies the path to the fasta file" << endl;
+	cout << "   --keepID           | -k   Keep reads that have both an insert and delete in CIGAR string" << endl;
+	cout << "   --verify-threshold | -v   Minimum number of reads to see in each direction (default : 2)" << endl;
+
+	cout << endl << "Frag Making Parameters" << endl;
+	cout << "   --ppm              | -p   Minimum level of reads to consider for DDiMAP    (default : 750ppm) | TODO: make this real ppm." << endl;
+	cout << "   --frag-threshold   | -t   Minimum verified coverage required to be considered for frags (default : .01)" << endl;
+	cout << "   --nv-threshold     | -n   Minimum non-verified coverage required to be considered for frags (default : .1)" << endl;
+
+	cout << endl << "SNV Calling Parameters" << endl;
+	cout << "   --snv-verified     | -s   Minimum level of nucleotide variation in verified words to call an SNV (default : .03)" << endl;
+	cout << "   --snv-total        | -r   Minimum level of nucleotide variation in total to call an SNV (default : .1)" << endl;
+
+
+
+	cout <<endl;
+	cout << "Future Parameters (works in progress):"<<endl;
+	cout << "   --output           | -o   Directory to store output" << endl;
+	cout << "   --length-of-snv-ref| -l   Number of base pairs you'd like to see in SNV" << endl;
+
+
 }
 int main (int argc, char **argv)
 {
@@ -38,16 +62,17 @@ int main (int argc, char **argv)
 	int total = 0, unique = 0;
 
 	// Default values
-	// FLAGS
-	// TODO: -dropID
-	// TODO: -uniqueThreshold
-	int VERIFY_THRESHOLD  =  2;
+	int  VERIFY_THRESHOLD  =  2;
+	bool DROPID = true;
+
+	// Frag making thresholds
 	double PPM = 0.00075;
 	double FRAG_THRESHOLD = .01;
 	double NON_VERIFIED_THRESHOLD = .1;
+
+	// SNV calling thresholds
 	double SNV_VERIFIED_THRESHOLD = .003;
 	double SNV_TOTAL_THRESHOLD = .1;
-	bool   DROPID = true;
 
 	// ------------------------------------------------------------------------
 	// Parameter Parsing
@@ -56,17 +81,22 @@ int main (int argc, char **argv)
 			{"bam", 0,0, 'b'},
 			{"fasta", 	0, 0, 'f'},
 			{"keepID", 0,0, 'k'},
-			{"output", 0,0, 'o'},
 			{"verify-threshold", 	0, 0, 'v'},
+			//			{"output", 0,0, 'o'},
+
 			{"ppm", 	0, 0, 'p'},
-			{"fragment-threshold", 	0, 0, 'a'},
-			{"frequency-threshold", 	0, 0, 'g'},
-			{"snv-threshold", 	0, 0, 'c'},
+			{"frag-threshold", 	0, 0, 't'},
+			{"nv-threshold", 	0, 0, 'n'},
+
+			{"snv-threshold", 	0, 0, 's'},
+			{"snv-total", 	0, 0, 'r'},
+
+			{"help", 	0, 0, 'h'},
 			{NULL, 		0, NULL, 0}
 	};
 
 	int option_index = 0;
-	while ((c = getopt_long(argc, argv, "f:a:b:c:v:p:k", long_options, &option_index)) != -1) {
+	while ((c = getopt_long(argc, argv, "b:f:t:s:v:p:n:r:kh", long_options, &option_index)) != -1) {
 
 		switch (c) {
 
@@ -80,27 +110,44 @@ int main (int argc, char **argv)
 			file = optarg;
 			break;
 
-			// Set thresholds
-		case 'a':
-			printf ("Applying threshold of :  %s \n",optarg);
-			break;
-		case 'c':
-			printf ("Applying threshold of :  %s \n",optarg);
-			break;
 		case 'v':
 			VERIFY_THRESHOLD = atoi(optarg);
-			printf ("Applying threshold of :  %d \n",VERIFY_THRESHOLD);
+			printf ("Setting the Verify Threshold to :  %d \n",VERIFY_THRESHOLD);
 			break;
+
+			// Frag making thresholds
 		case 'p':
 			PPM = atof(optarg);
-			printf ("Applying threshold of :  %f \n",PPM);
+			printf ("Setting the PPM threshold to :  %f \n",PPM);
 			break;
+		case 't':
+			FRAG_THRESHOLD = atof(optarg);
+			printf ("Setting the frag threshold to :  %f \n",FRAG_THRESHOLD);
+			break;
+		case 'n':
+			NON_VERIFIED_THRESHOLD = atof(optarg);
+			printf ("Setting the non-verified threshold to :  %f \n",NON_VERIFIED_THRESHOLD);
+			break;
+
+			// SNV Calling parameters
+		case 's':
+			SNV_VERIFIED_THRESHOLD = atof(optarg);
+			printf ("Setting the SNV Verified Threshold to :  %f \n",SNV_VERIFIED_THRESHOLD);
+			break;
+		case 'r':
+			SNV_TOTAL_THRESHOLD = atof(optarg);
+			printf ("Setting the SNV Total Threshold to :  %f \n",SNV_TOTAL_THRESHOLD);
+			break;
+
+
+			// Process Flags
+		case 'h':
+			usage();
+			return EXIT_SUCCESS;
 		case 'k':
 			DROPID= false;
 			printf ("Keeping reads with both inserts and deletes \n");
 			break;
-
-			// Set flags
 		default:
 			printf ("?? getopt returned character code 0%o ??\n", c);
 		}
