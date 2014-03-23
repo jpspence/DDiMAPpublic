@@ -13,12 +13,14 @@ make
 ```
 
 ### Running the code
-All of the compiled code is placed in `bin`
+
 ```bash
-make 
+# point DDiMAP to a fasta and bam file
 ./bin/DDiMAP -f /location/of/fasta.fa  -b /location/of/bam.bam
 
 
+# View usage details
+./bin/DDiMAP --help
 usage : DDiMAP [-f <fasta> -b <bam> <args>] [--help]
 
 Basic Parameters:
