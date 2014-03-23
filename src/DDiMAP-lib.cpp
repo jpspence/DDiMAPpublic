@@ -620,6 +620,7 @@ int buildHistograms(string gene, int position, string seq, Read& read)
 }
 
 ofstream snv_file;
+ofstream coverage_file;
 
 int callSNV(int reason, string gene, int pos, int i, uint64_t ref, double freq )
 {
@@ -633,6 +634,10 @@ void callSNVs(double snv_verified_threshold, double snv_total_threshold)
 	int snvs = 0;
 	snv_file.open ("/Users/androwis/Desktop/snv.csv");
 	snv_file << "Gene, CallReason, Loc, RefBase, CallBase, Freq, LocalSeq "<< endl;
+
+	coverage_file.open ("/Users/androwis/Desktop/coverage.csv");
+	coverage_file << "Gene, Loc, Coverage "<< endl;
+
 
 	for(auto genes = verified_histogram_0.begin(); genes != verified_histogram_0.end(); ++genes)
 
@@ -657,6 +662,8 @@ void callSNVs(double snv_verified_threshold, double snv_total_threshold)
 
 			double verified = verified_total + verified_total2;
 			double ppm = ppm_total + ppm_total2;
+
+			coverage_file << (*genes).first <<","<< (*positions).first << ","<< (ppm / 2) << endl;
 
 			double freq;
 			for (int i = 1; i < 6; i++)
@@ -691,6 +698,7 @@ void callSNVs(double snv_verified_threshold, double snv_total_threshold)
 
 		}
 	snv_file.close();
+	coverage_file.close();
 	cout << " I read " << snvs << " SNVs";
 }
 
