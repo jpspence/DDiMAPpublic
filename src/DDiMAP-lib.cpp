@@ -148,7 +148,10 @@ const char *createWordArray(BamAlignment &ba, int length, int &position, int tra
 // ----------------------------------------------------------------------------
 
 int cntr = 0;
-int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) )
+int indel = 0;
+int noref = 0;
+
+int reduce( BamAlignment &ba, int length, bool dropID, Read (*f)(string &, int) )
 {
 	int uniques = 0;
 
@@ -160,14 +163,13 @@ int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) )
 		else if((*element).Type == 'I')hasInsertion = true;
 	}
 
-	if( references[genes[ba.RefID]].size() > 0 && not (hasInsertion && hasDeletion) )
+	if( references[genes[ba.RefID]].size() > 0 && not (hasInsertion && hasDeletion && dropID) )
 	{
+		if(TEST){
+			cntr++;
+			cout << "I'm Reduce()ing : " << " | " << cntr  << endl;
+		}
 		for(int track : tracks){
-
-			if(TEST){
-				cntr++;
-				cout << "I'm Reduce()ing " << cntr << endl;
-			}
 
 			int position;
 			string word   = createWordString(ba, length, position, track);
@@ -222,7 +224,7 @@ int reduce( BamAlignment &ba, int length, Read (*f)(string &, int) )
 map < int, int> 	frag_offset;
 
 // Returns the number of unique reads in the file.
-int readFile(string file, char *fasta, int length, Read (*f)(string &, int))
+int readFile(string file, char *fasta, int length, bool dropID, Read (*f)(string &, int))
 {
 
 	// Read in the NCBI sequences from Fasta File, assign appropriate offsets
@@ -240,6 +242,8 @@ int readFile(string file, char *fasta, int length, Read (*f)(string &, int))
 		string seq_name = seq->name.s;
 		string clean = std::regex_replace (seq_name,e,"_");
 
+//		cout << clean << " = name  | "<< seq_name << endl;
+
 		string s = seq->seq.s;
 		s.erase( std::remove_if( s.begin(), s.end(), ::isspace ), s.end() );
 
@@ -252,12 +256,12 @@ int readFile(string file, char *fasta, int length, Read (*f)(string &, int))
 			frag_offset[n] = 0;
 
 		if(clean.find("NCBI") != -1){
+
 			clean = clean.substr(0, clean.find_first_of("_"));
 
 			map<int, uint64_t> reference;
 			for(int j= 0; j< s.length()-length; j++){
 				reference[j] = stringToUINT64(s.substr(j, length/2));
-
 				// Add reference to ROAs
 				if(j % 17 == 0  || j % 17 == 8){
 					Read r;
@@ -281,6 +285,9 @@ int readFile(string file, char *fasta, int length, Read (*f)(string &, int))
 
 	kseq_destroy(seq);
 	gzclose(fp);
+	if(TEST)
+		cout << "I read a total of " << n << " reads from the fasta file"<< endl;
+
 
 
 	// Read the bamfile
@@ -292,7 +299,7 @@ int readFile(string file, char *fasta, int length, Read (*f)(string &, int))
 	int counter = 0, total = 0;
 	while(bamreader->GetNextAlignment(ba)){
 		(&ba)->Position += (frag_offset[ba.RefID]);
-		counter += reduce(ba, length, f);
+		counter += reduce(ba, length, dropID, f);
 		if(TEST && references[genes[ba.RefID]].size())
 			total++;
 	}
@@ -341,7 +348,7 @@ map<string, int> frag_counts;
 ofstream fasta_file;
 
 map<string, Read> returnMatches(string gene, int position, int offset, Read& read)
-						{
+										{
 
 	map<string, Read> matches;
 	map<string, Read> roa = reads[gene][position  + offset];
@@ -379,7 +386,7 @@ map<string, Read> returnMatches(string gene, int position, int offset, Read& rea
 	}
 
 	return matches;
-						}
+										}
 
 int generateFrags (string gene, int position, string seq, Read& read)
 {
@@ -658,26 +665,26 @@ void callSNVs(double snv_verified_threshold, double snv_total_threshold)
 					uint64_t ref = references[(*genes).first][(*positions).first];
 
 					if(ref){
-					// --- Call type #1
-					// If the reads are in both verified histograms.
-					if( (freq = ((double) (verified_counts[i]+ verified_counts2[i]) / verified)) and verified_counts[i] > 0 and verified_counts2[i] > 0)
-						snvs += callSNV(1, (*genes).first,(*positions).first, i, ref, freq );
+						// --- Call type #1
+						// If the reads are in both verified histograms.
+						if( (freq = ((double) (verified_counts[i]+ verified_counts2[i]) / verified)) and verified_counts[i] > 0 and verified_counts2[i] > 0)
+							snvs += callSNV(1, (*genes).first,(*positions).first, i, ref, freq );
 
-					// --- Call type #2
-					// If the reads are only in one histogram
-					else if( (freq = ((double) verified_counts[i]) / verified_total) > snv_verified_threshold )
-						snvs += callSNV(2, (*genes).first,(*positions).first, i, ref, freq );
+						// --- Call type #2
+						// If the reads are only in one histogram
+						else if( (freq = ((double) verified_counts[i]) / verified_total) > snv_verified_threshold )
+							snvs += callSNV(2, (*genes).first,(*positions).first, i, ref, freq );
 
-					else if( (freq = ((double) verified_counts2[i]) / verified_total2) > snv_verified_threshold )
-						snvs += callSNV(2, (*genes).first,(*positions).first, i, ref, freq );
+						else if( (freq = ((double) verified_counts2[i]) / verified_total2) > snv_verified_threshold )
+							snvs += callSNV(2, (*genes).first,(*positions).first, i, ref, freq );
 
-					// # Call type 3
-					// If the reads exceed a 3rd threshold in either track
-					else if( (freq = ((double) ppm_histogram_0[(*genes).first][(*positions).first][i]) / ppm_total) > snv_total_threshold)
-						snvs += callSNV(3, (*genes).first,(*positions).first, i, ref, freq );
+						// # Call type 3
+						// If the reads exceed a 3rd threshold in either track
+						else if( (freq = ((double) ppm_histogram_0[(*genes).first][(*positions).first][i]) / ppm_total) > snv_total_threshold)
+							snvs += callSNV(3, (*genes).first,(*positions).first, i, ref, freq );
 
-					else if( (freq = ((double) ppm_histogram_1[(*genes).first][(*positions).first][i]) / ppm_total2) > snv_total_threshold)
-						snvs += callSNV(3, (*genes).first,(*positions).first, i, ref, freq );
+						else if( (freq = ((double) ppm_histogram_1[(*genes).first][(*positions).first][i]) / ppm_total2) > snv_total_threshold)
+							snvs += callSNV(3, (*genes).first,(*positions).first, i, ref, freq );
 					}
 
 				}

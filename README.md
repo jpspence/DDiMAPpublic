@@ -3,15 +3,11 @@ High Performance DDiMAP
 DDiMAP in C and CUDA. 
 
 ### Prerequisites
-As much of this code has been modularized to run on vanilla installs, assuming
-that you have the following `git` `gcc` `make` `cmake` `cuda`
-
-I have tried my best to have a self contained repo that should be able to be 
-brought up as quickly as possible.
+You'll need the following tools : `git` `gcc` `make` `cmake` `cuda`
 
 ### Installing the code
-This currently doesn't run on Windows, and I have no plans on support it either.
 ```bash
+#This currently doesn't run on Windows, I have no plans on supporting it either.
 make setup 
 make
 ```
@@ -22,9 +18,6 @@ All of the compiled code is placed in `bin`
 make 
 # Optional -f Flag allows you to provide a file to process
 ./bin/DDiMAP    # This runs the serial code.
-./bin/DDiMAPGPU # This runs the GPU
-
-
 ```
 
 
