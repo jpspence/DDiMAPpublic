@@ -16,8 +16,29 @@ make
 All of the compiled code is placed in `bin`
 ```bash
 make 
-# Optional -f Flag allows you to provide a file to process
-./bin/DDiMAP    # This runs the serial code.
+./bin/DDiMAP -f /location/of/fasta.fa  -b /location/of/bam.bam
+
+
+usage : DDiMAP [-f <fasta> -b <bam> <args>] [--help]
+
+Basic Parameters:
+   --bam              | -b   This specifies the path to the bam file
+   --fasta            | -f   This specifies the path to the fasta file
+   --keepID           | -k   Keep reads that have both an insert and delete in CIGAR string
+   --verify-threshold | -v   Minimum number of reads to see in each direction (default : 2)
+
+Frag Making Parameters
+   --ppm              | -p   Minimum level of reads to consider for DDiMAP    (default : 750ppm) | TODO: make this real ppm.
+   --frag-threshold   | -t   Minimum verified coverage required to be considered for frags (default : .01)
+   --nv-threshold     | -n   Minimum non-verified coverage required to be considered for frags (default : .1)
+
+SNV Calling Parameters
+   --snv-verified     | -s   Minimum level of nucleotide variation in verified words to call an SNV (default : .03)
+   --snv-total        | -r   Minimum level of nucleotide variation in total to call an SNV (default : .1)
+
+Future Parameters (works in progress):
+   --output           | -o   Directory to store output
+   --length-of-snv-ref| -l   Number of base pairs you'd like to see in SNV
 ```
 
 
