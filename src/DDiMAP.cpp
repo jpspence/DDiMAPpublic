@@ -24,8 +24,8 @@
 //string file  = "data/128test_Gen1_example_sorted.bam";
 //char  *fasta = "data/128test_Gen1_example.fa";
 
-string file;//  = "/Dropbox/Google Drive/DataExchangeUR/128_Gen7_BSBSB_VhJ_FragHigh_sorted.bam";
-char  *fasta;// = "/Dropbox/Google Drive/DataExchangeUR/128_Gen7_BSBSB_VhJ_FragHigh.fa";
+string file = "/Dropbox/Google Drive/DataExchangeUR/128_Gen7_CUSHAW2_VhJ_sorted.bam";
+char  *fasta = "/Dropbox/Google Drive/DataExchangeUR/128_Gen7_CUSHAW2_VhJ.fa";
 
 void usage()
 {

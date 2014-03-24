@@ -80,10 +80,13 @@ string createWordString(BamAlignment &ba, int length, int &position, int track)
 	int i = 0;
 	for(auto element = ba.CigarData.begin(); element < ba.CigarData.end(); element++)
 	{
-		if((*element).Type != 'I')
-			read.append( ba.AlignedBases.substr(i, (*element).Length));
-		i+=(*element).Length;
+		if((*element).Type != 'H' && (*element).Type != 'S'){
+			if((*element).Type != 'I')
+				read.append( ba.AlignedBases.substr(i, (*element).Length));
+			i+=(*element).Length;
+		}
 	}
+
 
 	int to_roa    = ( length/2 - ba.Position ) % (length/2);
 	if(to_roa < 0) to_roa+=length/2;
@@ -102,6 +105,7 @@ string createWordString(BamAlignment &ba, int length, int &position, int track)
 
 	if(offset < 0 || offset + length > read.length())
 		return "";
+
 
 	string word = read.substr(offset, length);
 
@@ -242,7 +246,7 @@ int readFile(string file, char *fasta, int length, bool dropID, Read (*f)(string
 		string seq_name = seq->name.s;
 		string clean = std::regex_replace (seq_name,e,"_");
 
-//		cout << clean << " = name  | "<< seq_name << endl;
+		//		cout << clean << " = name  | "<< seq_name << endl;
 
 		string s = seq->seq.s;
 		s.erase( std::remove_if( s.begin(), s.end(), ::isspace ), s.end() );
@@ -348,7 +352,7 @@ map<string, int> frag_counts;
 ofstream fasta_file;
 
 map<string, Read> returnMatches(string gene, int position, int offset, Read& read)
-										{
+												{
 
 	map<string, Read> matches;
 	map<string, Read> roa = reads[gene][position  + offset];
@@ -386,7 +390,7 @@ map<string, Read> returnMatches(string gene, int position, int offset, Read& rea
 	}
 
 	return matches;
-										}
+												}
 
 int generateFrags (string gene, int position, string seq, Read& read)
 {
