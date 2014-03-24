@@ -82,7 +82,8 @@ void test()
 	while (kseq_read(seq) >= 0){
 
 		string seq_name = seq->name.s;
-		string clean = std::regex_replace (seq_name,e,"_");
+		string replacement="_";
+		string clean = std::regex_replace (seq_name,e,replacement,std::regex_constants::basic);
 
 		string s = seq->seq.s;
 		s.erase( std::remove_if( s.begin(), s.end(), ::isspace ), s.end() );
@@ -100,7 +101,8 @@ void test()
 	while (kseq_read(seq2) >= 0){
 
 		string seq_name = seq2->name.s;
-		string clean = std::regex_replace (seq_name,e,"_");
+		string replacement="_";
+		string clean = std::regex_replace (seq_name,e,replacement,std::regex_constants::basic);
 
 		string s = seq2->seq.s;
 		s.erase( std::remove_if( s.begin(), s.end(), ::isspace ), s.end() );

@@ -240,7 +240,8 @@ int readFile(string file, char *fasta, int length, bool dropID, Read (*f)(string
 	while (kseq_read(seq) >= 0){
 
 		string seq_name = seq->name.s;
-		string clean = std::regex_replace (seq_name,e,"_");
+		string replacement="_";
+		string clean = std::regex_replace (seq_name,e,replacement,std::regex_constants::basic);
 
 //		cout << clean << " = name  | "<< seq_name << endl;
 
