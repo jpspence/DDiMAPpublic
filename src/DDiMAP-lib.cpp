@@ -238,31 +238,27 @@ int readFile(string file, char *fasta, int length, bool dropID, Read (*f)(string
 	FILE *fast = fopen(fasta,"r");
 	fp = gzdopen(fileno(fast), "r");
 
-	regex e ("[^a-zA-Z0-9\\-]+");
 	regex frag ("[fF][rR][aA][gG][0-9]+_([0-9]*)");
 	seq = kseq_init(fp);
 	while (kseq_read(seq) >= 0){
 
 		string seq_name = seq->name.s;
-		string clean = std::regex_replace (seq_name,e,"_");
-
-		//		cout << clean << " = name  | "<< seq_name << endl;
-
 		string s = seq->seq.s;
 		s.erase( std::remove_if( s.begin(), s.end(), ::isspace ), s.end() );
 
 		std::smatch m;
-		std::regex_search(clean, m, frag);
+		std::regex_search(seq_name, m, frag);
 
 		if(m.size()>1)
 			frag_offset[n] = (atoi(m[1].str().c_str()) - 1);
 		else
 			frag_offset[n] = 0;
 
-		if(clean.find("NCBI") != -1){
-
-			clean = clean.substr(0, clean.find_first_of("_"));
-
+		// If this includes NCBI
+		if(seq_name.find("Frag") == -1 && seq_name.find("Junction") == -1){
+			cout << seq_name << " before substring. "<< endl;
+			seq_name = seq_name.substr(0, seq_name.find_first_of("_"));
+			cout << seq_name << " after substring. "<< endl;
 			map<int, uint64_t> reference;
 			for(int j= 0; j< s.length()-length; j++){
 				reference[j] = stringToUINT64(s.substr(j, length/2));
@@ -274,16 +270,16 @@ int readFile(string file, char *fasta, int length, bool dropID, Read (*f)(string
 					r.set_matches_ref_on_right();
 					r.set_matches_ref_on_left();
 					r.RefID = n;
-					reads[clean][j][r.sequence] = r;
+					reads[seq_name][j][r.sequence] = r;
 				}
 
 			}
-			references[clean] = reference;
+			references[seq_name] = reference;
 		}
 		else{
-			clean = clean.substr(0, clean.find_first_of("_"));
+			seq_name = seq_name.substr(0, seq_name.find_first_of("_"));
 		}
-		genes[n] = clean;
+		genes[n] = seq_name;
 		++n;
 	}
 
