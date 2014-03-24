@@ -82,16 +82,14 @@ void test()
 	while (kseq_read(seq) >= 0){
 
 		string seq_name = seq->name.s;
-		string clean = std::regex_replace (seq_name,e,"_");
 
 		string s = seq->seq.s;
 		s.erase( std::remove_if( s.begin(), s.end(), ::isspace ), s.end() );
 
 		std::smatch m;
-		std::regex_search(clean, m, frag);
 
-		if(clean.find("Frag") && clean.find("NCBI") == -1 && clean.find("Junction") == -1)
-			johns[s] = clean;
+		if(s.find("Frag") && s.find("NCBI") == -1 && s.find("Junction") == -1)
+			johns[s] = s;
 	}
 
 	FILE *fast2 = fopen(fasta2,"r");
@@ -100,16 +98,14 @@ void test()
 	while (kseq_read(seq2) >= 0){
 
 		string seq_name = seq2->name.s;
-		string clean = std::regex_replace (seq_name,e,"_");
 
 		string s = seq2->seq.s;
 		s.erase( std::remove_if( s.begin(), s.end(), ::isspace ), s.end() );
 
 		std::smatch m;
-		std::regex_search(clean, m, frag);
 
-		if(clean.find("Frag") && clean.find("NCBI") == -1 && clean.find("Junction") == -1)
-			mine[s] = clean;
+		if(s.find("Frag") && s.find("NCBI") == -1 && s.find("Junction") == -1)
+			mine[s] = s;
 	}
 
 	int a =0,b=0;
