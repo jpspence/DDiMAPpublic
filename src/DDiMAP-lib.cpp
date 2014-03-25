@@ -238,7 +238,6 @@ int readFile(string file, char *fasta, int length, bool dropID, Read (*f)(string
 	FILE *fast = fopen(fasta,"r");
 	fp = gzdopen(fileno(fast), "r");
 
-	regex frag ("[fF][rR][aA][gG][0-9]+_([0-9]*)");
 	seq = kseq_init(fp);
 	while (kseq_read(seq) >= 0){
 
@@ -247,11 +246,14 @@ int readFile(string file, char *fasta, int length, bool dropID, Read (*f)(string
 		string s = seq->seq.s;
 		s.erase( std::remove_if( s.begin(), s.end(), ::isspace ), s.end() );
 
-		std::smatch m;
-		std::regex_search(seq_name, m, frag);
-
-		if(m.size()>1)
-			frag_offset[n] = (atoi(m[1].str().c_str()) - 1);
+		if(seq_name.find("Frag")!=-1)
+		{
+			int loc = seq_name.find_first_of("Frag");
+			string frag = seq_name.substr(loc, seq_name.length()-loc);
+			loc = frag.find_first_of("_")+1;
+			string locations = frag.substr(loc, frag.length()-loc);
+			frag_offset[n] = atoi(locations.substr(0,locations.find_first_of("_")).c_str()) - 1;
+		}
 		else
 			frag_offset[n] = 0;
 

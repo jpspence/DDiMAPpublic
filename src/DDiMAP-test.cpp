@@ -74,9 +74,6 @@ void test()
 	FILE *fast = fopen(fasta,"r");
 	fp = gzdopen(fileno(fast), "r");
 
-	regex e ("[^a-zA-Z0-9\\-]+");
-	regex frag ("[fF][rR][aA][gG][0-9]+_([0-9]*)");
-
 	// Read Johns
 	seq = kseq_init(fp);
 	while (kseq_read(seq) >= 0){
@@ -86,10 +83,9 @@ void test()
 		string s = seq->seq.s;
 		s.erase( std::remove_if( s.begin(), s.end(), ::isspace ), s.end() );
 
-		std::smatch m;
 
-		if(s.find("Frag") && s.find("NCBI") == -1 && s.find("Junction") == -1)
-			johns[s] = s;
+//		if(s.find("Frag") && s.find("NCBI") == -1 && s.find("Junction") == -1)
+//			johns[s] = s;
 	}
 
 	FILE *fast2 = fopen(fasta2,"r");
@@ -102,10 +98,8 @@ void test()
 		string s = seq2->seq.s;
 		s.erase( std::remove_if( s.begin(), s.end(), ::isspace ), s.end() );
 
-		std::smatch m;
-
-		if(s.find("Frag") && s.find("NCBI") == -1 && s.find("Junction") == -1)
-			mine[s] = s;
+//		if(s.find("Frag") && s.find("NCBI") == -1 && s.find("Junction") == -1)
+//			mine[s] = s;
 	}
 
 	int a =0,b=0;

@@ -21,7 +21,6 @@
 #include <cctype>
 #include <cstdint>
 #include <cstring>
-#include <regex>
 #include <iomanip>
 #include <ostream>
 
