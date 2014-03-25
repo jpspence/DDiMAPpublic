@@ -24,8 +24,8 @@
 //string file  = "data/128test_Gen1_example_sorted.bam";
 //char  *fasta = "data/128test_Gen1_example.fa";
 
-string file = "/Dropbox/Google Drive/DataExchangeUR/128_Gen7_CUSHAW2_VhJ_sorted.bam";
-char  *fasta = "/Dropbox/Google Drive/DataExchangeUR/128_Gen7_CUSHAW2_VhJ.fa";
+string file  = "/Dropbox/Google Drive/DataExchangeUR/128_Gen7_CUSHAW2_VhJ_sorted.bam";
+string fasta = "/Dropbox/Google Drive/DataExchangeUR/128_Gen7_CUSHAW2_VhJ.fa";
 
 void usage()
 {
@@ -102,12 +102,12 @@ int main (int argc, char **argv)
 
 		// Read in the files
 		case 'f':
-			printf ("Parsing fasta file :  %s \n",optarg);
-			fasta = const_cast<char*>(((string)optarg).c_str());
+			fasta = optarg;
+			printf ("Parsing fasta file :  %s \n", fasta.c_str());
 			break;
 		case 'b':
-			printf ("Using bam file :  %s \n",optarg);
 			file = optarg;
+			printf ("Using bam file :  %s \n", file.c_str());
 			break;
 
 		case 'v':
@@ -159,7 +159,7 @@ int main (int argc, char **argv)
 		printf ("\n");
 	}
 
-	if( file.empty() || not fasta)
+	if( file.empty() || fasta.empty())
 	{
 		cout << endl << "You must specify a fasta and bam file for DDiMAP to process." << endl << endl;
 		usage();
@@ -172,12 +172,11 @@ int main (int argc, char **argv)
 	// DDiMAP
 	// ------------------------------------------------------------------------
 	t = clock();
+	cout << "Fasta file at this point is " << fasta << endl;
 	unique = readFile(file, fasta, 34, DROPID, buildRead);
 	t = clock() - t;
 	printf ("It took me %lu ticks (%f seconds) to read %d | %d reads from BAM file.\n",
 			t, ((float)t)/CLOCKS_PER_SEC, unique, total);
-
-
 
 	t = clock();
 	sequential(VERIFY_THRESHOLD, PPM, FRAG_THRESHOLD, NON_VERIFIED_THRESHOLD);
@@ -221,7 +220,7 @@ int main (int argc, char **argv)
 	//	gnuplot_cmd(h1, "set multiplot title \"GC Content for different genes\" layout 3,4");
 	//	gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/Bcl2CG.txt\"     with points ls 1 title \"Bcl2\"");
 	//	gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/Bcl6CG.txt\"     with points ls 1 title \"Bcl6\"");
-	//	gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/CD83CG.txt\"     with points ls 1 title \"CD83\"");
+	//	gnuplot_cmd(h1, "plot \"/Users/pa/Desktop/CD83CG.txt\"     with points ls 1 title \"CD83\"");
 	//	gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/EmuCG.txt\"      with points ls 1 title \"Emu\"");
 	//	gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/J6-J4CG.txt\"    with points ls 1 title \"j6-j4\"");
 	//	gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/KSCG.txt\"       with points ls 1 title \"KSCG\"");
@@ -235,7 +234,7 @@ int main (int argc, char **argv)
 	//
 	cin.get();
 
-	test();
+//	test(fasta);
 
 	// ------------------------------------------------------------------------
 	// End.

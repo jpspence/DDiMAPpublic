@@ -14,7 +14,7 @@
 
 #include "DDiMAP-lib.h"
 #include "DDiMAP-test.h"
-
+#include <cctype>
 #define TEST 0
 int ROA_LENGTH = 34;
 int max_refid = 0;
@@ -228,21 +228,27 @@ int reduce( BamAlignment &ba, int length, bool dropID, Read (*f)(string &, int) 
 map < int, int> 	frag_offset;
 
 // Returns the number of unique reads in the file.
-int readFile(string file, char *fasta, int length, bool dropID, Read (*f)(string &, int))
+int readFile(string file, string fasta, int length, bool dropID, Read (*f)(string &, int))
 {
-
 	// Read in the NCBI sequences from Fasta File, assign appropriate offsets
 	gzFile fp;
 	kseq_t *seq;
 	int n = 0;
-	FILE *fast = fopen(fasta,"r");
+	FILE *fast = fopen(fasta.c_str(),"r");
 	fp = gzdopen(fileno(fast), "r");
-
 	seq = kseq_init(fp);
 	while (kseq_read(seq) >= 0){
 
 		string seq_name = seq->name.s;
 		string s = seq->seq.s;
+
+		for (size_t i = 0; i < s.length(); ++i)
+		    if (s[i]!='a' && s[i]!='A' &&
+		    	s[i]!='c' && s[i]!='C' &&
+		    	s[i]!='t' && s[i]!='T' &&
+		    	s[i]!='g' && s[i]!='G')
+		        s.erase(i, 1);
+
 		if(seq_name.find("Frag")!=-1)
 		{
 //			cout << "Sequence name : "<< seq_name << endl;
@@ -250,19 +256,20 @@ int readFile(string file, char *fasta, int length, bool dropID, Read (*f)(string
 			string frag = seq_name.substr(loc, seq_name.length()-loc);
 			loc = frag.find_first_of("_")+1;
 			string locations = frag.substr(loc, frag.length()-loc);
-
 //			cout << "Number : " << locations.substr(0,locations.find_first_of("_")) << endl;
-
 			frag_offset[n] = atoi(locations.substr(0,locations.find_first_of("_")).c_str()) - 1;
 		}
 		else
 			frag_offset[n] = 0;
 
+		int loc = (seq_name.find_first_of("_") == -1) ? seq_name.length() : seq_name.find_first_of("_");
+
 		// If this includes NCBI
-		if(seq_name.find("Frag") == -1 && seq_name.find("Junction") == -1){
-			seq_name = seq_name.substr(0, seq_name.find_first_of("_"));
+ 		if(seq_name.find("Frag") == -1 && seq_name.find("Junction") == -1){
+			seq_name = seq_name.substr(0, loc);
 			map<int, uint64_t> reference;
 			for(int j= 0; j< s.length()-length; j++){
+
 				reference[j] = stringToUINT64(s.substr(j, length/2));
 				// Add reference to ROAs
 				if(j % 17 == 0  || j % 17 == 8){
@@ -279,8 +286,9 @@ int readFile(string file, char *fasta, int length, bool dropID, Read (*f)(string
 			references[seq_name] = reference;
 		}
 		else{
-			seq_name = seq_name.substr(0, seq_name.find_first_of("_"));
+			seq_name = seq_name.substr(0, loc);
 		}
+
 		genes[n] = seq_name;
 		++n;
 	}

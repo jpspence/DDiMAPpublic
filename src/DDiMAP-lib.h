@@ -123,7 +123,7 @@ struct Read {
 };
 
 Read buildRead(string &word, int length);
-int readFile(string file, char *fasta, int length, bool dropID, Read (*f)(string &, int));
+int readFile(string file, string fasta, int length, bool dropID, Read (*f)(string &, int));
 int iterate ( int (*f)(string, int, string, Read&) );
 int printFasta();
 void sequential(int threshold, double ppm, double frag, double non_verified);

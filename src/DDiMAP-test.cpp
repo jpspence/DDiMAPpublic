@@ -79,13 +79,10 @@ void test()
 	while (kseq_read(seq) >= 0){
 
 		string seq_name = seq->name.s;
-
 		string s = seq->seq.s;
-		s.erase( std::remove_if( s.begin(), s.end(), ::isspace ), s.end() );
 
-
-//		if(s.find("Frag") && s.find("NCBI") == -1 && s.find("Junction") == -1)
-//			johns[s] = s;
+		if(s.find("Frag")!=-1 && s.find("NCBI") == -1 && s.find("Junction") == -1)
+			johns[s] = s;
 	}
 
 	FILE *fast2 = fopen(fasta2,"r");
@@ -94,12 +91,10 @@ void test()
 	while (kseq_read(seq2) >= 0){
 
 		string seq_name = seq2->name.s;
-
 		string s = seq2->seq.s;
-		s.erase( std::remove_if( s.begin(), s.end(), ::isspace ), s.end() );
 
-//		if(s.find("Frag") && s.find("NCBI") == -1 && s.find("Junction") == -1)
-//			mine[s] = s;
+		if(s.find("Frag")==1 && s.find("NCBI") == -1 && s.find("Junction") == -1)
+			mine[s] = s;
 	}
 
 	int a =0,b=0;
