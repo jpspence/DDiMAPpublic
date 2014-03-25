@@ -242,16 +242,17 @@ int readFile(string file, char *fasta, int length, bool dropID, Read (*f)(string
 	while (kseq_read(seq) >= 0){
 
 		string seq_name = seq->name.s;
-
 		string s = seq->seq.s;
-		s.erase( std::remove_if( s.begin(), s.end(), ::isspace ), s.end() );
-
 		if(seq_name.find("Frag")!=-1)
 		{
+//			cout << "Sequence name : "<< seq_name << endl;
 			int loc = seq_name.find_first_of("Frag");
 			string frag = seq_name.substr(loc, seq_name.length()-loc);
 			loc = frag.find_first_of("_")+1;
 			string locations = frag.substr(loc, frag.length()-loc);
+
+//			cout << "Number : " << locations.substr(0,locations.find_first_of("_")) << endl;
+
 			frag_offset[n] = atoi(locations.substr(0,locations.find_first_of("_")).c_str()) - 1;
 		}
 		else
