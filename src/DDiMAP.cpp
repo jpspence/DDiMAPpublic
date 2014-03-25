@@ -12,6 +12,8 @@
 #include <cstdlib>
 #include <iostream>
 #include <string>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #include "DDiMAP-lib.h"
 #include "DDiMAP-test.h"
@@ -20,18 +22,16 @@
 #define SLEEP_LGTH  1
 
 // Default file.
-
-//string file  = "data/128test_Gen1_example_sorted.bam";
-//char  *fasta = "data/128test_Gen1_example.fa";
-
 string file  = "/Dropbox/Google Drive/DataExchangeUR/128_Gen7_CUSHAW2_VhJ_sorted.bam";
 string fasta = "/Dropbox/Google Drive/DataExchangeUR/128_Gen7_CUSHAW2_VhJ.fa";
+string output = "./output/";
 
 void usage()
 {
 	cout << "usage : DDiMAP [-f <fasta> -b <bam> <args>] [--help]" << endl;
 
 	cout << endl << "Basic Parameters:" << endl;
+	cout << "   --output           | -o   Directory to store output (default : ./output/ )" << endl;
 	cout << "   --bam              | -b   This specifies the path to the bam file" << endl;
 	cout << "   --fasta            | -f   This specifies the path to the fasta file" << endl;
 	cout << "   --keepID           | -k   Keep reads that have both an insert and delete in CIGAR string" << endl;
@@ -50,9 +50,7 @@ void usage()
 
 	cout <<endl;
 	cout << "Future Parameters (works in progress):"<<endl;
-	cout << "   --output           | -o   Directory to store output" << endl;
 	cout << "   --length-of-snv-ref| -l   Number of base pairs you'd like to see in SNV" << endl;
-
 
 }
 int main (int argc, char **argv)
@@ -82,7 +80,7 @@ int main (int argc, char **argv)
 			{"fasta", 	0, 0, 'f'},
 			{"keepID", 0,0, 'k'},
 			{"verify-threshold", 	0, 0, 'v'},
-			//			{"output", 0,0, 'o'},
+			{"output", 0,0, 'o'},
 
 			{"ppm", 	0, 0, 'p'},
 			{"frag-threshold", 	0, 0, 't'},
@@ -96,11 +94,17 @@ int main (int argc, char **argv)
 	};
 
 	int option_index = 0;
-	while ((c = getopt_long(argc, argv, "b:f:t:s:v:p:n:r:kh", long_options, &option_index)) != -1) {
+	while ((c = getopt_long(argc, argv, "o:b:f:t:s:v:p:n:r:kh", long_options, &option_index)) != -1) {
 
 		switch (c) {
 
 		// Read in the files
+		case 'o':
+			output = optarg;
+			int status;
+			status = mkdir(output.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
+			printf ("saving output to :  %s \n", output.c_str());
+			break;
 		case 'f':
 			fasta = optarg;
 			printf ("Parsing fasta file :  %s \n", fasta.c_str());
@@ -172,7 +176,6 @@ int main (int argc, char **argv)
 	// DDiMAP
 	// ------------------------------------------------------------------------
 	t = clock();
-	cout << "Fasta file at this point is " << fasta << endl;
 	unique = readFile(file, fasta, 34, DROPID, buildRead);
 	t = clock() - t;
 	printf ("It took me %lu ticks (%f seconds) to read %d | %d reads from BAM file.\n",
@@ -180,7 +183,7 @@ int main (int argc, char **argv)
 
 	t = clock();
 	sequential(VERIFY_THRESHOLD, PPM, FRAG_THRESHOLD, NON_VERIFIED_THRESHOLD);
-	int verified = printFasta();
+	int verified = printFasta(output);
 	t = clock() - t;
 	printf ("It took me %lu ticks (%f seconds) to verify %d | %d.\n",
 			t, ((float)t)/CLOCKS_PER_SEC , verified, unique);
@@ -193,7 +196,7 @@ int main (int argc, char **argv)
 			t, ((float)t)/CLOCKS_PER_SEC);
 
 	t = clock();
-	printHistograms();
+	printHistograms( output );
 	t = clock() - t;
 	printf ("It took me %lu ticks (%f seconds) to print the histogram.\n",
 			t, ((float)t)/CLOCKS_PER_SEC);
@@ -207,7 +210,7 @@ int main (int argc, char **argv)
 
 
 	t = clock();
-	callSNVs(SNV_VERIFIED_THRESHOLD, SNV_TOTAL_THRESHOLD);
+	callSNVs(SNV_VERIFIED_THRESHOLD, SNV_TOTAL_THRESHOLD, output);
 	t = clock() - t;
 	printf ("It took me %lu ticks (%f seconds) to call SNVs.\n",
 			t, ((float)t)/CLOCKS_PER_SEC);

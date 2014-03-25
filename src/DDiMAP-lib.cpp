@@ -434,12 +434,11 @@ int generateFrags (string gene, int position, string seq, Read& read)
 	return frags;
 }
 
-int printFasta()
+int printFasta(string output)
 {
-	fasta_file.open ("/Users/androwis/Desktop/fasta.fa");
+	fasta_file.open (output + "/fasta.fa");
 	int frags = iterate(generateFrags);
 	fasta_file.close();
-
 	return frags;
 }
 
@@ -639,13 +638,13 @@ int callSNV(int reason, string gene, int pos, int i, uint64_t ref, double freq )
 	return 1;
 }
 
-void callSNVs(double snv_verified_threshold, double snv_total_threshold)
+void callSNVs(double snv_verified_threshold, double snv_total_threshold, string output )
 {
 	int snvs = 0;
-	snv_file.open ("/Users/androwis/Desktop/snv.csv");
+	snv_file.open (output+"snv.csv");
 	snv_file << "Gene, CallReason, Loc, RefBase, CallBase, Freq, LocalSeq "<< endl;
 
-	coverage_file.open ("/Users/androwis/Desktop/coverage.csv");
+	coverage_file.open (output+"coverage.csv");
 	coverage_file << "Gene, Loc, Coverage "<< endl;
 
 
@@ -712,15 +711,15 @@ void callSNVs(double snv_verified_threshold, double snv_total_threshold)
 	cout << " I read " << snvs << " SNVs";
 }
 
-void printHistograms()
+void printHistograms(string output)
 {
 	for(auto frag = frag_counts.begin(); frag !=frag_counts.end(); ++frag)
 		cout << "I have " << (*frag).second << " frags for "<< (*frag).first << endl;
 
 	for(auto genes = verified_histogram_0.begin(); genes != verified_histogram_0.end(); ++genes)
 	{
-		string filename = "/Users/androwis/Desktop/"+(*genes).first+"AT.txt";
-		string filenameC = "/Users/androwis/Desktop/"+(*genes).first+"CG.txt";
+		string filename = output+(*genes).first+"AT.txt";
+		string filenameC = output+(*genes).first+"CG.txt";
 		ofstream f, fc;
 
 		f.open(filename.c_str());

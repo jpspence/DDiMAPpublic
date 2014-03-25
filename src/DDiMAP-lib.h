@@ -125,11 +125,11 @@ struct Read {
 Read buildRead(string &word, int length);
 int readFile(string file, string fasta, int length, bool dropID, Read (*f)(string &, int));
 int iterate ( int (*f)(string, int, string, Read&) );
-int printFasta();
+int printFasta(string output);
 void sequential(int threshold, double ppm, double frag, double non_verified);
-void callSNVs(double snv_verified_threshold, double snv_total_threshold);
+void callSNVs(double snv_verified_threshold, double snv_total_threshold, string output);
 int buildHistograms(string gene, int position, string seq, Read& read);
-void printHistograms();
+void printHistograms(string output);
 int count (string gene, int position, string seq, Read& read);
 void frequency_filter(string gene, int position, int threshold, double ppm, double frag, double non_verified, bool testing, string name, string sequence, int test_position);
 void check_verify ( Read r, bool is_right, string gene, int position);
