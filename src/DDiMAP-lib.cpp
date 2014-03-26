@@ -251,12 +251,12 @@ int readFile(string file, string fasta, int length, bool dropID, Read (*f)(strin
 
 		if(seq_name.find("Frag")!=-1)
 		{
-			cout << "Sequence name : "<< seq_name << endl;
+//			cout << "Sequence name : "<< seq_name << endl;
 			int loc = seq_name.find("Frag");
 			string frag = seq_name.substr(loc, seq_name.length()-loc);
 			loc = frag.find_first_of("_")+1;
 			string locations = frag.substr(loc, frag.length()-loc);
-			cout << "Number : " << locations.substr(0,locations.find_first_of("_")) << endl;
+//			cout << "Number : " << locations.substr(0,locations.find_first_of("_")) << endl;
 			frag_offset[n] = atoi(locations.substr(0,locations.find_first_of("_")).c_str()) - 1;
 		}
 		else
@@ -422,7 +422,7 @@ int generateFrags (string gene, int position, string seq, Read& read)
 						frag_counts[gene] = 1;
 					frags++;
 
-					fasta_file << ">" << gene << "_Frag_" << (position-17) << "_" << frag_counts[gene] << endl;;
+					fasta_file << ">" << gene << "_Frag_" << (position-16) << "_" << frag_counts[gene] << endl;;
 					fasta_file << UINT64ToString((*left).second.left_sequence_half);
 					fasta_file << UINT64ToString((*left).second.right_sequence_half);
 					fasta_file << UINT64ToString((*right).second.left_sequence_half);
