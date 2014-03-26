@@ -36,6 +36,7 @@ void usage()
 	cout << "   --fasta            | -f   This specifies the path to the fasta file" << endl;
 	cout << "   --keepID           | -k   Keep reads that have both an insert and delete in CIGAR string" << endl;
 	cout << "   --verify-threshold | -v   Minimum number of reads to see in each direction (default : 2)" << endl;
+	cout << "   --roa-size         | -r   Number of base pairs for a Region of Analysis    (default : 34)" << endl;
 
 	cout << endl << "Frag Making Parameters" << endl;
 	cout << "   --ppm              | -p   Minimum level of reads to consider for DDiMAP    (default : 750ppm) | TODO: make this real ppm." << endl;
@@ -44,7 +45,7 @@ void usage()
 
 	cout << endl << "SNV Calling Parameters" << endl;
 	cout << "   --snv-verified     | -s   Minimum level of nucleotide variation in verified words to call an SNV (default : .03)" << endl;
-	cout << "   --snv-total        | -r   Minimum level of nucleotide variation in total to call an SNV (default : .1)" << endl;
+	cout << "   --snv-total        | -l   Minimum level of nucleotide variation in total to call an SNV (default : .1)" << endl;
 
 
 
@@ -60,6 +61,7 @@ int main (int argc, char **argv)
 	int total = 0, unique = 0;
 
 	// Default values
+	int ROA_SIZE 		   = 34;
 	int  VERIFY_THRESHOLD  =  2;
 	bool DROPID = true;
 
@@ -80,6 +82,7 @@ int main (int argc, char **argv)
 			{"fasta", 	0, 0, 'f'},
 			{"keepID", 0,0, 'k'},
 			{"verify-threshold", 	0, 0, 'v'},
+			{"roa-size", 	0, 0, 'r'},
 			{"output", 0,0, 'o'},
 
 			{"ppm", 	0, 0, 'p'},
@@ -87,14 +90,14 @@ int main (int argc, char **argv)
 			{"nv-threshold", 	0, 0, 'n'},
 
 			{"snv-threshold", 	0, 0, 's'},
-			{"snv-total", 	0, 0, 'r'},
+			{"snv-total", 	0, 0, 'l'},
 
 			{"help", 	0, 0, 'h'},
 			{NULL, 		0, NULL, 0}
 	};
 
 	int option_index = 0;
-	while ((c = getopt_long(argc, argv, "o:b:f:t:s:v:p:n:r:kh", long_options, &option_index)) != -1) {
+	while ((c = getopt_long(argc, argv, "o:b:f:t:s:v:p:n:r:l:kh", long_options, &option_index)) != -1) {
 
 		switch (c) {
 
@@ -112,6 +115,11 @@ int main (int argc, char **argv)
 		case 'b':
 			file = optarg;
 			printf ("Using bam file :  %s \n", file.c_str());
+			break;
+		case 'r':
+			ROA_SIZE = atoi(optarg);
+			ROA_SIZE = (ROA_SIZE % 2) ? ROA_SIZE+1 : ROA_SIZE;
+			printf ("Setting the ROA size to :  %dbps \n", ROA_SIZE);
 			break;
 
 		case 'v':
@@ -138,7 +146,7 @@ int main (int argc, char **argv)
 			SNV_VERIFIED_THRESHOLD = atof(optarg);
 			printf ("Setting the SNV Verified Threshold to :  %f \n",SNV_VERIFIED_THRESHOLD);
 			break;
-		case 'r':
+		case 'l':
 			SNV_TOTAL_THRESHOLD = atof(optarg);
 			printf ("Setting the SNV Total Threshold to :  %f \n",SNV_TOTAL_THRESHOLD);
 			break;
@@ -176,7 +184,7 @@ int main (int argc, char **argv)
 	// DDiMAP
 	// ------------------------------------------------------------------------
 	t = clock();
-	unique = readFile(file, fasta, 34, DROPID, buildRead);
+	unique = readFile(file, fasta, ROA_SIZE, DROPID, buildRead);
 	t = clock() - t;
 	printf ("It took me %lu ticks (%f seconds) to read %d | %d reads from BAM file.\n",
 			t, ((float)t)/CLOCKS_PER_SEC, unique, total);
@@ -237,7 +245,7 @@ int main (int argc, char **argv)
 	//
 	cin.get();
 
-//	test(fasta);
+	//	test(fasta);
 
 	// ------------------------------------------------------------------------
 	// End.

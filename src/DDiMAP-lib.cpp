@@ -16,10 +16,10 @@
 #include "DDiMAP-test.h"
 #include <cctype>
 #define TEST 0
-int ROA_LENGTH = 34;
+
+int ROA_LENGTH;
 int max_refid = 0;
 int tracks [2] = {0, 8};
-
 
 // Declare the type of file handler for fasta reader
 KSEQ_INIT(gzFile, gzread)
@@ -42,7 +42,6 @@ map<string , map<int, map<uint64_t, map <int , int > > > > SNVs;
 
 // Map <Reference Name -> < position -> sequence>
 map<string, map<int, uint64_t > > references;
-
 
 
 // ----------------------------------------------------------------------------
@@ -228,8 +227,11 @@ int reduce( BamAlignment &ba, int length, bool dropID, Read (*f)(string &, int) 
 map < int, int> 	frag_offset;
 
 // Returns the number of unique reads in the file.
-int readFile(string file, string fasta, int length, bool dropID, Read (*f)(string &, int))
+int readFile(string file, string fasta, int roa_length, bool dropID, Read (*f)(string &, int))
 {
+	// Set the global variable
+	ROA_LENGTH = roa_length;
+
 	// Read in the NCBI sequences from Fasta File, assign appropriate offsets
 	gzFile fp;
 	kseq_t *seq;
@@ -268,14 +270,14 @@ int readFile(string file, string fasta, int length, bool dropID, Read (*f)(strin
  		if(seq_name.find("Frag") == -1 && seq_name.find("Junction") == -1){
 			seq_name = seq_name.substr(0, loc);
 			map<int, uint64_t> reference;
-			for(int j= 0; j< s.length()-length; j++){
+			for(int j= 0; j< s.length()-ROA_LENGTH; j++){
 
-				reference[j] = stringToUINT64(s.substr(j, length/2));
+				reference[j] = stringToUINT64(s.substr(j, ROA_LENGTH/2));
 				// Add reference to ROAs
-				if(j % 17 == 0  || j % 17 == 8){
+				if(j % (ROA_LENGTH/2) == 0  || j % (ROA_LENGTH/2) == 8){
 					Read r;
-					string seq = s.substr(j, length);
-					r = buildRead( seq , length);
+					string seq = s.substr(j, ROA_LENGTH);
+					r = buildRead( seq , ROA_LENGTH);
 					r.set_matches_ref_on_right();
 					r.set_matches_ref_on_left();
 					r.RefID = n;
@@ -309,7 +311,7 @@ int readFile(string file, string fasta, int length, bool dropID, Read (*f)(strin
 	int counter = 0, total = 0;
 	while(bamreader->GetNextAlignment(ba)){
 		(&ba)->Position += (frag_offset[ba.RefID]);
-		counter += reduce(ba, length, dropID, f);
+		counter += reduce(ba, ROA_LENGTH, dropID, f);
 		if(TEST && references[genes[ba.RefID]].size())
 			total++;
 	}
@@ -347,7 +349,7 @@ int count (string gene, int position, string seq, Read& read)
 	if( TEST && position > 990 && read.is_right_left_verified()){
 		cout << gene << "  " <<  position <<" ";
 		cout << UINT64ToStringCompare(read.left_sequence_half, references[gene][position]) ;
-		cout << UINT64ToStringCompare(read.right_sequence_half, references[gene][position+17]) ;
+		cout << UINT64ToStringCompare(read.right_sequence_half, references[gene][position+(ROA_LENGTH/2)]) ;
 		cout <<  " " << read.forward_count << " | "<< read.reverse_count << " PPM : "<< read.is_above_ppm() << " ver-R: " <<read.is_right_left_verified() << " " << endl;
 	}
 	return 1;
@@ -422,7 +424,7 @@ int generateFrags (string gene, int position, string seq, Read& read)
 						frag_counts[gene] = 1;
 					frags++;
 
-					fasta_file << ">" << gene << "_Frag_" << (position-16) << "_" << frag_counts[gene] << endl;;
+					fasta_file << ">" << gene << "_Frag_" << (position-(ROA_LENGTH/2)-1) << "_" << frag_counts[gene] << endl;;
 					fasta_file << UINT64ToString((*left).second.left_sequence_half);
 					fasta_file << UINT64ToString((*left).second.right_sequence_half);
 					fasta_file << UINT64ToString((*right).second.left_sequence_half);
