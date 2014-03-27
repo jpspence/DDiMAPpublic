@@ -424,7 +424,7 @@ int generateFrags (string gene, int position, string seq, Read& read)
 						frag_counts[gene] = 1;
 					frags++;
 
-					fasta_file << ">" << gene << "_Frag_" << (position-(ROA_LENGTH/2)-1) << "_" << frag_counts[gene] << endl;;
+					fasta_file << ">" << gene << "_Frag_" << (position-(ROA_LENGTH/2)+1) << "_" << frag_counts[gene] << endl;;
 					fasta_file << UINT64ToString((*left).second.left_sequence_half);
 					fasta_file << UINT64ToString((*left).second.right_sequence_half);
 					fasta_file << UINT64ToString((*right).second.left_sequence_half);
