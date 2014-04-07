@@ -86,6 +86,7 @@ GENCODE_FLAGS   := $(GENCODE_SM10) $(GENCODE_SM20) $(GENCODE_SM30)
 # Location of Bamtools on your machine. 
 BAMTOOLS = include/bamtools
 FASTQ    = include/readfq
+
 CXXFLAGS = -O2 -g -Wall -fmessage-length=0 -I$(BAMTOOLS)/src -I$(FASTQ) -I$(BAMTOOLS) -std=c++0x
 LIBS 	 = -L$(BAMTOOLS)/lib -lbamtools -lz
 

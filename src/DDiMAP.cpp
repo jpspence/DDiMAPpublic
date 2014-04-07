@@ -105,7 +105,6 @@ int main (int argc, char **argv)
 		case 'o':
 			output = optarg;
 			int status;
-			status = mkdir(output.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 			printf ("saving output to :  %s \n", output.c_str());
 			break;
 		case 'f':
@@ -178,6 +177,8 @@ int main (int argc, char **argv)
 		return EXIT_FAILURE;
 
 	}
+
+	mkdir(output.c_str(), S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
 
 	// ------------------------------------------------------------------------
