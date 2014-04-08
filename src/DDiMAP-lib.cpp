@@ -727,12 +727,12 @@ void callSNVs(double snv_verified_threshold, double snv_total_threshold, string 
 
 void printDictionaries()
 {
-	dictionary_file.open(output+"dictionary.csv");
-	dictionary_file << "SpecimenID, MappingIteration, RefSeq, ROA Start, ROA End, ";
-	dictionary_file << "ROA Track Start, ROA Coverage, FragCount, VariantCount, FragThresholdCount, SNVThresholdCount" << endl;
+//	dictionary_file.open(output+"dictionary.csv");
+	//	dictionary_file << "SpecimenID, MappingIteration, RefSeq, ROA Start, ROA End, ";
+	//	dictionary_file << "ROA Track Start, ROA Coverage, FragCount, VariantCount, FragThresholdCount, SNVThresholdCount" << endl;
 
-	dictionary_file << "Sequence, Ndiffs, LVerPct, RVerPct, LVerPPM, RVerPPM, Total, Fwd, Rev, NoIndel, Del,Ins,Ref,Frag1,...,Frag" << endl;
-	dictionary_file.close();
+	//	dictionary_file << "Sequence, Ndiffs, LVerPct, RVerPct, LVerPPM, RVerPPM, Total, Fwd, Rev, NoIndel, Del,Ins,Ref,Frag1,...,Frag" << endl;
+	//	dictionary_file.close();
 }
 
 void printHistograms(string output)
