@@ -632,6 +632,7 @@ int buildHistograms(string gene, int position, string seq, Read& read)
 
 ofstream snv_file;
 ofstream coverage_file;
+ofstream dictionary_file;
 
 int callSNV(int reason, string gene, int pos, int i, uint64_t ref_left,uint64_t ref,uint64_t ref_right, double freq, double cov )
 {
@@ -654,12 +655,12 @@ int callSNV(int reason, string gene, int pos, int i, uint64_t ref_left,uint64_t 
 void callSNVs(double snv_verified_threshold, double snv_total_threshold, string output )
 {
 	int snvs = 0;
+
 	snv_file.open (output+"snv.csv");
-	snv_file << "Gene, CallReason, Loc, RefBase, CallBase, Freq, LocalSeq, ROACoverage"<< endl;
+	snv_file << "Gene, CallReason, Loc, RefBase, CallBase, Freq, LocalSeq, Coverage"<< endl;
 
 	coverage_file.open (output+"coverage.csv");
 	coverage_file << "Gene, Loc, Coverage "<< endl;
-
 
 	for(auto genes = verified_histogram_0.begin(); genes != verified_histogram_0.end(); ++genes)
 
@@ -698,23 +699,23 @@ void callSNVs(double snv_verified_threshold, double snv_total_threshold, string 
 					if(ref){
 						// --- Call type #1
 						// If the reads are in both verified histograms.
-						if( (freq = ((double) (verified_counts[i]+ verified_counts2[i]) / verified)) and verified_counts[i] > 0 and verified_counts2[i] > 0)
+						if( (freq = ((double) (verified_counts[i]+ verified_counts2[i]) / verified / 2)) and verified_counts[i] > 0 and verified_counts2[i] > 0)
 							snvs += callSNV(1, (*genes).first,(*positions).first, i, ref_left, ref,ref_right, freq, (ppm/2) );
 
 						// --- Call type #2
 						// If the reads are only in one histogram
-						else if( (freq = ((double) verified_counts[i]) / verified_total) > snv_verified_threshold )
+						else if( (freq = ((double) verified_counts[i]) / verified) > snv_verified_threshold )
 							snvs += callSNV(2, (*genes).first,(*positions).first, i, ref_left, ref,ref_right, freq, (ppm/2) );
 
-						else if( (freq = ((double) verified_counts2[i]) / verified_total2) > snv_verified_threshold )
+						else if( (freq = ((double) verified_counts2[i]) / verified) > snv_verified_threshold )
 							snvs += callSNV(2, (*genes).first,(*positions).first, i, ref_left, ref,ref_right, freq, (ppm/2) );
 
 						// # Call type 3
 						// If the reads exceed a 3rd threshold in either track
-						else if( (freq = ((double) ppm_histogram_0[(*genes).first][(*positions).first][i]) / ppm_total) > snv_total_threshold)
+						else if( (freq = ((double) ppm_histogram_0[(*genes).first][(*positions).first][i]) / ppm) > snv_total_threshold)
 							snvs += callSNV(3, (*genes).first,(*positions).first, i, ref_left, ref,ref_right, freq, (ppm/2) );
 
-						else if( (freq = ((double) ppm_histogram_1[(*genes).first][(*positions).first][i]) / ppm_total2) > snv_total_threshold)
+						else if( (freq = ((double) ppm_histogram_1[(*genes).first][(*positions).first][i]) / ppm) > snv_total_threshold)
 							snvs += callSNV(3, (*genes).first,(*positions).first, i, ref_left, ref,ref_right, freq, (ppm/2) );
 					}
 
@@ -724,6 +725,16 @@ void callSNVs(double snv_verified_threshold, double snv_total_threshold, string 
 	snv_file.close();
 	coverage_file.close();
 	cout << " I read " << snvs << " SNVs \n";
+}
+
+void printDictionaries()
+{
+	dictionary_file.open(output+"dictionary.csv");
+	dictionary_file << "SpecimenID, MappingIteration, RefSeq, ROA Start, ROA End, ";
+	dictionary_file << "ROA Track Start, ROA Coverage, FragCount, VariantCount, FragThresholdCount, SNVThresholdCount" << endl;
+
+	dictionary_file << "Sequence, Ndiffs, LVerPct, RVerPct, LVerPPM, RVerPPM, Total, Fwd, Rev, NoIndel, Del,Ins,Ref,Frag1,...,Frag" << endl;
+	dictionary_file.close();
 }
 
 void printHistograms(string output)
