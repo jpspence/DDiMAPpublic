@@ -699,24 +699,22 @@ void callSNVs(double snv_verified_threshold, double snv_total_threshold, string 
 					if(ref){
 						// --- Call type #1
 						// If the reads are in both verified histograms.
-						if( (freq = ((double) (verified_counts[i]+ verified_counts2[i]) / verified / 2)) and verified_counts[i] > 0 and verified_counts2[i] > 0)
-							snvs += callSNV(1, (*genes).first,(*positions).first, i, ref_left, ref,ref_right, freq, (ppm/2) );
+						if( (freq = ((double) (verified_counts[i]+ verified_counts2[i]) / verified)) and verified_counts[i] > 0 and verified_counts2[i] > 0)
+							snvs += callSNV(1, (*genes).first,(*positions).first, i, ref_left, ref,ref_right, freq, (verified/2) );
 
 						// --- Call type #2
 						// If the reads are only in one histogram
-						else if( (freq = ((double) verified_counts[i]) / verified) > snv_verified_threshold )
-							snvs += callSNV(2, (*genes).first,(*positions).first, i, ref_left, ref,ref_right, freq, (ppm/2) );
+						else if( (freq = ((double) verified_counts[i]) / verified_total) > snv_verified_threshold )
+							snvs += callSNV(2, (*genes).first,(*positions).first, i, ref_left, ref,ref_right, freq, verified_total );
 
-						else if( (freq = ((double) verified_counts2[i]) / verified) > snv_verified_threshold )
-							snvs += callSNV(2, (*genes).first,(*positions).first, i, ref_left, ref,ref_right, freq, (ppm/2) );
+						else if( (freq = ((double) verified_counts2[i]) / verified_total2) > snv_verified_threshold )
+							snvs += callSNV(2, (*genes).first,(*positions).first, i, ref_left, ref,ref_right, freq, verified_total2 );
 
 						// # Call type 3
 						// If the reads exceed a 3rd threshold in either track
-						else if( (freq = ((double) ppm_histogram_0[(*genes).first][(*positions).first][i]) / ppm) > snv_total_threshold)
+						else if( (freq = ((double) (ppm_histogram_0[(*genes).first][(*positions).first][i]) + ppm_histogram_1[(*genes).first][(*positions).first][i]) / ppm ) > snv_total_threshold)
 							snvs += callSNV(3, (*genes).first,(*positions).first, i, ref_left, ref,ref_right, freq, (ppm/2) );
 
-						else if( (freq = ((double) ppm_histogram_1[(*genes).first][(*positions).first][i]) / ppm) > snv_total_threshold)
-							snvs += callSNV(3, (*genes).first,(*positions).first, i, ref_left, ref,ref_right, freq, (ppm/2) );
 					}
 
 				}
