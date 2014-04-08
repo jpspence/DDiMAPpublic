@@ -244,7 +244,6 @@ int main (int argc, char **argv)
 	//	gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/myc-2CG.txt\" with points ls 1 title \"myc-2\"");
 	//	gnuplot_cmd(h1, "unset multiplot") ;
 	//
-	cin.get();
 
 	//	test(fasta);
 
