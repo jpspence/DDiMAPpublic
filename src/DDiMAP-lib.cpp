@@ -183,24 +183,16 @@ int reduce( BamAlignment &ba, int length, bool dropID, Read (*f)(string &, int) 
 
 				// Increment counter for the observed sequence
 				if( reads[name][position][word].total_count() )
-					if(ba.IsReverseStrand())
-						reads[name][position][word].reverse_count+=1;
-					else
-						reads[name][position][word].forward_count+=1;
+					reads[name][position][word].set_indels(hasDeletion, hasInsertion, ba.IsReverseStrand());
 
 				// Create a new read for the position on this track
 				else {
 					Read r;
 					r = f(word, length);
-					if(ba.IsReverseStrand())
-						++r.reverse_count;
-					else
-						++r.forward_count;
 
-					r.RefID = ba.RefID;
+					// TODO : handle this r.RefID = ba.RefID;
 
-					if(ba.CigarData[0].Length == 50)
-						r.set_no_indels();
+					r.set_indels(hasDeletion,hasInsertion, ba.IsReverseStrand());
 
 					// Check NCBI
 					if(references[name][position] == r.left_sequence_half)
@@ -245,20 +237,20 @@ int readFile(string file, string fasta, int roa_length, bool dropID, Read (*f)(s
 		string s = seq->seq.s;
 
 		for (size_t i = 0; i < s.length(); ++i)
-		    if (s[i]!='a' && s[i]!='A' &&
-		    	s[i]!='c' && s[i]!='C' &&
-		    	s[i]!='t' && s[i]!='T' &&
-		    	s[i]!='g' && s[i]!='G')
-		        s.erase(i, 1);
+			if (s[i]!='a' && s[i]!='A' &&
+					s[i]!='c' && s[i]!='C' &&
+					s[i]!='t' && s[i]!='T' &&
+					s[i]!='g' && s[i]!='G')
+				s.erase(i, 1);
 
 		if(seq_name.find("Frag")!=-1)
 		{
-//			cout << "Sequence name : "<< seq_name << endl;
+			//			cout << "Sequence name : "<< seq_name << endl;
 			int loc = seq_name.find("Frag");
 			string frag = seq_name.substr(loc, seq_name.length()-loc);
 			loc = frag.find_first_of("_")+1;
 			string locations = frag.substr(loc, frag.length()-loc);
-//			cout << "Number : " << locations.substr(0,locations.find_first_of("_")) << endl;
+			//			cout << "Number : " << locations.substr(0,locations.find_first_of("_")) << endl;
 			frag_offset[n] = atoi(locations.substr(0,locations.find_first_of("_")).c_str()) - 1;
 		}
 		else
@@ -267,7 +259,7 @@ int readFile(string file, string fasta, int roa_length, bool dropID, Read (*f)(s
 		int loc = (seq_name.find_first_of("_") == -1) ? seq_name.length() : seq_name.find_first_of("_");
 
 		// If this includes NCBI
- 		if(seq_name.find("Frag") == -1 && seq_name.find("Junction") == -1){
+		if(seq_name.find("Frag") == -1 && seq_name.find("Junction") == -1){
 			seq_name = seq_name.substr(0, loc);
 			map<int, uint64_t> reference;
 			for(int j= 0; j< s.length()-ROA_LENGTH; j++){
@@ -360,7 +352,7 @@ map<string, int> frag_counts;
 ofstream fasta_file;
 
 map<string, Read> returnMatches(string gene, int position, int offset, Read& read)
-												{
+														{
 
 	map<string, Read> matches;
 	map<string, Read> roa = reads[gene][position  + offset];
@@ -398,7 +390,7 @@ map<string, Read> returnMatches(string gene, int position, int offset, Read& rea
 	}
 
 	return matches;
-												}
+														}
 
 int generateFrags (string gene, int position, string seq, Read& read)
 {
@@ -725,14 +717,41 @@ void callSNVs(double snv_verified_threshold, double snv_total_threshold, string 
 	cout << " I read " << snvs << " SNVs \n";
 }
 
-void printDictionaries()
+int printDictionaries (string gene, int position, string seq, Read& read)
 {
-//	dictionary_file.open(output+"dictionary.csv");
-	//	dictionary_file << "SpecimenID, MappingIteration, RefSeq, ROA Start, ROA End, ";
-	//	dictionary_file << "ROA Track Start, ROA Coverage, FragCount, VariantCount, FragThresholdCount, SNVThresholdCount" << endl;
+	if(read.is_above_ppm())
+	{
 
-	//	dictionary_file << "Sequence, Ndiffs, LVerPct, RVerPct, LVerPPM, RVerPPM, Total, Fwd, Rev, NoIndel, Del,Ins,Ref,Frag1,...,Frag" << endl;
-	//	dictionary_file.close();
+		int roa_coverage = 0; // PPM
+		for (auto sequences = reads[gene][position].begin(); sequences != reads[gene][position].end(); ++sequences)
+			if((*sequences).second.is_above_ppm())
+				roa_coverage+=(*sequences).second.total_count();
+
+		int n_diffs = countDifferences(read.left_sequence_half, references[gene][position]) + countDifferences(read.right_sequence_half, references[gene][position+ROA_LENGTH/2]);
+
+		dictionary_file << gene << ","<< position <<", "<< UINT64ToStringCompare(read.left_sequence_half, references[gene][position]);
+		dictionary_file << UINT64ToStringCompare(read.right_sequence_half, references[gene][position+ROA_LENGTH/2]) << ", " << roa_coverage <<", ";
+		dictionary_file << n_diffs << ", "<< read.is_right_left_verified_at_frag();
+		dictionary_file <<"," << read.is_right_left_verified_at_frag() << ", ";
+		dictionary_file << read.is_left_verified() << ", " << read.is_right_verified();
+		dictionary_file << ", " << read.total_count() << ", " << read.forward_count;
+		dictionary_file << ", " << read.reverse_count << ", " << read.cigar_counts[0];
+		dictionary_file << ", "<< read.cigar_counts[2]<< ", " << read.cigar_counts[1];
+		dictionary_file << ", "<< read.cigar_counts[3]<< ", ";
+		dictionary_file << ", Frag1,...,Frag" << endl;
+		return 1;
+	}
+	return 0;
+}
+
+void printDicitonaries(string output)
+{
+	int words = 0;
+	dictionary_file.open(output+"dictionary.csv");
+	dictionary_file << "Gene, ROAstart, Sequence, ROAcover, Ndiffs, LVerPct, RVerPct, LVerPPM, RVerPPM, Total, Fwd, Rev, NoIndel, DelOnly, InsOnly, InsAndDel, Ref, Frag1,...,Frag" << endl;
+	words += iterate(printDictionaries);
+	dictionary_file.close();
+
 }
 
 void printHistograms(string output)

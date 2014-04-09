@@ -14,5 +14,5 @@ string UINT64ToString(uint64_t s);
 uint64_t stringToUINT64(string s);
 float CalculateGC(uint64_t seq);
 bool hasDash(uint64_t seq);
-
+int countDifferences(uint64_t s, uint64_t t);
 #endif

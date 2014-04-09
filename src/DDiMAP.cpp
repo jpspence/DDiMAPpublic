@@ -224,6 +224,7 @@ int main (int argc, char **argv)
 	printf ("It took me %lu ticks (%f seconds) to call SNVs.\n",
 			t, ((float)t)/CLOCKS_PER_SEC);
 
+	printDicitonaries(output);
 	//	gnuplot_ctrl    *   h1;
 	//	h1 = gnuplot_init() ;
 	//	gnuplot_resetplot(h1) ;

@@ -35,18 +35,27 @@ using namespace BamTools;
 struct Read {
 
 	// Each half of a read encodes for up to 32 base pairs
-	int32_t RefID;
+	map<int, int> frag_counts;
+
+	uint16_t RefID;
+
+	int cigar_counts[4] = {0};
+	// 0 : no indels
+	// 1 : inserts
+	// 2 : deletes
+	// 3 : in/dels
+
 	char sequence[34];
 	uint64_t right_sequence_half;
 	uint64_t  left_sequence_half;
-	unsigned int forward_count;
-	unsigned int reverse_count;
+	unsigned int forward_count = 0;
+	unsigned int reverse_count = 0;
 
 	int16_t verification_flags;
 	//	0b 0000  0000  0000
 	//           ||||  ||||_ 1   Is the read verified on left
 	//           ||||  |||__ 2   Is the read verified on right
-	//           ||||  ||___ 4   Is this a 50 BP READ (e.g. 50M)
+	//           ||||  ||___ 4
 	//           ||||  |____ 8   Does read match reference on left
 	//           ||||_		16  Does read match reference on right
 	//           |||_ 		32  Does read show up in at least 750ppm
@@ -65,9 +74,23 @@ struct Read {
 	void set_right_verified_at_frag()
 	{ verification_flags = verification_flags |  0b1000000010; }
 
+	void set_indels(bool hasDeletions, bool hasInsertions, bool isReverseStrand)
+	{
+		if(isReverseStrand)
+			reverse_count++;
+		else
+			forward_count++;
 
-	void set_no_indels()
-	{ verification_flags = verification_flags |     0b100; }
+		if(!hasDeletions && !hasInsertions)
+			cigar_counts[0]++;
+		else if(hasInsertions)
+			cigar_counts[1]++;
+		else if(hasDeletions)
+			cigar_counts[2]++;
+		else
+			cigar_counts[3]++;
+
+	}
 
 	void set_matches_ref_on_left()
 	{ verification_flags = verification_flags |    0b1000; }
@@ -130,6 +153,7 @@ void sequential(int threshold, double ppm, double frag, double non_verified);
 void callSNVs(double snv_verified_threshold, double snv_total_threshold, string output);
 int buildHistograms(string gene, int position, string seq, Read& read);
 void printHistograms(string output);
+void printDicitonaries(string output);
 int count (string gene, int position, string seq, Read& read);
 void frequency_filter(string gene, int position, int threshold, double ppm, double frag, double non_verified, bool testing, string name, string sequence, int test_position);
 void check_verify ( Read r, bool is_right, string gene, int position);
