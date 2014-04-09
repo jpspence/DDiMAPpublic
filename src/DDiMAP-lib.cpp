@@ -265,7 +265,7 @@ int readFile(string file, string fasta, int roa_length, bool dropID, Read (*f)(s
 
 				reference[j] = stringToUINT64(s.substr(j, ROA_LENGTH/2));
 				// Add reference to ROAs
-				if(j % (ROA_LENGTH/2) == 0  || j % (ROA_LENGTH/2) == 8){
+				if((j % (ROA_LENGTH/2) == 0  || j % (ROA_LENGTH/2) == 8 ) && (j + ROA_LENGTH) < s.length() ){
 					Read r;
 					string seq = s.substr(j, ROA_LENGTH);
 					r = buildRead( seq , ROA_LENGTH);
