@@ -31,7 +31,6 @@ void usage()
 	cout << "usage : DDiMAP [-f <fasta> -b <bam> <args>] [--help]" << endl;
 
 	cout << endl << "Basic Parameters:" << endl;
-	cout << "   --output           | -o   Directory to store output (default : ./output/ )" << endl;
 	cout << "   --bam              | -b   This specifies the path to the bam file" << endl;
 	cout << "   --fasta            | -f   This specifies the path to the fasta file" << endl;
 	cout << "   --keepID           | -k   Keep reads that have both an insert and delete in CIGAR string" << endl;
@@ -47,7 +46,9 @@ void usage()
 	cout << "   --snv-verified     | -s   Minimum level of nucleotide variation in verified words to call an SNV (default : .03)" << endl;
 	cout << "   --snv-total        | -l   Minimum level of nucleotide variation in total to call an SNV (default : .1)" << endl;
 
-
+	cout << endl << "Output Parameters" << endl;
+	cout << "   --output           | -o   Directory to store output (default : ./output/ )" << endl;
+	cout << "   --dictionary-level | -d   Dictionary verbosity : 0 = fwd/rev counts | 1 = in/del data | 2 = frag mappings (default : 0)" << endl;
 
 	cout <<endl;
 	cout << "Future Parameters (works in progress):"<<endl;
@@ -74,11 +75,16 @@ int main (int argc, char **argv)
 	double SNV_VERIFIED_THRESHOLD = .003;
 	double SNV_TOTAL_THRESHOLD = .1;
 
+
+	// Output Parameters
+	int DICTIONARY_LEVEL = 0;
+
 	// ------------------------------------------------------------------------
 	// Parameter Parsing
 	// ------------------------------------------------------------------------
 	static struct option long_options[] = {
 			{"bam", 0,0, 'b'},
+			{"dictionary_level", 0,0, 'd'},
 			{"fasta", 	0, 0, 'f'},
 			{"keepID", 0,0, 'k'},
 			{"verify-threshold", 	0, 0, 'v'},
@@ -97,7 +103,7 @@ int main (int argc, char **argv)
 	};
 
 	int option_index = 0;
-	while ((c = getopt_long(argc, argv, "o:b:f:t:s:v:p:n:r:l:kh", long_options, &option_index)) != -1) {
+	while ((c = getopt_long(argc, argv, "d:o:b:f:t:s:v:p:n:r:l:kh", long_options, &option_index)) != -1) {
 
 		switch (c) {
 
@@ -124,6 +130,10 @@ int main (int argc, char **argv)
 		case 'v':
 			VERIFY_THRESHOLD = atoi(optarg);
 			printf ("Setting the Verify Threshold to :  %d \n",VERIFY_THRESHOLD);
+			break;
+		case 'd':
+			DICTIONARY_LEVEL = atoi(optarg);
+			printf ("Setting the Dictionary Verbosity to :  %d \n",DICTIONARY_LEVEL);
 			break;
 
 			// Frag making thresholds
@@ -224,7 +234,7 @@ int main (int argc, char **argv)
 	printf ("It took me %lu ticks (%f seconds) to call SNVs.\n",
 			t, ((float)t)/CLOCKS_PER_SEC);
 
-	printDicitonaries(output);
+	printDicitonaries(output, DICTIONARY_LEVEL);
 	//	gnuplot_ctrl    *   h1;
 	//	h1 = gnuplot_init() ;
 	//	gnuplot_resetplot(h1) ;

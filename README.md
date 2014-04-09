@@ -1,6 +1,6 @@
 High Performance DDiMAP
 =======================
-DDiMAP in C and CUDA. 
+DDiMAP in C and CUDA.
 
 ### Prerequisites
 You'll need the following tools : `git` `gcc` `make` `cmake` `cuda`
@@ -8,7 +8,7 @@ You'll need the following tools : `git` `gcc` `make` `cmake` `cuda`
 ### Installing the code
 ```bash
 #This currently doesn't run on Windows, I have no plans on supporting it either.
-make setup 
+make setup
 make
 ```
 
@@ -23,11 +23,14 @@ make
 ./bin/DDiMAP --help
 usage : DDiMAP [-f <fasta> -b <bam> <args>] [--help]
 
+usage : DDiMAP [-f <fasta> -b <bam> <args>] [--help]
+
 Basic Parameters:
    --bam              | -b   This specifies the path to the bam file
    --fasta            | -f   This specifies the path to the fasta file
    --keepID           | -k   Keep reads that have both an insert and delete in CIGAR string
    --verify-threshold | -v   Minimum number of reads to see in each direction (default : 2)
+   --roa-size         | -r   Number of base pairs for a Region of Analysis    (default : 34)
 
 Frag Making Parameters
    --ppm              | -p   Minimum level of reads to consider for DDiMAP    (default : 750ppm) | TODO: make this real ppm.
@@ -36,10 +39,13 @@ Frag Making Parameters
 
 SNV Calling Parameters
    --snv-verified     | -s   Minimum level of nucleotide variation in verified words to call an SNV (default : .03)
-   --snv-total        | -r   Minimum level of nucleotide variation in total to call an SNV (default : .1)
+   --snv-total        | -l   Minimum level of nucleotide variation in total to call an SNV (default : .1)
+
+Output Parameters
+   --output           | -o   Directory to store output (default : ./output/ )
+   --dictionary-level | -d   Dictionary verbosity : 0 = fwd/rev counts | 1 = in/del data | 2 = frag mappings (default : 0)
 
 Future Parameters (works in progress):
-   --output           | -o   Directory to store output
    --length-of-snv-ref| -l   Number of base pairs you'd like to see in SNV
 ```
 

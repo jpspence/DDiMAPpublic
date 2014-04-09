@@ -18,6 +18,7 @@
 #define TEST 0
 
 int ROA_LENGTH;
+int DICTIONARY_LEVEL = 0;
 int max_refid = 0;
 int tracks [2] = {0, 8};
 
@@ -168,6 +169,7 @@ int reduce( BamAlignment &ba, int length, bool dropID, Read (*f)(string &, int) 
 
 	if( references[genes[ba.RefID]].size() > 0 && not (hasInsertion && hasDeletion && dropID) )
 	{
+
 		if(TEST){
 			cntr++;
 			cout << "I'm Reduce()ing : " << " | " << cntr  << endl;
@@ -183,16 +185,13 @@ int reduce( BamAlignment &ba, int length, bool dropID, Read (*f)(string &, int) 
 
 				// Increment counter for the observed sequence
 				if( reads[name][position][word].total_count() )
-					reads[name][position][word].set_indels(hasDeletion, hasInsertion, ba.IsReverseStrand());
+					reads[name][position][word].set_data(hasDeletion, hasInsertion, ba.IsReverseStrand(), ba.RefID);
 
 				// Create a new read for the position on this track
 				else {
 					Read r;
 					r = f(word, length);
-
-					// TODO : handle this r.RefID = ba.RefID;
-
-					r.set_indels(hasDeletion,hasInsertion, ba.IsReverseStrand());
+					r.set_data(hasDeletion,hasInsertion, ba.IsReverseStrand(), ba.RefID);
 
 					// Check NCBI
 					if(references[name][position] == r.left_sequence_half)
@@ -245,12 +244,10 @@ int readFile(string file, string fasta, int roa_length, bool dropID, Read (*f)(s
 
 		if(seq_name.find("Frag")!=-1)
 		{
-			//			cout << "Sequence name : "<< seq_name << endl;
 			int loc = seq_name.find("Frag");
 			string frag = seq_name.substr(loc, seq_name.length()-loc);
 			loc = frag.find_first_of("_")+1;
 			string locations = frag.substr(loc, frag.length()-loc);
-			//			cout << "Number : " << locations.substr(0,locations.find_first_of("_")) << endl;
 			frag_offset[n] = atoi(locations.substr(0,locations.find_first_of("_")).c_str()) - 1;
 		}
 		else
@@ -272,7 +269,7 @@ int readFile(string file, string fasta, int roa_length, bool dropID, Read (*f)(s
 					r = buildRead( seq , ROA_LENGTH);
 					r.set_matches_ref_on_right();
 					r.set_matches_ref_on_left();
-					r.RefID = n;
+					r.RefID[n] = r.RefID[n]+1;
 					reads[seq_name][j][r.sequence] = r;
 				}
 
@@ -729,26 +726,40 @@ int printDictionaries (string gene, int position, string seq, Read& read)
 
 		int n_diffs = countDifferences(read.left_sequence_half, references[gene][position]) + countDifferences(read.right_sequence_half, references[gene][position+ROA_LENGTH/2]);
 
-		dictionary_file << gene << ","<< position <<", "<< UINT64ToStringCompare(read.left_sequence_half, references[gene][position]);
+		dictionary_file << gene << ","<< (position+1) <<", "<< UINT64ToStringCompare(read.left_sequence_half, references[gene][position]);
 		dictionary_file << UINT64ToStringCompare(read.right_sequence_half, references[gene][position+ROA_LENGTH/2]) << ", " << roa_coverage <<", ";
 		dictionary_file << n_diffs << ", "<< read.is_right_left_verified_at_frag();
 		dictionary_file <<"," << read.is_right_left_verified_at_frag() << ", ";
 		dictionary_file << read.is_left_verified() << ", " << read.is_right_verified();
 		dictionary_file << ", " << read.total_count() << ", " << read.forward_count;
-		dictionary_file << ", " << read.reverse_count << ", " << read.cigar_counts[0];
-		dictionary_file << ", "<< read.cigar_counts[2]<< ", " << read.cigar_counts[1];
-		dictionary_file << ", "<< read.cigar_counts[3]<< ", ";
-		dictionary_file << ", Frag1,...,Frag" << endl;
+		dictionary_file << ", " << read.reverse_count;
+		if(DICTIONARY_LEVEL > 0)
+		{
+			dictionary_file << ", " << read.cigar_counts[0] << ", "<< read.cigar_counts[2];
+			dictionary_file << ", " << read.cigar_counts[1] << ", "<< read.cigar_counts[3];
+		}
+		if(DICTIONARY_LEVEL > 1)
+		{
+			for(auto refs = read.RefID.begin(); refs!=read.RefID.end(); ++refs)
+				dictionary_file << ", " << (*refs).second;
+		}
+		dictionary_file << endl;
 		return 1;
 	}
 	return 0;
 }
 
-void printDicitonaries(string output)
+void printDicitonaries(string output, int level)
 {
+	DICTIONARY_LEVEL = level;
 	int words = 0;
 	dictionary_file.open(output+"dictionary.csv");
-	dictionary_file << "Gene, ROAstart, Sequence, ROAcover, Ndiffs, LVerPct, RVerPct, LVerPPM, RVerPPM, Total, Fwd, Rev, NoIndel, DelOnly, InsOnly, InsAndDel, Ref, Frag1,...,Frag" << endl;
+	dictionary_file << "Gene, ROAstart, Sequence, ROAcover, Ndiffs, LVerPct, RVerPct, LVerPPM, RVerPPM, Total, Fwd, Rev ";
+	if(DICTIONARY_LEVEL > 0)
+		dictionary_file << ", NoIndel, DelOnly, InsOnly, InsAndDel";
+	if(DICTIONARY_LEVEL > 1)
+		dictionary_file << ", Frag1,...,Frag";
+	dictionary_file<< endl;
 	words += iterate(printDictionaries);
 	dictionary_file.close();
 

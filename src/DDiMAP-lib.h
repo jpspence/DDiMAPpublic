@@ -37,13 +37,13 @@ struct Read {
 	// Each half of a read encodes for up to 32 base pairs
 	map<int, int> frag_counts;
 
-	uint16_t RefID;
+	map<int32_t, uint64_t> RefID;
 
-	int cigar_counts[4] = {0};
 	// 0 : no indels
 	// 1 : inserts
 	// 2 : deletes
 	// 3 : in/dels
+	uint64_t cigar_counts[4] = {0};
 
 	char sequence[34];
 	uint64_t right_sequence_half;
@@ -74,8 +74,10 @@ struct Read {
 	void set_right_verified_at_frag()
 	{ verification_flags = verification_flags |  0b1000000010; }
 
-	void set_indels(bool hasDeletions, bool hasInsertions, bool isReverseStrand)
+	void set_data(bool hasDeletions, bool hasInsertions, bool isReverseStrand, int32_t refID)
 	{
+		RefID[refID]++;
+
 		if(isReverseStrand)
 			reverse_count++;
 		else
@@ -83,12 +85,12 @@ struct Read {
 
 		if(!hasDeletions && !hasInsertions)
 			cigar_counts[0]++;
+		else if(hasInsertions && hasDeletions)
+			cigar_counts[3]++;
 		else if(hasInsertions)
 			cigar_counts[1]++;
 		else if(hasDeletions)
 			cigar_counts[2]++;
-		else
-			cigar_counts[3]++;
 
 	}
 
@@ -153,7 +155,7 @@ void sequential(int threshold, double ppm, double frag, double non_verified);
 void callSNVs(double snv_verified_threshold, double snv_total_threshold, string output);
 int buildHistograms(string gene, int position, string seq, Read& read);
 void printHistograms(string output);
-void printDicitonaries(string output);
+void printDicitonaries(string output, int level);
 int count (string gene, int position, string seq, Read& read);
 void frequency_filter(string gene, int position, int threshold, double ppm, double frag, double non_verified, bool testing, string name, string sequence, int test_position);
 void check_verify ( Read r, bool is_right, string gene, int position);
