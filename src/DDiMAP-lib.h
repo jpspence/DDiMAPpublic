@@ -75,24 +75,24 @@ struct Read {
 	{ verification_flags = verification_flags |  0b1000000010; }
 
 	void set_data(bool hasDeletions, bool hasInsertions, bool isReverseStrand, int32_t refID)
-	{
-		RefID[refID]++;
+		{
+			RefID[refID]++;
 
-		if(isReverseStrand)
-			reverse_count++;
-		else
-			forward_count++;
+			if(isReverseStrand)
+				reverse_count++;
+			else
+				forward_count++;
 
-		if(!hasDeletions && !hasInsertions)
-			cigar_counts[0]++;
-		else if(hasInsertions && hasDeletions)
-			cigar_counts[3]++;
-		else if(hasInsertions)
-			cigar_counts[1]++;
-		else if(hasDeletions)
-			cigar_counts[2]++;
+			if(!hasDeletions && !hasInsertions)
+				cigar_counts[0]++;
+			else if(hasInsertions && hasDeletions)
+				cigar_counts[3]++;
+			else if(hasInsertions)
+				cigar_counts[1]++;
+			else if(hasDeletions)
+				cigar_counts[2]++;
 
-	}
+		}
 
 	void set_matches_ref_on_left()
 	{ verification_flags = verification_flags |    0b1000; }

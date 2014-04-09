@@ -17,6 +17,7 @@
 #include <cctype>
 #define TEST 0
 
+int FASTA_ENTRIES = 0;
 int ROA_LENGTH;
 int DICTIONARY_LEVEL = 0;
 int max_refid = 0;
@@ -226,7 +227,6 @@ int readFile(string file, string fasta, int roa_length, bool dropID, Read (*f)(s
 	// Read in the NCBI sequences from Fasta File, assign appropriate offsets
 	gzFile fp;
 	kseq_t *seq;
-	int n = 0;
 	FILE *fast = fopen(fasta.c_str(),"r");
 	fp = gzdopen(fileno(fast), "r");
 	seq = kseq_init(fp);
@@ -234,6 +234,8 @@ int readFile(string file, string fasta, int roa_length, bool dropID, Read (*f)(s
 
 		string seq_name = seq->name.s;
 		string s = seq->seq.s;
+
+		genes_names[FASTA_ENTRIES] = seq_name;
 
 		for (size_t i = 0; i < s.length(); ++i)
 			if (s[i]!='a' && s[i]!='A' &&
@@ -248,10 +250,10 @@ int readFile(string file, string fasta, int roa_length, bool dropID, Read (*f)(s
 			string frag = seq_name.substr(loc, seq_name.length()-loc);
 			loc = frag.find_first_of("_")+1;
 			string locations = frag.substr(loc, frag.length()-loc);
-			frag_offset[n] = atoi(locations.substr(0,locations.find_first_of("_")).c_str()) - 1;
+			frag_offset[FASTA_ENTRIES] = atoi(locations.substr(0,locations.find_first_of("_")).c_str()) - 1;
 		}
 		else
-			frag_offset[n] = 0;
+			frag_offset[FASTA_ENTRIES] = 0;
 
 		int loc = (seq_name.find_first_of("_") == -1) ? seq_name.length() : seq_name.find_first_of("_");
 
@@ -269,7 +271,7 @@ int readFile(string file, string fasta, int roa_length, bool dropID, Read (*f)(s
 					r = buildRead( seq , ROA_LENGTH);
 					r.set_matches_ref_on_right();
 					r.set_matches_ref_on_left();
-					r.RefID[n] = r.RefID[n]+1;
+					r.RefID[FASTA_ENTRIES]++;
 					reads[seq_name][j][r.sequence] = r;
 				}
 
@@ -280,14 +282,14 @@ int readFile(string file, string fasta, int roa_length, bool dropID, Read (*f)(s
 			seq_name = seq_name.substr(0, loc);
 		}
 
-		genes[n] = seq_name;
-		++n;
+		genes[FASTA_ENTRIES] = seq_name;
+		++FASTA_ENTRIES;
 	}
 
 	kseq_destroy(seq);
 	gzclose(fp);
 	if(TEST)
-		cout << "I read a total of " << n << " reads from the fasta file"<< endl;
+		cout << "I read a total of " << FASTA_ENTRIES << " reads from the fasta file"<< endl;
 
 
 
@@ -740,8 +742,8 @@ int printDictionaries (string gene, int position, string seq, Read& read)
 		}
 		if(DICTIONARY_LEVEL > 1)
 		{
-			for(auto refs = read.RefID.begin(); refs!=read.RefID.end(); ++refs)
-				dictionary_file << ", " << (*refs).second;
+			for(int i = 0; i < FASTA_ENTRIES; i++)
+				dictionary_file << ", " << read.RefID[i] ;
 		}
 		dictionary_file << endl;
 		return 1;
@@ -758,7 +760,8 @@ void printDicitonaries(string output, int level)
 	if(DICTIONARY_LEVEL > 0)
 		dictionary_file << ", NoIndel, DelOnly, InsOnly, InsAndDel";
 	if(DICTIONARY_LEVEL > 1)
-		dictionary_file << ", Frag1,...,Frag";
+		for(int i = 0; i < FASTA_ENTRIES; i++)
+			dictionary_file << ", " << genes_names[i] ;
 	dictionary_file<< endl;
 	words += iterate(printDictionaries);
 	dictionary_file.close();
