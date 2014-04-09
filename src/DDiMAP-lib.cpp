@@ -261,7 +261,7 @@ int readFile(string file, string fasta, int roa_length, bool dropID, Read (*f)(s
 		if(seq_name.find("Frag") == -1 && seq_name.find("Junction") == -1){
 			seq_name = seq_name.substr(0, loc);
 			map<int, uint64_t> reference;
-			for(int j= 0; j< s.length()-ROA_LENGTH; j++){
+			for(int j= 0; j< s.length()-ROA_LENGTH/2; j++){
 
 				reference[j] = stringToUINT64(s.substr(j, ROA_LENGTH/2));
 				// Add reference to ROAs
@@ -729,7 +729,7 @@ int printDictionaries (string gene, int position, string seq, Read& read)
 		int n_diffs = countDifferences(read.left_sequence_half, references[gene][position]) + countDifferences(read.right_sequence_half, references[gene][position+ROA_LENGTH/2]);
 
 		dictionary_file << gene << ","<< (position+1) <<", "<< UINT64ToStringCompare(read.left_sequence_half, references[gene][position]);
-		dictionary_file << UINT64ToStringCompare(read.right_sequence_half, references[gene][position+ROA_LENGTH/2]) << ", " << roa_coverage <<", ";
+		dictionary_file << UINT64ToStringCompare(read.right_sequence_half, references[gene][position]) << ", " << roa_coverage <<", ";
 		dictionary_file << n_diffs << ", "<< read.is_right_left_verified_at_frag();
 		dictionary_file <<"," << read.is_right_left_verified_at_frag() << ", ";
 		dictionary_file << read.is_left_verified() << ", " << read.is_right_verified();
