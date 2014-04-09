@@ -48,7 +48,7 @@ char UINT64ToChar(uint64_t ch, bool upper_case)
 int countDifferences(uint64_t s, uint64_t t)
 {
 	int diffs = 0;
-	while(s!=0)
+	while(s!=0 && t!=0)
 	{
 		diffs += ((s & 0b111) != (t & 0b111));
 		s = s >> 3; t = t >> 3;

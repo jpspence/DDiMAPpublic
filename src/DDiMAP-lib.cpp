@@ -728,8 +728,10 @@ int printDictionaries (string gene, int position, string seq, Read& read)
 
 		int n_diffs = countDifferences(read.left_sequence_half, references[gene][position]) + countDifferences(read.right_sequence_half, references[gene][position+ROA_LENGTH/2]);
 
-		dictionary_file << gene << ","<< (position+1) <<", "<< UINT64ToStringCompare(read.left_sequence_half, references[gene][position]);
-		dictionary_file << UINT64ToStringCompare(read.right_sequence_half, references[gene][position]) << ", " << roa_coverage <<", ";
+		dictionary_file << gene << ","<< (position+1) <<", ";
+		dictionary_file << UINT64ToStringCompare(read.left_sequence_half, references[gene][position]);
+		dictionary_file << UINT64ToStringCompare(read.right_sequence_half, references[gene][position+ROA_LENGTH/2]);
+		dictionary_file << ", " << roa_coverage <<", ";
 		dictionary_file << n_diffs << ", "<< read.is_right_left_verified_at_frag();
 		dictionary_file <<"," << read.is_right_left_verified_at_frag() << ", ";
 		dictionary_file << read.is_left_verified() << ", " << read.is_right_verified();
