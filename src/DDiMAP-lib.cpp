@@ -351,7 +351,7 @@ map<string, int> frag_counts;
 ofstream fasta_file;
 
 map<string, Read> returnMatches(string gene, int position, int offset, Read& read)
-														{
+																{
 
 	map<string, Read> matches;
 	map<string, Read> roa = reads[gene][position  + offset];
@@ -389,7 +389,7 @@ map<string, Read> returnMatches(string gene, int position, int offset, Read& rea
 	}
 
 	return matches;
-														}
+																}
 
 int generateFrags (string gene, int position, string seq, Read& read)
 {
@@ -716,10 +716,19 @@ void callSNVs(double snv_verified_threshold, double snv_total_threshold, string 
 	cout << " I read " << snvs << " SNVs \n";
 }
 
+map<string, ofstream> dictionaries;
+
 int printDictionaries (string gene, int position, string seq, Read& read)
 {
+	ofstream * dict;
+
 	if(read.is_above_ppm())
 	{
+
+		if(DICTIONARY_LEVEL > 1)
+			dict = &dictionaries[gene];
+		else
+			dict = &dictionary_file;
 
 		int roa_coverage = 0; // PPM
 		for (auto sequences = reads[gene][position].begin(); sequences != reads[gene][position].end(); ++sequences)
@@ -728,26 +737,27 @@ int printDictionaries (string gene, int position, string seq, Read& read)
 
 		int n_diffs = countDifferences(read.left_sequence_half, references[gene][position]) + countDifferences(read.right_sequence_half, references[gene][position+ROA_LENGTH/2]);
 
-		dictionary_file << gene << ","<< (position+1) <<", ";
-		dictionary_file << UINT64ToStringCompare(read.left_sequence_half, references[gene][position]);
-		dictionary_file << UINT64ToStringCompare(read.right_sequence_half, references[gene][position+ROA_LENGTH/2]);
-		dictionary_file << ", " << roa_coverage <<", ";
-		dictionary_file << n_diffs << ", "<< read.is_right_left_verified_at_frag();
-		dictionary_file <<"," << read.is_right_left_verified_at_frag() << ", ";
-		dictionary_file << read.is_left_verified() << ", " << read.is_right_verified();
-		dictionary_file << ", " << read.total_count() << ", " << read.forward_count;
-		dictionary_file << ", " << read.reverse_count;
+		(*dict) << gene << ","<< (position+1) <<", ";
+		(*dict) << UINT64ToStringCompare(read.left_sequence_half, references[gene][position]);
+		(*dict) << UINT64ToStringCompare(read.right_sequence_half, references[gene][position+ROA_LENGTH/2]);
+		(*dict) << ", " << roa_coverage <<", ";
+		(*dict) << n_diffs << ", "<< read.is_right_left_verified_at_frag();
+		(*dict) <<"," << read.is_right_left_verified_at_frag() << ", ";
+		(*dict) << read.is_left_verified() << ", " << read.is_right_verified();
+		(*dict) << ", " << read.total_count() << ", " << read.forward_count;
+		(*dict) << ", " << read.reverse_count;
 		if(DICTIONARY_LEVEL > 0)
 		{
-			dictionary_file << ", " << read.cigar_counts[0] << ", "<< read.cigar_counts[2];
-			dictionary_file << ", " << read.cigar_counts[1] << ", "<< read.cigar_counts[3];
+			(*dict) << ", " << read.cigar_counts[0] << ", "<< read.cigar_counts[2];
+			(*dict) << ", " << read.cigar_counts[1] << ", "<< read.cigar_counts[3];
 		}
 		if(DICTIONARY_LEVEL > 1)
 		{
 			for(int i = 0; i < FASTA_ENTRIES; i++)
-				dictionary_file << ", " << read.RefID[i] ;
+				if(genes[i] == gene)
+					(*dict) << ", " << read.RefID[i] ;
 		}
-		dictionary_file << endl;
+		(*dict) << endl;
 		return 1;
 	}
 	return 0;
@@ -758,14 +768,47 @@ void printDicitonaries(string output, int level)
 	DICTIONARY_LEVEL = level;
 	int words = 0;
 	dictionary_file.open(output+"dictionary.csv");
-	dictionary_file << "Gene, ROAstart, Sequence, ROAcover, Ndiffs, LVerPct, RVerPct, LVerPPM, RVerPPM, Total, Fwd, Rev ";
+
+	// Include seperate files for each gene.
+	if(DICTIONARY_LEVEL > 1)
+	{
+		map<string, int> files;
+		for(int i = 0; i < FASTA_ENTRIES; i++)
+			if(files[genes[i]]==0){
+				files[genes[i]]++;
+				dictionaries[genes[i]].open(output+"dictionary-"+genes[i]+".csv");
+			}
+
+		for(auto files = dictionaries.begin(); files != dictionaries.end(); ++files)
+			(*files).second << "Gene, ROAstart, Sequence, ROAcover, Ndiffs, LVerPct, RVerPct, LVerPPM, RVerPPM, Total, Fwd, Rev ";
+	}
+	else
+		dictionary_file << "Gene, ROAstart, Sequence, ROAcover, Ndiffs, LVerPct, RVerPct, LVerPPM, RVerPPM, Total, Fwd, Rev ";
+
 	if(DICTIONARY_LEVEL > 0)
+	{
+		if(DICTIONARY_LEVEL > 1)
+			for(auto files = dictionaries.begin(); files != dictionaries.end(); ++files)
+				(*files).second << ", NoIndel, DelOnly, InsOnly, InsAndDel";
+	}else
 		dictionary_file << ", NoIndel, DelOnly, InsOnly, InsAndDel";
+
 	if(DICTIONARY_LEVEL > 1)
 		for(int i = 0; i < FASTA_ENTRIES; i++)
-			dictionary_file << ", " << genes_names[i] ;
-	dictionary_file<< endl;
+			dictionaries[genes[i]] << ", " << genes_names[i] ;
+
+	if(DICTIONARY_LEVEL > 1)
+		for(auto files = dictionaries.begin(); files != dictionaries.end(); ++files)
+			(*files).second << endl;
+	else
+		dictionary_file<< endl;
+
 	words += iterate(printDictionaries);
+
+	if(DICTIONARY_LEVEL > 1)
+		for(auto files = dictionaries.begin(); files != dictionaries.end(); ++files)
+			(*files).second.close();
+
 	dictionary_file.close();
 
 }
