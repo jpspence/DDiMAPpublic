@@ -741,8 +741,8 @@ int printDictionaries (string gene, int position, string seq, Read& read)
 		(*dict) << UINT64ToStringCompare(read.left_sequence_half, references[gene][position]);
 		(*dict) << UINT64ToStringCompare(read.right_sequence_half, references[gene][position+ROA_LENGTH/2]);
 		(*dict) << ", " << roa_coverage <<", ";
-		(*dict) << n_diffs << ", "<< read.is_right_left_verified_at_frag();
-		(*dict) <<"," << read.is_right_left_verified_at_frag() << ", ";
+		(*dict) << n_diffs << ", "<< read.is_left_verified_at_frag();
+		(*dict) <<"," << read.is_right_verified_at_frag() << ", ";
 		(*dict) << read.is_left_verified() << ", " << read.is_right_verified();
 		(*dict) << ", " << read.total_count() << ", " << read.forward_count;
 		(*dict) << ", " << read.reverse_count;

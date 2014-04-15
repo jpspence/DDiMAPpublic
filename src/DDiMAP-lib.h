@@ -53,11 +53,12 @@ struct Read {
 
 	int16_t verification_flags;
 	//	0b 0000  0000  0000
-	//           ||||  ||||_ 1   Is the read verified on left
-	//           ||||  |||__ 2   Is the read verified on right
-	//           ||||  ||___ 4
-	//           ||||  |____ 8   Does read match reference on left
-	//           ||||_		16  Does read match reference on right
+	//           ||||  ||||_ 1  Is the read verified on left
+	//           ||||  |||__ 2  Is the read verified on right
+	//           ||||  ||___ 4  Does read match reference on left
+	//           ||||  |____ 8  Does read match reference on right
+	//           ||||
+	//           ||||_		16
 	//           |||_ 		32  Does read show up in at least 750ppm
 	//           ||_ 		64  Does read show up in at least 1% as a verified frag
 	//           |_ 		128 Does read show up in at least 10% non-verified frag
@@ -69,7 +70,7 @@ struct Read {
 	{ verification_flags = verification_flags |      0b10; }
 
 	void set_left_verified_at_frag()
-	{ verification_flags = verification_flags | 0b100000001; }
+	{ verification_flags = verification_flags |  0b100000001; }
 
 	void set_right_verified_at_frag()
 	{ verification_flags = verification_flags |  0b1000000010; }
@@ -95,10 +96,10 @@ struct Read {
 		}
 
 	void set_matches_ref_on_left()
-	{ verification_flags = verification_flags |    0b1000; }
+	{ verification_flags = verification_flags |    0b100; }
 
 	void set_matches_ref_on_right()
-	{ verification_flags = verification_flags |   0b10000; }
+	{ verification_flags = verification_flags |   0b1000; }
 
 	void set_above_ppm_threshold()
 	{ verification_flags = verification_flags |  0b100000; }
@@ -124,14 +125,20 @@ struct Read {
 	bool is_right_left_verified_at_frag()
 	{ return (verification_flags & 0b1100000011) == 0b1100000011;}
 
+	bool is_right_verified_at_frag()
+	{ return (verification_flags & 0b1100000010) == 0b1100000010;}
+
+	bool is_left_verified_at_frag()
+	{ return (verification_flags & 0b1100000001) == 0b1100000001;}
+
 	bool matches_ref_on_left()
-	{ return (verification_flags & 0b0001000) ==    0b1000;}
+	{ return (verification_flags & 0b0001000) ==    0b100;}
 
 	bool matches_ref_on_right()
-	{ return (verification_flags & 0b0010000) ==   0b10000;}
+	{ return (verification_flags & 0b0010000) ==   0b1000;}
 
 	bool matches_reference()
-	{ return (verification_flags & 0b0011000) ==   0b11000;}
+	{ return (verification_flags & 0b0011000) ==   0b1100;}
 
 	bool is_above_ppm()
 	{ return (verification_flags & 0b0100000) ==  0b100000;}
