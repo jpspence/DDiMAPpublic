@@ -7,13 +7,9 @@
 // Description : DDiMAP library used by other programs.
 //============================================================================
 
-// Common & Custom Junctions are causing a lot of trouble for me.
-// Still need to implement frags
-
-// TODO : Compare against NCBI only
-
 #include "DDiMAP-lib.h"
 #include "DDiMAP-test.h"
+#include <bitset>
 #include <cctype>
 #define TEST 0
 
@@ -43,9 +39,125 @@ map<string , map<int, map<int, int> > > ppm_histogram_1;
 map<string , map<int, map<uint64_t, map <int , int > > > > SNVs;
 
 // Map <Reference Name -> < position -> sequence>
-map<string, map<int, uint64_t > > references;
+map<string, map<int, std::bitset<Read::half_length> > > references;
+
+std::bitset<Read::half_length> mask (std::string("111"));
 
 
+// ----------------------------------------------------------------------------
+// Templated code.  I know this is a sin.
+
+
+// Cipher is given by :
+uint64_t a    = 0b001;
+uint64_t c    = 0b010;
+uint64_t g    = 0b011;
+uint64_t t 	  = 0b100;
+uint64_t dash = 0b101;
+
+uint64_t charToBitset(char ch)
+{
+	switch(ch){
+	case 'A':
+	case 'a': return a;
+	case 'T':
+	case 't': return t;
+	case 'C':
+	case 'c': return c;
+	case 'G':
+	case 'g': return g;
+	case '-': return dash;
+	default : return 0;
+	}
+}
+
+template <int length>
+bitset<length> generateMask()
+{
+	return bitset<length> (0b111);
+}
+
+template <int length>
+char BitsetToChar(std::bitset<length> ch, bool upper_case)
+{
+	if(upper_case){
+		if( ch == a) return 'A';
+		if( ch == t) return 'T';
+		if (ch == c) return 'C';
+		if (ch == g) return 'G';
+	} else {
+		if( ch == a) return 'a';
+		if( ch == t) return 't';
+		if (ch == c) return 'c';
+		if (ch == g) return 'g';
+	}
+	if (ch == dash) return '-';
+	return '\0';
+}
+
+template <int length>
+int countDifferences(std::bitset<length> s, std::bitset<length> t)
+{
+	int diffs = 0;
+	while(s.count()!=0)
+	{
+		diffs += ((s & generateMask<length>()) != (t & generateMask<length>()));
+		s = s >> 3; t = t >> 3;
+	}
+	return diffs;
+
+}
+
+template <int length>
+string BitsetToStringCompare(std::bitset<length> s, std::bitset<length> ref)
+{
+	std::stringstream temp;
+	while(s.count()!=0){
+		temp << BitsetToChar<length>( (s & generateMask<length>()) , ( (s & generateMask<length>()) == (ref & generateMask<length>())) );
+		s = s >> 3; ref = ref >> 3;
+	}
+	return temp.str();
+}
+
+template <int length>
+string BitsetToString(std::bitset<length> s)
+{ return BitsetToStringCompare<length>(s,s); }
+
+
+template <int length>
+std::bitset<length> stringToBitset(string s)
+{
+	std::bitset<length> temp = 0;
+	for ( int i = 0 ; i < s.length();  i++)
+		temp |= (charToBitset(s[i]) << (3 * i));
+	return temp;
+}
+
+template <int length>
+bool hasDash(std::bitset<length> seq)
+{
+	while(seq.count()!=0){
+		if((seq & generateMask<length>()) == dash)
+			return true;
+		seq = seq >> 3;
+	}
+	return false;
+}
+
+template <int length>
+float CalculateGC(std::bitset<length> seq)
+{
+	float gc = 0.0, total = 0.0;
+	while(seq.count!=0){
+		total += 1;
+		if((seq & generateMask<length>()) == g || (seq & generateMask<length>()) ==c )
+			gc+=1;
+		seq = seq >> 3;
+	}
+	return gc / total * 100.0;
+}
+
+// ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
 // BAM --> Reads
 // ----------------------------------------------------------------------------
@@ -66,8 +178,8 @@ Read buildRead( string &word, int length)
 {
 	Read r;
 	r = convert(word, length);
-	r.left_sequence_half  = stringToUINT64( word.substr(0, length/2));
-	r.right_sequence_half = stringToUINT64( word.substr(length/2 , length/2) );
+	r.left_sequence_half  = stringToBitset<Read::half_length>( word.substr(0, length/2));
+	r.right_sequence_half = stringToBitset<Read::half_length>( word.substr(length/2 , length/2) );
 	return r;
 }
 
@@ -260,10 +372,10 @@ int readFile(string file, string fasta, int roa_length, bool dropID, Read (*f)(s
 		// If this includes NCBI
 		if(seq_name.find("Frag") == -1 && seq_name.find("Junction") == -1){
 			seq_name = seq_name.substr(0, loc);
-			map<int, uint64_t> reference;
+			map<int, std::bitset<Read::half_length> > reference;
 			for(int j= 0; j< s.length()-ROA_LENGTH/2; j++){
 
-				reference[j] = stringToUINT64(s.substr(j, ROA_LENGTH/2));
+				reference[j] = stringToBitset<Read::half_length>(s.substr(j, ROA_LENGTH/2));
 				// Add reference to ROAs
 				if((j % (ROA_LENGTH/2) == 0  || j % (ROA_LENGTH/2) == 8 ) && (j + ROA_LENGTH) < s.length() ){
 					Read r;
@@ -339,8 +451,8 @@ int count (string gene, int position, string seq, Read& read)
 {
 	if( TEST && position > 990 && read.is_right_left_verified()){
 		cout << gene << "  " <<  position <<" ";
-		cout << UINT64ToStringCompare(read.left_sequence_half, references[gene][position]) ;
-		cout << UINT64ToStringCompare(read.right_sequence_half, references[gene][position+(ROA_LENGTH/2)]) ;
+		cout << BitsetToStringCompare<Read::half_length>(read.left_sequence_half, references[gene][position]) ;
+		cout << BitsetToStringCompare<Read::half_length>(read.right_sequence_half, references[gene][position+(ROA_LENGTH/2)]) ;
 		cout <<  " " << read.forward_count << " | "<< read.reverse_count << " PPM : "<< read.is_above_ppm() << " ver-R: " <<read.is_right_left_verified() << " " << endl;
 	}
 	return 1;
@@ -351,21 +463,20 @@ map<string, int> frag_counts;
 ofstream fasta_file;
 
 map<string, Read> returnMatches(string gene, int position, int offset, Read& read)
-																{
+{
 
 	map<string, Read> matches;
 	map<string, Read> roa = reads[gene][position  + offset];
 	bool add_ref = false;
 
-	if( (offset < 0 and read.is_left_verified())
-			|| (offset > 0 and read.is_right_verified()) )
+	if( (offset < 0 and read.is_left_verified()) || (offset > 0 and read.is_right_verified()) )
 		for (auto seq = roa.begin(); seq != roa.end(); ++seq)
 			if( (offset < 0
 					and (*seq).second.right_sequence_half == read.left_sequence_half
-					and not hasDash((*seq).second.left_sequence_half))
+					and not hasDash<Read::half_length>((*seq).second.left_sequence_half))
 					|| (offset > 0
 							and (*seq).second.left_sequence_half == read.right_sequence_half
-							and not hasDash((*seq).second.right_sequence_half) )
+							and not hasDash<Read::half_length>((*seq).second.right_sequence_half) )
 			)
 				if((*seq).second.is_above_frag() || (*seq).second.matches_reference())
 					if((*seq).second.is_right_left_verified_at_frag())
@@ -378,18 +489,18 @@ map<string, Read> returnMatches(string gene, int position, int offset, Read& rea
 		Read ref;
 		ref.left_sequence_half = read.right_sequence_half;
 		ref.right_sequence_half = read.left_sequence_half;
-		uint64_t reference = references[gene][position + ( (offset > 0) ? 2 : 1) * offset];
-		if(reference){
+		bitset<Read::half_length> reference = references[gene][position + ( (offset > 0) ? 2 : 1) * offset];
+		if(reference.count()){
 			if(offset < 0) // add the left reference
 				ref.left_sequence_half = reference;
 			else 		   // add the right reference
 				ref.right_sequence_half = reference;
-			matches[UINT64ToString(ref.left_sequence_half)+UINT64ToString(ref.right_sequence_half)] = ref;
+			matches[BitsetToString<Read::half_length>(ref.left_sequence_half)+BitsetToString<Read::half_length>(ref.right_sequence_half)] = ref;
 		}
 	}
 
 	return matches;
-																}
+}
 
 int generateFrags (string gene, int position, string seq, Read& read)
 {
@@ -398,8 +509,8 @@ int generateFrags (string gene, int position, string seq, Read& read)
 			(  read.is_above_non_verified() ||
 					(read.is_right_left_verified_at_frag() and read.is_above_frag())
 			) and
-			not hasDash(read.left_sequence_half) and
-			not hasDash(read.right_sequence_half))
+			not hasDash<Read::half_length>(read.left_sequence_half) and
+			not hasDash<Read::half_length>(read.right_sequence_half))
 	{
 
 		map<string, Read> left_track = returnMatches(gene, position, (-1*ROA_LENGTH/2), read);
@@ -416,10 +527,10 @@ int generateFrags (string gene, int position, string seq, Read& read)
 					frags++;
 
 					fasta_file << ">" << gene << "_Frag_" << (position-(ROA_LENGTH/2)+1) << "_" << frag_counts[gene] << endl;;
-					fasta_file << UINT64ToString((*left).second.left_sequence_half);
-					fasta_file << UINT64ToString((*left).second.right_sequence_half);
-					fasta_file << UINT64ToString((*right).second.left_sequence_half);
-					fasta_file << UINT64ToString((*right).second.right_sequence_half);
+					fasta_file << BitsetToString<Read::half_length>((*left).second.left_sequence_half);
+					fasta_file << BitsetToString<Read::half_length>((*left).second.right_sequence_half);
+					fasta_file << BitsetToString<Read::half_length>((*right).second.left_sequence_half);
+					fasta_file << BitsetToString<Read::half_length>((*right).second.right_sequence_half);
 					fasta_file << endl;
 
 				}
@@ -434,6 +545,50 @@ int printFasta(string output)
 	fasta_file.close();
 	return frags;
 }
+
+void check(int total, double ppm, double frag, string gene,  int position,int i, string name, string seq, Read read, int above)
+{
+	//	 Check the left half.
+	if( position == i &&
+			read.left_sequence_half == stringToBitset<Read::half_length>(seq.substr(0,17)) &&
+			read.right_sequence_half == stringToBitset<Read::half_length>(seq.substr(17,17))){
+		check_verify(read, false, gene, (position-17));
+		for (int j = 0; j<17; j++)
+			cout << " ";
+		cout << read.sequence;
+		for (int j = 0; j<34; j++)
+			cout << " ";
+		cout << " (f " <<read.forward_count <<"-" <<read.matches_ref_on_left()<< " + " <<read.reverse_count << "-"<<read.matches_ref_on_right()<<" / " << ((above > 0) ?  total : ((above == 0) ? frag :  ppm))  << ")" << (( above > 9 )? " > 10% ": (( above > 0) ? " > 1% " : (( above == 0) ? " > ppm " :  " :  NOT PPM "))) << read.is_left_verified() << ":"<<read.is_right_verified()<< endl ;
+	}
+
+	//	 Check the middle
+	if( position == i+17
+			&& read.left_sequence_half == stringToBitset<Read::half_length>(seq.substr(17,17))
+			&& read.right_sequence_half == stringToBitset<Read::half_length>(seq.substr(34,17))
+	){
+		for (int j = 0; j<34; j++)
+			cout << " ";
+		cout << read.sequence;
+		for (int j = 0; j<17; j++)
+			cout << " ";
+		cout << " (f " <<read.forward_count <<"-" <<read.matches_ref_on_left()<< " + " <<read.reverse_count << "-"<<read.matches_ref_on_right()<<" / " << total  << ")" << (( above > 9 )? " > 10% ": (( above > 0) ? " > 1%" : (( above == 0) ? " > ppm" : "  NOT PPM"))) << endl ;
+	}
+
+	// Check the right half
+	if( position == i+34
+			&& read.left_sequence_half == stringToBitset<Read::half_length>(seq.substr(34,17))
+			&& read.right_sequence_half == stringToBitset<Read::half_length>(seq.substr(51,17))
+	){
+		for (int j = 0; j<51; j++)
+			cout << " ";
+		cout << read.sequence;
+		cout << " (f " <<read.forward_count <<"-" <<read.matches_ref_on_left()<< " + " <<read.reverse_count << "-"<<read.matches_ref_on_right()<<" / " << ((above > 0) ?  total : ((above == 0) ? frag :  ppm))  << ")" << (( above > 9 )? " > 10% ": (( above > 0) ? " > 1% " : (( above == 0) ? " > ppm " :  " :  NOT PPM "))) << read.is_left_verified() << ":"<<read.is_right_verified()<< endl ;
+		check_verify(read, true, gene, (position+17));
+
+	}
+
+}
+
 
 
 void frequency_filter(string gene, int position, int threshold, double ppm, double frag, double non_verified, bool testing, string name, string sequence, int test_position)
@@ -594,15 +749,16 @@ int buildHistograms(string gene, int position, string seq, Read& read)
 	if( read.is_right_left_verified() || read.is_above_ppm() )
 	{
 
+
 		// Create a histogram for the left half
-		uint64_t s = read.left_sequence_half;
+		bitset<Read::half_length> s = read.left_sequence_half;
 		int i = 0;
 		while(s!=0)
 		{
 			if( read.is_right_left_verified() )
-				(*verified)[gene][position + i][  s & 0b00000111] += read.total_count();
+				(*verified)[gene][position + i][  (s & mask).to_ulong()] += read.total_count();
 			if( read.is_above_ppm() )
-				(*ppm)[gene][position + i][ s & 0b00000111] += read.total_count();
+				(*ppm)[gene][position + i][ (s & mask).to_ulong()] += read.total_count();
 			s = s>>3;i++;
 		}
 
@@ -611,9 +767,9 @@ int buildHistograms(string gene, int position, string seq, Read& read)
 		while(s!=0)
 		{
 			if( read.is_right_left_verified() )
-				(*verified)[gene][position + i][ s & 0b00000111] += read.total_count();
+				(*verified)[gene][position + i][ (s & mask).to_ulong()] += read.total_count();
 			if( read.is_above_ppm() )
-				(*ppm)[gene][position + i][ s & 0b00000111] += read.total_count();
+				(*ppm)[gene][position + i][ (s & mask).to_ulong()] += read.total_count();
 			s=s>>3;i++;
 		}
 
@@ -625,19 +781,19 @@ ofstream snv_file;
 ofstream coverage_file;
 ofstream dictionary_file;
 
-int callSNV(int reason, string gene, int pos, int i, uint64_t ref_left,uint64_t ref,uint64_t ref_right, double freq, double cov )
+int callSNV(int reason, string gene, int pos, int i, std::bitset<Read::half_length> ref_left, std::bitset<Read::half_length> ref,std::bitset<Read::half_length> ref_right, double freq, double cov )
 {
-	uint64_t convert (i);
+	bitset<Read::half_length> convert(i);
 
 	snv_file << setw(10) << gene <<" , ";
 	snv_file << reason <<" ,";
 	snv_file << setw(5) << (pos+1) <<" , ";
-	snv_file << UINT64ToString(ref & 0b111) << " , ";
-	snv_file << UINT64ToString(convert) << " , ";
+	snv_file << BitsetToString<Read::half_length>(ref & mask) << " , ";
+	snv_file << BitsetToString<Read::half_length>(convert) << " , ";
 	snv_file << setw(10) << freq << " , ";
-	snv_file << UINT64ToStringCompare(ref_left, 0);
-	snv_file << UINT64ToString(convert);
-	snv_file << UINT64ToStringCompare(ref_right, 0) << " , ";
+	snv_file << BitsetToStringCompare<Read::half_length>(ref_left, 0);
+	snv_file << BitsetToString<Read::half_length>(convert);
+	snv_file << BitsetToStringCompare<Read::half_length>(ref_right, 0) << " , ";
 	snv_file << cov;
 	snv_file << endl;
 	return 1;
@@ -681,13 +837,13 @@ void callSNVs(double snv_verified_threshold, double snv_total_threshold, string 
 
 			double freq;
 			for (int i = 1; i < 6; i++)
-				if((references[(*genes).first][(*positions).first] & 0b111) != i)
+				if((references[(*genes).first][(*positions).first] & mask) != i)
 				{
-					uint64_t ref       = references[(*genes).first][(*positions).first];
-					uint64_t ref_left  = references[(*genes).first][(*positions).first-ROA_LENGTH/2];
-					uint64_t ref_right = references[(*genes).first][(*positions).first+1];
+					bitset<Read::half_length> ref       = references[(*genes).first][(*positions).first];
+					bitset<Read::half_length> ref_left  = references[(*genes).first][(*positions).first-ROA_LENGTH/2];
+					bitset<Read::half_length> ref_right = references[(*genes).first][(*positions).first+1];
 
-					if(ref){
+					if(ref.count()){
 						// --- Call type #1
 						// If the reads are in both verified histograms.
 						if( (freq = ((double) (verified_counts[i]+ verified_counts2[i]) / verified)) and verified_counts[i] > 0 and verified_counts2[i] > 0)
@@ -735,11 +891,11 @@ int printDictionaries (string gene, int position, string seq, Read& read)
 			if((*sequences).second.is_above_ppm())
 				roa_coverage+=(*sequences).second.total_count();
 
-		int n_diffs = countDifferences(read.left_sequence_half, references[gene][position]) + countDifferences(read.right_sequence_half, references[gene][position+ROA_LENGTH/2]);
+		int n_diffs = countDifferences<Read::half_length>(read.left_sequence_half, references[gene][position]) + countDifferences<Read::half_length>(read.right_sequence_half, references[gene][position+ROA_LENGTH/2]);
 
 		(*dict) << gene << ","<< (position+1) <<", ";
-		(*dict) << UINT64ToStringCompare(read.left_sequence_half, references[gene][position]);
-		(*dict) << UINT64ToStringCompare(read.right_sequence_half, references[gene][position+ROA_LENGTH/2]);
+		(*dict) << BitsetToStringCompare<Read::half_length>(read.left_sequence_half, references[gene][position]);
+		(*dict) << BitsetToStringCompare<Read::half_length>(read.right_sequence_half, references[gene][position+ROA_LENGTH/2]);
 		(*dict) << ", " << roa_coverage <<", ";
 		(*dict) << n_diffs << ", "<< read.is_left_verified_at_frag();
 		(*dict) <<"," << read.is_right_verified_at_frag() << ", ";

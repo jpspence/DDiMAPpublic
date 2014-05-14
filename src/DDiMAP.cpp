@@ -22,8 +22,8 @@
 #define SLEEP_LGTH  1
 
 // Default file.
-string file  = "/Dropbox/Google Drive/DataExchangeUR/128_Gen7_CUSHAW2_VhJ_sorted.bam";
-string fasta = "/Dropbox/Google Drive/DataExchangeUR/128_Gen7_CUSHAW2_VhJ.fa";
+string file  = "/Users/androwis/Dropbox/documents/DataExchangeUR/128_Gen7_CUSHAW2_VhJ_sorted.bam";
+string fasta = "/Users/androwis/Dropbox/documents/DataExchangeUR/128_Gen7_CUSHAW2_VhJ.fa";
 string output = "./output/";
 
 void usage()
@@ -110,7 +110,6 @@ int main (int argc, char **argv)
 		// Read in the files
 		case 'o':
 			output = optarg;
-			int status;
 			printf ("saving output to :  %s \n", output.c_str());
 			break;
 		case 'f':
