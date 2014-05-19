@@ -380,7 +380,7 @@ int readFile(string file, string fasta, int roa_length, bool dropID, Read (*f)(s
 
 				reference[j] = stringToBitset<Read::half_length>(s.substr(j, ROA_LENGTH/2));
 				// Add reference to ROAs
-				if((j % (ROA_LENGTH/2) == 0  || j % (ROA_LENGTH/2) == 8 ) && (j + ROA_LENGTH) < s.length() ){
+				if((j % (ROA_LENGTH/2) == tracks[0]  || j % (ROA_LENGTH/2) == tracks[1] ) && (j + ROA_LENGTH) < s.length() ){
 					Read r;
 					string seq = s.substr(j, ROA_LENGTH);
 					r = buildRead( seq , ROA_LENGTH);
@@ -656,7 +656,7 @@ void verify( map<string, Read> *left_track, map<string, Read> *right_track, bool
 							if(testing){
 								Read read = (is_right) ? (*right).second : (*left).second;
 								if(is_right)
-									for(int i = 0; i <68; i++)
+									for(int i = 0; i <2*ROA_LENGTH; i++)
 										cout << " ";
 								cout << read.sequence << " (f " <<read.forward_count <<"-" <<read.matches_ref_on_left()<< " + " <<read.reverse_count << "-"<<read.matches_ref_on_right()<< ")" << (( read.is_above_non_verified() )? " > 10% ": (( read.is_above_frag()) ? " > 1% " : (( read.is_above_ppm()) ? " > ppm " :  " :  NOT PPM "))) << " vflags:" << read.is_left_verified() << ":"<<read.is_right_verified()<< endl;
 							} else {
@@ -713,7 +713,7 @@ void sequential(int threshold, double ppm, double frag, double non_verified)
 
 			map<string, Read> * left_track = &reads[(*genes2).first][(*positions).first];
 
-			for(int i = 0; i < 2; i ++)
+			for(int i = 0; i < size; i ++)
 				++positions;
 
 			map<string, Read> * track = &reads[(*genes2).first][(*positions).first];
