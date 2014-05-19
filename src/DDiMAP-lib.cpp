@@ -12,13 +12,14 @@
 #include <bitset>
 #include <math.h>
 #include <cctype>
-#define TEST 0
+#define TEST 1
 
 int FASTA_ENTRIES = 0;
 int ROA_LENGTH;
-int DICTIONARY_LEVEL = 0;
+int DICTIONARY_LEVELS = 0;
 int max_refid = 0;
 int tracks [2] = {0, 8};
+
 
 // Declare the type of file handler for fasta reader
 KSEQ_INIT(gzFile, gzread)
@@ -56,26 +57,27 @@ uint64_t g    = 0b011;
 uint64_t t 	  = 0b100;
 uint64_t dash = 0b101;
 
-uint64_t charToBitset(char ch)
+template <int length>
+bitset<length> generateMask(uint64_t mask)
 {
-	switch(ch){
-	case 'A':
-	case 'a': return a;
-	case 'T':
-	case 't': return t;
-	case 'C':
-	case 'c': return c;
-	case 'G':
-	case 'g': return g;
-	case '-': return dash;
-	default : return 0;
-	}
+	return bitset<length> (mask);
 }
 
 template <int length>
-bitset<length> generateMask()
+bitset<length> charToBitset(char ch)
 {
-	return bitset<length> (0b111);
+	switch(ch){
+	case 'A':
+	case 'a': return generateMask<length>(a);
+	case 'T':
+	case 't': return generateMask<length>(t);
+	case 'C':
+	case 'c': return generateMask<length>(c);
+	case 'G':
+	case 'g': return generateMask<length>(g);
+	case '-': return generateMask<length>(dash);
+	default : return generateMask<length>(0);
+	}
 }
 
 template <int length>
@@ -102,7 +104,7 @@ int countDifferences(std::bitset<length> s, std::bitset<length> t)
 	int diffs = 0;
 	while(s.count()!=0)
 	{
-		diffs += ((s & generateMask<length>()) != (t & generateMask<length>()));
+		diffs += ((s & generateMask<length>(0b111)) != (t & generateMask<length>(0b111)));
 		s = s >> 3; t = t >> 3;
 	}
 	return diffs;
@@ -112,9 +114,10 @@ int countDifferences(std::bitset<length> s, std::bitset<length> t)
 template <int length>
 string BitsetToStringCompare(std::bitset<length> s, std::bitset<length> ref)
 {
+	cout << endl << endl;
 	std::stringstream temp;
 	while(s.count()!=0){
-		temp << BitsetToChar<length>( (s & generateMask<length>()) , ( (s & generateMask<length>()) == (ref & generateMask<length>())) );
+		temp << BitsetToChar<length>( (s & generateMask<length>(0b111)) , ( (s & generateMask<length>(0b111)) == (ref & generateMask<length>(0b111))) );
 		s = s >> 3; ref = ref >> 3;
 	}
 	return temp.str();
@@ -128,9 +131,10 @@ string BitsetToString(std::bitset<length> s)
 template <int length>
 std::bitset<length> stringToBitset(string s)
 {
+	cout << endl;
 	std::bitset<length> temp = 0;
 	for ( int i = 0 ; i < s.length();  i++)
-		temp |= (charToBitset(s[i]) << (3 * i));
+		temp |= (charToBitset<length>(s[i]) << (3 * i) );
 	return temp;
 }
 
@@ -138,7 +142,7 @@ template <int length>
 bool hasDash(std::bitset<length> seq)
 {
 	while(seq.count()!=0){
-		if((seq & generateMask<length>()) == dash)
+		if((seq & generateMask<length>(0b111)) == dash)
 			return true;
 		seq = seq >> 3;
 	}
@@ -151,7 +155,7 @@ float CalculateGC(std::bitset<length> seq)
 	float gc = 0.0, total = 0.0;
 	while(seq.count!=0){
 		total += 1;
-		if((seq & generateMask<length>()) == g || (seq & generateMask<length>()) ==c )
+		if((seq & generateMask<length>(0b111)) == g || (seq & generateMask<length>(0b111)) ==c )
 			gc+=1;
 		seq = seq >> 3;
 	}
@@ -740,7 +744,7 @@ int buildHistograms(string gene, int position, string seq, Read& read)
 	map<string, map <int, map<int,int> > > * verified;
 	map<string, map <int, map<int,int> > > * ppm;
 
-	if( position % ROA_LENGTH/2 == 0 ){
+	if( position % (ROA_LENGTH/2) == 0 ){
 		verified  =  &verified_histogram_0;
 		ppm = &ppm_histogram_0;
 	} else {
@@ -883,7 +887,7 @@ int printDictionaries (string gene, int position, string seq, Read& read)
 	if(read.is_above_ppm())
 	{
 
-		if(DICTIONARY_LEVEL > 1)
+		if(DICTIONARY_LEVELS > 1)
 			dict = &dictionaries[gene];
 		else
 			dict = &dictionary_file;
@@ -904,12 +908,12 @@ int printDictionaries (string gene, int position, string seq, Read& read)
 		(*dict) << read.is_left_verified() << ", " << read.is_right_verified();
 		(*dict) << ", " << read.total_count() << ", " << read.forward_count;
 		(*dict) << ", " << read.reverse_count;
-		if(DICTIONARY_LEVEL > 0)
+		if(DICTIONARY_LEVELS > 0)
 		{
 			(*dict) << ", " << read.cigar_counts[0] << ", "<< read.cigar_counts[2];
 			(*dict) << ", " << read.cigar_counts[1] << ", "<< read.cigar_counts[3];
 		}
-		if(DICTIONARY_LEVEL > 1)
+		if(DICTIONARY_LEVELS > 1)
 		{
 			for(int i = 0; i < FASTA_ENTRIES; i++)
 				if(genes[i] == gene)
@@ -923,12 +927,12 @@ int printDictionaries (string gene, int position, string seq, Read& read)
 
 void printDicitonaries(string output, int level)
 {
-	DICTIONARY_LEVEL = level;
+	DICTIONARY_LEVELS = level;
 	int words = 0;
 	dictionary_file.open(output+"dictionary.csv");
 
 	// Include seperate files for each gene.
-	if(DICTIONARY_LEVEL > 1)
+	if(DICTIONARY_LEVELS > 1)
 	{
 		map<string, int> files;
 		for(int i = 0; i < FASTA_ENTRIES; i++)
@@ -943,19 +947,19 @@ void printDicitonaries(string output, int level)
 	else
 		dictionary_file << "Gene, ROAstart, Sequence, ROAcover, Ndiffs, LVerPct, RVerPct, LVerPPM, RVerPPM, Total, Fwd, Rev ";
 
-	if(DICTIONARY_LEVEL > 0)
+	if(DICTIONARY_LEVELS > 0)
 	{
-		if(DICTIONARY_LEVEL > 1)
+		if(DICTIONARY_LEVELS > 1)
 			for(auto files = dictionaries.begin(); files != dictionaries.end(); ++files)
 				(*files).second << ", NoIndel, DelOnly, InsOnly, InsAndDel";
 	}else
 		dictionary_file << ", NoIndel, DelOnly, InsOnly, InsAndDel";
 
-	if(DICTIONARY_LEVEL > 1)
+	if(DICTIONARY_LEVELS > 1)
 		for(int i = 0; i < FASTA_ENTRIES; i++)
 			dictionaries[genes[i]] << ", " << genes_names[i] ;
 
-	if(DICTIONARY_LEVEL > 1)
+	if(DICTIONARY_LEVELS > 1)
 		for(auto files = dictionaries.begin(); files != dictionaries.end(); ++files)
 			(*files).second << endl;
 	else
@@ -963,7 +967,7 @@ void printDicitonaries(string output, int level)
 
 	words += iterate(printDictionaries);
 
-	if(DICTIONARY_LEVEL > 1)
+	if(DICTIONARY_LEVELS > 1)
 		for(auto files = dictionaries.begin(); files != dictionaries.end(); ++files)
 			(*files).second.close();
 

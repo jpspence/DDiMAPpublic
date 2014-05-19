@@ -26,6 +26,24 @@ string file  = "/Users/androwis/Dropbox/documents/DataExchangeUR/128_Gen7_CUSHAW
 string fasta = "/Users/androwis/Dropbox/documents/DataExchangeUR/128_Gen7_CUSHAW2_VhJ.fa";
 string output = "./output/";
 
+// Default values
+int ROA_SIZE 		   = 34;
+int  VERIFY_THRESHOLD  =  2;
+bool DROPID = true;
+
+// Frag making thresholds
+double PPM = 0.00075;
+double FRAG_THRESHOLD = .01;
+double NON_VERIFIED_THRESHOLD = .1;
+
+// SNV calling thresholds
+double SNV_VERIFIED_THRESHOLD = .003;
+double SNV_TOTAL_THRESHOLD = .1;
+
+
+// Output Parameters
+int DICTIONARY_LEVEL = 0;
+
 void usage()
 {
 	cout << "usage : DDiMAP [-f <fasta> -b <bam> <args>] [--help]" << endl;
@@ -34,21 +52,21 @@ void usage()
 	cout << "   --bam              | -b   This specifies the path to the bam file" << endl;
 	cout << "   --fasta            | -f   This specifies the path to the fasta file" << endl;
 	cout << "   --keepID           | -k   Keep reads that have both an insert and delete in CIGAR string" << endl;
-	cout << "   --verify-threshold | -v   Minimum number of reads to see in each direction (default : 2)" << endl;
-	cout << "   --roa-size         | -r   Number of base pairs for a Region of Analysis    (default : 34)" << endl;
+	cout << "   --verify-threshold | -v   Minimum number of reads to see in each direction (default : " << VERIFY_THRESHOLD<< ")" << endl;
+	cout << "   --roa-size         | -r   Number of base pairs for a Region of Analysis    (default : " << ROA_SIZE << ")" << endl;
 
 	cout << endl << "Frag Making Parameters" << endl;
-	cout << "   --ppm              | -p   Minimum level of reads to consider for DDiMAP    (default : 750ppm) | TODO: make this real ppm." << endl;
-	cout << "   --frag-threshold   | -t   Minimum verified coverage required to be considered for frags (default : .01)" << endl;
-	cout << "   --nv-threshold     | -n   Minimum non-verified coverage required to be considered for frags (default : .1)" << endl;
+	cout << "   --ppm              | -p   Minimum level of reads to consider for DDiMAP    (default : "<< PPM << ") | TODO: make this real ppm." << endl;
+	cout << "   --frag-threshold   | -t   Minimum verified coverage required to be considered for frags (default : "<< FRAG_THRESHOLD <<")" << endl;
+	cout << "   --nv-threshold     | -n   Minimum non-verified coverage required to be considered for frags (default : "<< NON_VERIFIED_THRESHOLD <<")" << endl;
 
 	cout << endl << "SNV Calling Parameters" << endl;
-	cout << "   --snv-verified     | -s   Minimum level of nucleotide variation in verified words to call an SNV (default : .03)" << endl;
-	cout << "   --snv-total        | -l   Minimum level of nucleotide variation in total to call an SNV (default : .1)" << endl;
+	cout << "   --snv-verified     | -s   Minimum level of nucleotide variation in verified words to call an SNV (default : " << SNV_VERIFIED_THRESHOLD<<")" << endl;
+	cout << "   --snv-total        | -l   Minimum level of nucleotide variation in total to call an SNV (default : " << SNV_TOTAL_THRESHOLD<< ")" << endl;
 
 	cout << endl << "Output Parameters" << endl;
-	cout << "   --output           | -o   Directory to store output (default : ./output/ )" << endl;
-	cout << "   --dictionary-level | -d   Dictionary verbosity : 0 = fwd/rev counts | 1 = in/del data | 2 = frag mappings (default : 0)" << endl;
+	cout << "   --output           | -o   Directory to store output (default : "<< output <<")" << endl;
+	cout << "   --dictionary-level | -d   Dictionary verbosity : 0 = fwd/rev counts | 1 = in/del data | 2 = frag mappings (default : "<<DICTIONARY_LEVEL<<")" << endl;
 
 	cout <<endl;
 	cout << "Future Parameters (works in progress):"<<endl;
@@ -60,24 +78,6 @@ int main (int argc, char **argv)
 	int c;
 	clock_t t;
 	int total = 0, unique = 0;
-
-	// Default values
-	int ROA_SIZE 		   = 34;
-	int  VERIFY_THRESHOLD  =  2;
-	bool DROPID = true;
-
-	// Frag making thresholds
-	double PPM = 0.00075;
-	double FRAG_THRESHOLD = .01;
-	double NON_VERIFIED_THRESHOLD = .1;
-
-	// SNV calling thresholds
-	double SNV_VERIFIED_THRESHOLD = .003;
-	double SNV_TOTAL_THRESHOLD = .1;
-
-
-	// Output Parameters
-	int DICTIONARY_LEVEL = 0;
 
 	// ------------------------------------------------------------------------
 	// Parameter Parsing
@@ -123,6 +123,11 @@ int main (int argc, char **argv)
 		case 'r':
 			ROA_SIZE = atoi(optarg);
 			ROA_SIZE = (ROA_SIZE % 2) ? ROA_SIZE+1 : ROA_SIZE;
+			if(Read::max_length < ROA_SIZE * 3)
+			{
+				ROA_SIZE = Read::max_length / 3;
+				printf ("WARNING : max ROA size (b/c of Read::max_length) is %dbps \n", ROA_SIZE);
+			}
 			printf ("Setting the ROA size to :  %dbps \n", ROA_SIZE);
 			break;
 

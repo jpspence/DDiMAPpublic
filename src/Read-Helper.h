@@ -22,7 +22,10 @@ struct Read {
 	// 3 : in/dels
 	uint64_t cigar_counts[4] = {0};
 
-	static int const max_length = 100;
+	// This is the number of bits we're using.
+	// ROA_SIZE = max_length / 3
+	// e.g.  if you want an ROA =  34 ==> max_length = 3
+	static int const max_length = 300;
 	static int const half_length = max_length/2;
 	char sequence[max_length];
 	std::bitset<max_length/2> right_sequence_half;
