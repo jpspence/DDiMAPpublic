@@ -12,7 +12,7 @@
 #include <bitset>
 #include <math.h>
 #include <cctype>
-#define TEST 1
+#define TEST 0
 
 int FASTA_ENTRIES = 0;
 int ROA_LENGTH;
@@ -114,7 +114,6 @@ int countDifferences(std::bitset<length> s, std::bitset<length> t)
 template <int length>
 string BitsetToStringCompare(std::bitset<length> s, std::bitset<length> ref)
 {
-	cout << endl << endl;
 	std::stringstream temp;
 	while(s.count()!=0){
 		temp << BitsetToChar<length>( (s & generateMask<length>(0b111)) , ( (s & generateMask<length>(0b111)) == (ref & generateMask<length>(0b111))) );
@@ -131,7 +130,6 @@ string BitsetToString(std::bitset<length> s)
 template <int length>
 std::bitset<length> stringToBitset(string s)
 {
-	cout << endl;
 	std::bitset<length> temp = 0;
 	for ( int i = 0 ; i < s.length();  i++)
 		temp |= (charToBitset<length>(s[i]) << (3 * i) );
@@ -162,7 +160,6 @@ float CalculateGC(std::bitset<length> seq)
 	return gc / total * 100.0;
 }
 
-// ----------------------------------------------------------------------------
 // ----------------------------------------------------------------------------
 // BAM --> Reads
 // ----------------------------------------------------------------------------
