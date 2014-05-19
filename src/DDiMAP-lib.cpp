@@ -10,6 +10,7 @@
 #include "DDiMAP-lib.h"
 #include "DDiMAP-test.h"
 #include <bitset>
+#include <math.h>
 #include <cctype>
 #define TEST 0
 
@@ -335,6 +336,7 @@ int readFile(string file, string fasta, int roa_length, bool dropID, Read (*f)(s
 {
 	// Set the global variable
 	ROA_LENGTH = roa_length;
+	tracks[1] = floor(roa_length/4);
 
 	// Read in the NCBI sequences from Fasta File, assign appropriate offsets
 	gzFile fp;
@@ -550,40 +552,40 @@ void check(int total, double ppm, double frag, string gene,  int position,int i,
 {
 	//	 Check the left half.
 	if( position == i &&
-			read.left_sequence_half == stringToBitset<Read::half_length>(seq.substr(0,17)) &&
-			read.right_sequence_half == stringToBitset<Read::half_length>(seq.substr(17,17))){
-		check_verify(read, false, gene, (position-17));
-		for (int j = 0; j<17; j++)
+			read.left_sequence_half == stringToBitset<Read::half_length>(seq.substr(0,ROA_LENGTH/2)) &&
+			read.right_sequence_half == stringToBitset<Read::half_length>(seq.substr(ROA_LENGTH/2,ROA_LENGTH/2))){
+		check_verify(read, false, gene, (position-ROA_LENGTH/2));
+		for (int j = 0; j<ROA_LENGTH/2; j++)
 			cout << " ";
 		cout << read.sequence;
-		for (int j = 0; j<34; j++)
+		for (int j = 0; j<ROA_LENGTH; j++)
 			cout << " ";
 		cout << " (f " <<read.forward_count <<"-" <<read.matches_ref_on_left()<< " + " <<read.reverse_count << "-"<<read.matches_ref_on_right()<<" / " << ((above > 0) ?  total : ((above == 0) ? frag :  ppm))  << ")" << (( above > 9 )? " > 10% ": (( above > 0) ? " > 1% " : (( above == 0) ? " > ppm " :  " :  NOT PPM "))) << read.is_left_verified() << ":"<<read.is_right_verified()<< endl ;
 	}
 
 	//	 Check the middle
-	if( position == i+17
-			&& read.left_sequence_half == stringToBitset<Read::half_length>(seq.substr(17,17))
-			&& read.right_sequence_half == stringToBitset<Read::half_length>(seq.substr(34,17))
+	if( position == i+ROA_LENGTH/2
+			&& read.left_sequence_half == stringToBitset<Read::half_length>(seq.substr(ROA_LENGTH/2,ROA_LENGTH/2))
+			&& read.right_sequence_half == stringToBitset<Read::half_length>(seq.substr(ROA_LENGTH,ROA_LENGTH/2))
 	){
-		for (int j = 0; j<34; j++)
+		for (int j = 0; j<ROA_LENGTH; j++)
 			cout << " ";
 		cout << read.sequence;
-		for (int j = 0; j<17; j++)
+		for (int j = 0; j<ROA_LENGTH/2; j++)
 			cout << " ";
 		cout << " (f " <<read.forward_count <<"-" <<read.matches_ref_on_left()<< " + " <<read.reverse_count << "-"<<read.matches_ref_on_right()<<" / " << total  << ")" << (( above > 9 )? " > 10% ": (( above > 0) ? " > 1%" : (( above == 0) ? " > ppm" : "  NOT PPM"))) << endl ;
 	}
 
 	// Check the right half
-	if( position == i+34
-			&& read.left_sequence_half == stringToBitset<Read::half_length>(seq.substr(34,17))
-			&& read.right_sequence_half == stringToBitset<Read::half_length>(seq.substr(51,17))
+	if( position == i+ROA_LENGTH
+			&& read.left_sequence_half == stringToBitset<Read::half_length>(seq.substr(ROA_LENGTH,ROA_LENGTH/2))
+			&& read.right_sequence_half == stringToBitset<Read::half_length>(seq.substr(ROA_LENGTH/2+ROA_LENGTH,ROA_LENGTH/2))
 	){
-		for (int j = 0; j<51; j++)
+		for (int j = 0; j<ROA_LENGTH/2+ROA_LENGTH; j++)
 			cout << " ";
 		cout << read.sequence;
 		cout << " (f " <<read.forward_count <<"-" <<read.matches_ref_on_left()<< " + " <<read.reverse_count << "-"<<read.matches_ref_on_right()<<" / " << ((above > 0) ?  total : ((above == 0) ? frag :  ppm))  << ")" << (( above > 9 )? " > 10% ": (( above > 0) ? " > 1% " : (( above == 0) ? " > ppm " :  " :  NOT PPM "))) << read.is_left_verified() << ":"<<read.is_right_verified()<< endl ;
-		check_verify(read, true, gene, (position+17));
+		check_verify(read, true, gene, (position+ROA_LENGTH/2));
 
 	}
 
