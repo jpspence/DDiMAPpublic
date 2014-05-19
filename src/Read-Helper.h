@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <map>
 #include <sstream>
+#include <bitset>
 
 
 using namespace std;
@@ -21,7 +22,7 @@ struct Read {
 	// 3 : in/dels
 	uint64_t cigar_counts[4] = {0};
 
-	static int const max_length = 200;
+	static int const max_length = 100;
 	static int const half_length = max_length/2;
 	char sequence[max_length];
 	std::bitset<max_length/2> right_sequence_half;
