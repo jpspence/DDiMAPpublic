@@ -56,7 +56,7 @@ void usage()
 	cout << "   --roa-size         | -r   Number of base pairs for a Region of Analysis    (default : " << ROA_SIZE << ")" << endl;
 
 	cout << endl << "Frag Making Parameters" << endl;
-	cout << "   --ppm              | -p   Minimum level of reads to consider for DDiMAP    (default : "<< PPM << ") | TODO: make this real ppm." << endl;
+	cout << "   --ppm              | -p   Minimum level of reads to consider for DDiMAP    (default : "<< PPM << ")" << endl;
 	cout << "   --frag-threshold   | -t   Minimum verified coverage required to be considered for frags (default : "<< FRAG_THRESHOLD <<")" << endl;
 	cout << "   --nv-threshold     | -n   Minimum non-verified coverage required to be considered for frags (default : "<< NON_VERIFIED_THRESHOLD <<")" << endl;
 
@@ -125,6 +125,7 @@ int main (int argc, char **argv)
 			ROA_SIZE = (ROA_SIZE % 2) ? ROA_SIZE+1 : ROA_SIZE;
 			if(Read::max_length < ROA_SIZE * 3)
 			{
+				printf ("ERROR   : max ROA size cannot be set to %d. Set Read::max_length to %d \n", ROA_SIZE, ROA_SIZE*3 );
 				ROA_SIZE = Read::max_length / 3;
 				printf ("WARNING : max ROA size (b/c of Read::max_length) is %dbps \n", ROA_SIZE);
 			}
