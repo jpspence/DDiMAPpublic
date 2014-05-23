@@ -468,7 +468,7 @@ map<string, int> frag_counts;
 ofstream fasta_file;
 
 map<string, Read> returnMatches(string gene, int position, int offset, Read& read)
-				{
+								{
 
 	map<string, Read> matches;
 	map<string, Read> roa = reads[gene][position  + offset];
@@ -505,7 +505,7 @@ map<string, Read> returnMatches(string gene, int position, int offset, Read& rea
 	}
 
 	return matches;
-				}
+								}
 
 int generateFrags (string gene, int position, string seq, Read& read)
 {
@@ -753,16 +753,26 @@ int buildHistograms(string gene, int position, string seq, Read& read)
 
 	if( read.is_right_left_verified() || read.is_above_ppm() )
 	{
+		if(position == 221 && read.is_above_ppm())
+		{
+			cout << "|" << BitsetToStringCompare<Read::half_length>(read.left_sequence_half, 0);
+			cout << BitsetToStringCompare<Read::half_length>(read.right_sequence_half, 0) << endl;
+		}
 
 		// Create a histogram for the left half
 		bitset<Read::half_length> s = read.left_sequence_half;
 		int i = 0;
 		while(s.count())
 		{
+
 			if( read.is_right_left_verified() )
-				(*verified)[gene][position + i][  (s & mask).to_ullong()] += read.total_count();
+				(*verified)[gene][position + i][ (s & mask).to_ullong()] += read.total_count();
+			if(position == 221 && read.is_above_ppm())
+				cout << " PPM Before : " << (*ppm)[gene][position + i][ (s & mask).to_ulong()] << endl;
 			if( read.is_above_ppm() )
 				(*ppm)[gene][position + i][ (s & mask).to_ulong()] += read.total_count();
+			if(position == 221 && read.is_above_ppm())
+				cout << " PPM After : " << (*ppm)[gene][position + i][ (s & mask).to_ulong()] << endl;
 			s = s>>3;i++;
 		}
 
@@ -813,15 +823,15 @@ void callSNVs(double snv_verified_threshold, double snv_total_threshold, string 
 	coverage_file.open (output+"coverage.csv");
 	coverage_file << "Gene, Loc, Coverage "<< endl;
 
-	auto genes = verified_histogram_1.begin();
-	auto genes1= verified_histogram_0.begin();
+	auto genes = ppm_histogram_1.begin();
+	auto genes1= ppm_histogram_0.begin();
 
-	for(; genes != verified_histogram_1.end(); ++genes)
+	for(; genes != ppm_histogram_1.end(); ++genes)
 	{
 		auto positions  =(*genes).second.begin();
-		auto positions2 =verified_histogram_0[(*genes).first].begin();
+		auto positions2 =ppm_histogram_0[(*genes).first].begin();
 
-		for (; positions != (*genes).second.end() && positions2 != verified_histogram_0[(*genes).first].end();)
+		for (; positions != (*genes).second.end() && positions2 != ppm_histogram_0[(*genes).first].end();)
 		{
 
 			// Set the position : use the lower of the two iterators
@@ -848,16 +858,18 @@ void callSNVs(double snv_verified_threshold, double snv_total_threshold, string 
 
 			coverage_file << (*genes).first <<","<< position << ","<< (ppm / 2) << endl;
 
+			bitset<Read::half_length> ref       = references[(*genes).first][position];
+			bitset<Read::half_length> ref_left  = references[(*genes).first][position-ROA_LENGTH/2];
+			bitset<Read::half_length> ref_right = references[(*genes).first][position+1];
+
+			if(position == 222)
+				cout << "PPM total " << ppm << " | Ref " << ref.count();
+
 			double freq;
 			for (int i = 1; i < 6; i++)
 				if((references[(*genes).first][position] & mask) != i)
-				{
-					bitset<Read::half_length> ref       = references[(*genes).first][position];
-					bitset<Read::half_length> ref_left  = references[(*genes).first][position-ROA_LENGTH/2];
-					bitset<Read::half_length> ref_right = references[(*genes).first][position+1];
-
-					if(ref.count()){
-
+					if(ref.count())
+					{
 						// --- Call type #1
 						// If the reads are in both verified histograms.
 						if( (freq = ((double) (verified_counts[i]+ verified_counts2[i]) / verified)) and verified_counts[i] > 0 and verified_counts2[i] > 0)
@@ -873,26 +885,23 @@ void callSNVs(double snv_verified_threshold, double snv_total_threshold, string 
 
 						// # Call type 3
 						// If the reads exceed a 3rd threshold in either track
-						else if( (freq = ((double) (ppm_histogram_0[(*genes).first][position][i]) + ppm_histogram_1[(*genes).first][position][i]) / ppm ) > snv_total_threshold)
+						else if( (freq = ((double) ppm_histogram_0[(*genes).first][position][i] + ppm_histogram_1[(*genes).first][position][i]) / ppm ) > snv_total_threshold)
 							snvs += callSNV(3, (*genes).first,position, i, ref_left, ref,ref_right, freq, (ppm/2) );
-
 					}
 
-				}
 
 			// Incrementing the indexes.
 			// This handles error conditions when traversing two iterators that may put us in an inf loop.
-
 			if((*positions).first == (*positions2).first)
 			{
 				if(positions != (*genes).second.end())
 					positions++;
-				if(positions != verified_histogram_0[(*genes).first].end())
+				if(positions != ppm_histogram_0[(*genes).first].end())
 					positions2++;
 			}
 			else if((*positions).first > (*positions2).first)
 			{
-				if(positions != verified_histogram_0[(*genes).first].end())
+				if(positions != ppm_histogram_0[(*genes).first].end())
 					positions2++;
 				else if(positions != (*genes).second.end())
 					positions++;
@@ -901,7 +910,7 @@ void callSNVs(double snv_verified_threshold, double snv_total_threshold, string 
 			{
 				if(positions != (*genes).second.end())
 					positions++;
-				else if(positions != verified_histogram_0[(*genes).first].end())
+				else if(positions != ppm_histogram_0[(*genes).first].end())
 					positions2++;
 			}
 
