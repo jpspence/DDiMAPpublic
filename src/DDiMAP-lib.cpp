@@ -753,11 +753,6 @@ int buildHistograms(string gene, int position, string seq, Read& read)
 
 	if( read.is_right_left_verified() || read.is_above_ppm() )
 	{
-		if(position == 221 && read.is_above_ppm())
-		{
-			cout << "|" << BitsetToStringCompare<Read::half_length>(read.left_sequence_half, 0);
-			cout << BitsetToStringCompare<Read::half_length>(read.right_sequence_half, 0) << endl;
-		}
 
 		// Create a histogram for the left half
 		bitset<Read::half_length> s = read.left_sequence_half;
@@ -767,12 +762,8 @@ int buildHistograms(string gene, int position, string seq, Read& read)
 
 			if( read.is_right_left_verified() )
 				(*verified)[gene][position + i][ (s & mask).to_ullong()] += read.total_count();
-			if(position == 221 && read.is_above_ppm())
-				cout << " PPM Before : " << (*ppm)[gene][position + i][ (s & mask).to_ulong()] << endl;
 			if( read.is_above_ppm() )
 				(*ppm)[gene][position + i][ (s & mask).to_ulong()] += read.total_count();
-			if(position == 221 && read.is_above_ppm())
-				cout << " PPM After : " << (*ppm)[gene][position + i][ (s & mask).to_ulong()] << endl;
 			s = s>>3;i++;
 		}
 
@@ -861,9 +852,6 @@ void callSNVs(double snv_verified_threshold, double snv_total_threshold, string 
 			bitset<Read::half_length> ref       = references[(*genes).first][position];
 			bitset<Read::half_length> ref_left  = references[(*genes).first][position-ROA_LENGTH/2];
 			bitset<Read::half_length> ref_right = references[(*genes).first][position+1];
-
-			if(position == 222)
-				cout << "PPM total " << ppm << " | Ref " << ref.count();
 
 			double freq;
 			for (int i = 1; i < 6; i++)
