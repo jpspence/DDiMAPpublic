@@ -27,7 +27,7 @@ bin/gnuplot_i.o: include/gnuplot_i/gnuplot_i.c include/gnuplot_i/gnuplot_i.h
 	gcc -c -o bin/gnuplot_i.o include/gnuplot_i/gnuplot_i.c
 
 bin:
-	mkdir -p bin
+	mkdir -p bin output
 
 bin/%.o : src/%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
@@ -38,4 +38,4 @@ setup:
 	make -C include/cu
 
 clean:
-	rm -rf bin
+	rm -rf bin output
