@@ -15,15 +15,16 @@ make
 ### Running the code
 
 ```bash
-# point DDiMAP to a fasta and bam file
+
+# Run DDiMAP on a fasta and bam file
 ./bin/DDiMAP -f /location/of/fasta.fa  -b /location/of/bam.bam
 
+# Run DDiMAP's test suite
+./bin/DDiMAP --test
 
 # View usage details
 ./bin/DDiMAP --help
-usage : DDiMAP [-f <fasta> -b <bam> <args>] [--help]
-
-usage : DDiMAP [-f <fasta> -b <bam> <args>] [--help]
+usage : DDiMAP [-f <fasta> -b <bam> <args>] [--help] [--test]
 
 Basic Parameters:
    --bam              | -b   This specifies the path to the bam file
@@ -33,17 +34,20 @@ Basic Parameters:
    --roa-size         | -r   Number of base pairs for a Region of Analysis    (default : 34)
 
 Frag Making Parameters
-   --ppm              | -p   Minimum level of reads to consider for DDiMAP    (default : 750ppm) | TODO: make this real ppm.
-   --frag-threshold   | -t   Minimum verified coverage required to be considered for frags (default : .01)
-   --nv-threshold     | -n   Minimum non-verified coverage required to be considered for frags (default : .1)
+   --ppm              | -p   Minimum level of reads to consider for DDiMAP    (default : 0.00075)
+   --frag-threshold   | -a   Minimum verified coverage required to be considered for frags (default : 0.01)
+   --nv-threshold     | -n   Minimum non-verified coverage required to be considered for frags (default : 0.1)
 
 SNV Calling Parameters
-   --snv-verified     | -s   Minimum level of nucleotide variation in verified words to call an SNV (default : .03)
-   --snv-total        | -l   Minimum level of nucleotide variation in total to call an SNV (default : .1)
+   --snv-verified     | -s   Minimum level of nucleotide variation in verified words to call an SNV (default : 0.003)
+   --snv-total        | -l   Minimum level of nucleotide variation in total to call an SNV (default : 0.1)
 
 Output Parameters
-   --output           | -o   Directory to store output (default : ./output/ )
+   --output           | -o   Directory to store output (default : ./output/)
    --dictionary-level | -d   Dictionary verbosity : 0 = fwd/rev counts | 1 = in/del data | 2 = frag mappings (default : 0)
+
+Testing Parameters
+   --test             | -t   Run the test suite
 
 Future Parameters (works in progress):
    --length-of-snv-ref| -l   Number of base pairs you'd like to see in SNV
@@ -55,7 +59,6 @@ Future Parameters (works in progress):
 
 make            # Compiles all the source code, generate executable
 make setup      # This will download all the dependencies
-make test       # TODO: Runs all the unit tests for the project
 make clean      # Removes everything
 
 ```

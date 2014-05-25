@@ -57,7 +57,7 @@ void usage()
 
 	cout << endl << "Frag Making Parameters" << endl;
 	cout << "   --ppm              | -p   Minimum level of reads to consider for DDiMAP    (default : "<< PPM << ")" << endl;
-	cout << "   --frag-threshold   | -t   Minimum verified coverage required to be considered for frags (default : "<< FRAG_THRESHOLD <<")" << endl;
+	cout << "   --frag-threshold   | -a   Minimum verified coverage required to be considered for frags (default : "<< FRAG_THRESHOLD <<")" << endl;
 	cout << "   --nv-threshold     | -n   Minimum non-verified coverage required to be considered for frags (default : "<< NON_VERIFIED_THRESHOLD <<")" << endl;
 
 	cout << endl << "SNV Calling Parameters" << endl;
@@ -68,11 +68,20 @@ void usage()
 	cout << "   --output           | -o   Directory to store output (default : "<< output <<")" << endl;
 	cout << "   --dictionary-level | -d   Dictionary verbosity : 0 = fwd/rev counts | 1 = in/del data | 2 = frag mappings (default : "<<DICTIONARY_LEVEL<<")" << endl;
 
+	cout << endl << "Testing Parameters" << endl;
+	cout << "   --test             | -t   Run the test suite" << endl;
+
 	cout <<endl;
 	cout << "Future Parameters (works in progress):"<<endl;
 	cout << "   --length-of-snv-ref| -l   Number of base pairs you'd like to see in SNV" << endl;
 
 }
+
+void test()
+{
+
+}
+
 int main (int argc, char **argv)
 {
 	int c;
@@ -83,6 +92,7 @@ int main (int argc, char **argv)
 	// Parameter Parsing
 	// ------------------------------------------------------------------------
 	static struct option long_options[] = {
+			{"test", 0,0, 't'},
 			{"bam", 0,0, 'b'},
 			{"dictionary_level", 0,0, 'd'},
 			{"fasta", 	0, 0, 'f'},
@@ -92,7 +102,7 @@ int main (int argc, char **argv)
 			{"output", 0,0, 'o'},
 
 			{"ppm", 	0, 0, 'p'},
-			{"frag-threshold", 	0, 0, 't'},
+			{"frag-threshold", 	0, 0, 'a'},
 			{"nv-threshold", 	0, 0, 'n'},
 
 			{"snv-threshold", 	0, 0, 's'},
@@ -103,7 +113,7 @@ int main (int argc, char **argv)
 	};
 
 	int option_index = 0;
-	while ((c = getopt_long(argc, argv, "d:o:b:f:t:s:v:p:n:r:l:kh", long_options, &option_index)) != -1) {
+	while ((c = getopt_long(argc, argv, "d:o:b:f:t:s:v:p:n:r:l:kht", long_options, &option_index)) != -1) {
 
 		switch (c) {
 
@@ -146,7 +156,7 @@ int main (int argc, char **argv)
 			PPM = atof(optarg);
 			printf ("Setting the PPM threshold to :  %f \n",PPM);
 			break;
-		case 't':
+		case 'a':
 			FRAG_THRESHOLD = atof(optarg);
 			printf ("Setting the frag threshold to :  %f \n",FRAG_THRESHOLD);
 			break;
@@ -167,6 +177,9 @@ int main (int argc, char **argv)
 
 
 			// Process Flags
+		case 't':
+			test();
+			return EXIT_SUCCESS;
 		case 'h':
 			usage();
 			return EXIT_SUCCESS;
