@@ -1,0 +1,21 @@
+#!/bin/bash
+#PBS -q interactive
+#PBS -l nodes=1:ppn=1
+#PBS -l walltime=00:05:00
+#PBS -o serial.log
+#PBS -N novoalign
+#PBS -j oe
+
+echo Running on host `hostname`
+echo Time is `date`
+echo `pwd`
+. /usr/local/modules/init/bash
+module load novocraft
+
+# Generate an index file named 'celegans' for the sequence file elegans.dna.fa
+novoindex data/128test_Gen1_example data/128test_Gen1_example.fa
+
+# align the reads in file s_1_sequence.txt against the indexed genome of C.Elegans.
+novoalign -c 4 -f test/BlueHive/novoalign/s_1_sequence.txt -d data/128test_Gen1_example -o SAM > /scratch/aabumous/out.sam
+
+

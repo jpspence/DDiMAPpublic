@@ -32,6 +32,9 @@ bin:
 bin/%.o : src/%.cpp
 	$(CXX) $(CXXFLAGS) -c $< -o $@
 
+test-nov:
+	./test/BlueHive/novoalign/novoalign.pbs # Run the task
+
 setup:
 	git submodule update --init --recursive 
 	cd include/bamtools && mkdir -p build && cd build && cmake .. && make && sudo make install && cd ../../..

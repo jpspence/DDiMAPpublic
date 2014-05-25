@@ -59,6 +59,7 @@ Future Parameters (works in progress):
 
 make            # Compiles all the source code, generate executable
 make setup      # This will download all the dependencies
+make test-nov   # Sets up and runs Novoalign tests on BlueHive Cluster
 make clean      # Removes everything
 
 ```
