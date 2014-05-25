@@ -1,0 +1,16 @@
+#!/bin/bash
+#PBS -q standard
+#PBS -l nodes=1:ppn=1
+#PBS -l walltime=00:05:00
+#PBS -o serial.log
+#PBS -N hello_world
+#PBS -j oe
+#
+cd #PBS_O_WORKDIR
+echo Running on host `hostname`
+echo Time is `date`
+. /usr/local/modules/init/bash
+module load novoalign
+./hello_world > /scratch/aabumous/hello_world.out
+
+
