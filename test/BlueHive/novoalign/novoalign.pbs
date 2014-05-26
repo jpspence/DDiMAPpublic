@@ -12,10 +12,10 @@ echo `pwd`
 . /usr/local/modules/init/bash
 module load novocraft
 
-# Generate an index file named 'celegans' for the sequence file elegans.dna.fa
-novoindex data/128test_Gen1_example data/128test_Gen1_example.fa
+# Generate an index file named 'refSeqEnhanced' for the sequence file refSeqEnhanced.fa
+novoindex data/refSeqEnhanced data/refSeqEnhanced.fa
 
-# align the reads in file s_1_sequence.txt against the indexed genome of C.Elegans.
-novoalign -c 4 -f test/BlueHive/novoalign/s_1_sequence.txt -d data/128test_Gen1_example -o SAM > /scratch/aabumous/out.sam
+# align the reads against the indexed genome of refSeqEnhanced.fa
+novoalign -c 4  -d data/refSeqEnhanced -o SAM -f data/synthseq100PE_end1.fq data/synthseq100PE_end2.fq -i ++ 200 40  > /scratch/aabumous/out.sam
 
 
