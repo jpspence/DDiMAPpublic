@@ -11,11 +11,12 @@ echo Time is `date`
 echo `pwd`
 . /usr/local/modules/init/bash
 module load novocraft
+module load  samtools-0.1.19
 
 # Generate an index file named 'refSeqEnhanced' for the sequence file refSeqEnhanced.fa
-novoindex data/refSeqEnhanced data/refSeqEnhanced.fa
+novoindex data/refSeqEnhanced data/refSeqEnhancedGen1.fa
 
 # align the reads against the indexed genome of refSeqEnhanced.fa
-novoalign -c 4  -d data/refSeqEnhanced -o SAM -f data/synthseq100PE_end1.fq data/synthseq100PE_end2.fq -i ++ 200 40  > /scratch/aabumous/out.sam
-
+novoalign -c 4  -d data/refSeqEnhanced -o SAM -f data/synthseq100PE_end1.fq data/synthseq100PE_end2.fq -i +- 200 40  > /scratch/jspence/out.sam
+samtools view -b -S -o /scratch/jspence/novoalign-outGen1.bam /scratch/jspence/out.sam
 
