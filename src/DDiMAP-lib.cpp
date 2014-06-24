@@ -224,7 +224,10 @@ string createWordString(BamAlignment &ba, int length, int &position, int track)
 
 
 	string word = read.substr(offset, length);
-
+	// check to see if the word has any N characters in it - if so, drop it
+        std::size_t foundN = word.find("N");
+	if (foundN!=word.npos)
+		return "";
 	//	// ensuring this is correct.
 	//	if(TEST){
 	//		// Check that there isn't a more approriate ROA
