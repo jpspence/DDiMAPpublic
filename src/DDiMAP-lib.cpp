@@ -188,10 +188,16 @@ Read buildRead( string &word, int length)
 // ----------------------------------------------------------------------------
 // Reading Files : Convenience Functions
 // ----------------------------------------------------------------------------
+struct listOfWords
+{ vector<string> words;};
 
-string createWordString(BamAlignment &ba, int length, int &position, int track)
+listOfWords createWordString(BamAlignment &ba, int length, int &position, int track)
 {
+
+	listOfWords words;
 	string read;
+
+	// Process the CIGAR String
 	int i = 0;
 	for(auto element = ba.CigarData.begin(); element < ba.CigarData.end(); element++)
 	{
@@ -219,18 +225,19 @@ string createWordString(BamAlignment &ba, int length, int &position, int track)
 	position = ba.Position + offset;
 
 	if(offset < 0 || offset + length > read.length())
-		return "";
+		return words;
 
 
+	for(int j = 0; j < i - offset - length; j++)
+	{
+	string word = read.substr(offset+j, length);
+	// check to see if the word has any N characters in it - if not, add it
+	if (word.find("N") ==  word.npos)
+		words.words.push_back(word);
 
-	string word = read.substr(offset, length);
-	// check to see if the word has any N characters in it - if so, drop it
-        std::size_t foundN = word.find("N");
-	if (foundN!=word.npos)
-		return "";
 	//	// ensuring this is correct.
 	//	if(TEST){
-	//		// Check that there isn't a more approriate ROA
+	//		// Check that there isn't a more appropriate ROA
 	//		if(ba.IsReverseStrand()){
 	//			for(int i = ba.Position+ba.AlignedBases.length(); i > ba.Position; i--)
 	//				if(i%(length/2) == track and i > position+length){
@@ -257,13 +264,14 @@ string createWordString(BamAlignment &ba, int length, int &position, int track)
 	//				}
 	//		}
 	//	}
-	return word;
+	}
+	return words;
 }
 
 const char *createWordArray(BamAlignment &ba, int length, int &position, int track)
 {
-	string word = createWordString(ba, length, position, track);
-	return word.c_str();
+	listOfWords words = createWordString(ba, length, position, track);
+	return words.words[0].c_str();
 }
 
 // ----------------------------------------------------------------------------
@@ -296,34 +304,36 @@ int reduce( BamAlignment &ba, int length, bool dropID, Read (*f)(string &, int) 
 		for(int track : tracks){
 
 			int position;
-			string word   = createWordString(ba, length, position, track);
+			listOfWords words   = createWordString(ba, length, position, track);
 
-			if(word.size() > 0){
+			for(int i = 0; i < words.words.size(); i++){
 
 				string name   = genes[ba.RefID];
 
 				// Increment counter for the observed sequence
-				if( reads[name][position][word].total_count() )
-					reads[name][position][word].set_data(hasDeletion, hasInsertion, ba.IsReverseStrand(), ba.RefID);
+				if( reads[name][position+i][words.words[i]].total_count() )
+					reads[name][position+i][words.words[i]].set_data(hasDeletion, hasInsertion, ba.IsReverseStrand(), ba.RefID);
 
 				// Create a new read for the position on this track
 				else {
 					Read r;
-					r = f(word, length);
+					r = f(words.words[i], length);
 					r.set_data(hasDeletion,hasInsertion, ba.IsReverseStrand(), ba.RefID);
 
 					// Check NCBI
-					if(references[name][position] == r.left_sequence_half)
+					if(references[name][position+i] == r.left_sequence_half)
 						r.set_matches_ref_on_left();
 
-					if(references[name][position+length/2] == r.right_sequence_half)
+					if(references[name][position+i+length/2] == r.right_sequence_half)
 						r.set_matches_ref_on_right();
 
-					reads[name][position][word] = r;
+					reads[name][position][words.words[i]] = r;
 
 					uniques++;
 				}
 			}
+
+
 		}
 	}
 	return uniques;
@@ -874,7 +884,7 @@ void callSNVs(double snv_verified_threshold, double snv_total_threshold, string 
 						else if( (freq = ((double) verified_counts2[i]) / verified_total2) > snv_verified_threshold )
 							snvs += callSNV(2, (*genes).first,position, i, ref_left, ref,ref_right, freq, verified_total2 );
 
-						// # Call type 3
+						// --- Call type #3
 						// If the reads exceed a 3rd threshold in either track
 						else if( (freq = ((double) ppm_histogram_0[(*genes).first][position][i] + ppm_histogram_1[(*genes).first][position][i]) / ppm ) > snv_total_threshold)
 							snvs += callSNV(3, (*genes).first,position, i, ref_left, ref,ref_right, freq, (ppm/2) );
