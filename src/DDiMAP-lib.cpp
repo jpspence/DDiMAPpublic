@@ -228,7 +228,7 @@ listOfWords createWordString(BamAlignment &ba, int length, int &position, int tr
 		return words;
 
 
-	for(int j = 0; j < i - offset - length; j++)
+	for(int j = 0; j < i - offset - length; j+=length)
 	{
 	string word = read.substr(offset+j, length);
 	// check to see if the word has any N characters in it - if not, add it
