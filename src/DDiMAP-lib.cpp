@@ -234,6 +234,8 @@ listOfWords createWordString(BamAlignment &ba, int length, int &position, int tr
 	// check to see if the word has any N characters in it - if not, add it
 	if (word.find("N") ==  word.npos)
 		words.words.push_back(word);
+	else
+		words.words.push_back("");
 
 	//	// ensuring this is correct.
 	//	if(TEST){
@@ -268,6 +270,7 @@ listOfWords createWordString(BamAlignment &ba, int length, int &position, int tr
 	return words;
 }
 
+// This needs to be fixed.
 const char *createWordArray(BamAlignment &ba, int length, int &position, int track)
 {
 	listOfWords words = createWordString(ba, length, position, track);
@@ -306,7 +309,9 @@ int reduce( BamAlignment &ba, int length, bool dropID, Read (*f)(string &, int) 
 			int position;
 			listOfWords words   = createWordString(ba, length, position, track);
 
-			for(int i = 0; i < words.words.size(); i++){
+			for(int i = 0; i < words.words.size(); i++)
+				if(words.words[i].size() > 0)
+			{
 
 				string name   = genes[ba.RefID];
 
