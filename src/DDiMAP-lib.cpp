@@ -189,7 +189,9 @@ Read buildRead( string &word, int length)
 // Reading Files : Convenience Functions
 // ----------------------------------------------------------------------------
 struct listOfWords
-{ vector<string> words;};
+{ vector<string> words;
+  vector<int> offset;
+};
 
 listOfWords createWordString(BamAlignment &ba, int length, int &position, int track)
 {
@@ -233,10 +235,10 @@ listOfWords createWordString(BamAlignment &ba, int length, int &position, int tr
 	string word = read.substr(offset+j, length);
 	// check to see if the word has any N characters in it - if not, add it
 	if (word.find("N") ==  word.npos)
+	{
+		words.offset.push_back(j);
 		words.words.push_back(word);
-	else
-		words.words.push_back("");
-
+	}
 	//	// ensuring this is correct.
 	//	if(TEST){
 	//		// Check that there isn't a more appropriate ROA
@@ -316,8 +318,8 @@ int reduce( BamAlignment &ba, int length, bool dropID, Read (*f)(string &, int) 
 				string name   = genes[ba.RefID];
 
 				// Increment counter for the observed sequence
-				if( reads[name][position+i][words.words[i]].total_count() )
-					reads[name][position+i][words.words[i]].set_data(hasDeletion, hasInsertion, ba.IsReverseStrand(), ba.RefID);
+				if( reads[name][position+words.offset[i]][words.words[i]].total_count() )
+					reads[name][position+words.offset[i]][words.words[i]].set_data(hasDeletion, hasInsertion, ba.IsReverseStrand(), ba.RefID);
 
 				// Create a new read for the position on this track
 				else {
@@ -326,13 +328,13 @@ int reduce( BamAlignment &ba, int length, bool dropID, Read (*f)(string &, int) 
 					r.set_data(hasDeletion,hasInsertion, ba.IsReverseStrand(), ba.RefID);
 
 					// Check NCBI
-					if(references[name][position+i] == r.left_sequence_half)
+					if(references[name][position+words.offset[i]] == r.left_sequence_half)
 						r.set_matches_ref_on_left();
 
-					if(references[name][position+i+length/2] == r.right_sequence_half)
+					if(references[name][position+words.offset[i]+length/2] == r.right_sequence_half)
 						r.set_matches_ref_on_right();
 
-					reads[name][position][words.words[i]] = r;
+					reads[name][position+words.offset[i]][words.words[i]] = r;
 
 					uniques++;
 				}
