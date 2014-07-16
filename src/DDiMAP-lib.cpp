@@ -204,8 +204,9 @@ listOfWords createWordString(BamAlignment &ba, int length, int &position, int tr
 	for(auto element = ba.CigarData.begin(); element < ba.CigarData.end(); element++)
 	{
 		if((*element).Type != 'H' && (*element).Type != 'S'){
-			if((*element).Type != 'I')
+			if((*element).Type != 'I'){
 				read.append( ba.AlignedBases.substr(i, (*element).Length));
+				}
 			i+=(*element).Length;
 		}
 	}
@@ -230,11 +231,11 @@ listOfWords createWordString(BamAlignment &ba, int length, int &position, int tr
 		return words;
 
 
-	for(int j = 0; j < i - offset - length; j+=length)
+	for(int j = 0; j < read.length() - offset - length; j+=length)  //  changed loop limit to use read.length() rather than i (JPS 7/16/2014)
 	{
 	string word = read.substr(offset+j, length);
-	// check to see if the word has any N characters in it - if not, add it
-	if (word.find("N") ==  word.npos)
+	// check to see if the word has any N characters in it or is too short - if not, add it
+	if (word.find("N") ==  word.npos && word.length() == length)   //  added check on words shorter than length (JPS 7/16/2014)
 	{
 		words.offset.push_back(j);
 		words.words.push_back(word);
