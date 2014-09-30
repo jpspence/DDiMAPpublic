@@ -8,7 +8,12 @@ function [fragsConverged,snvsConverged,currFrags,currSNVs]=DDiMAPconvergenceTest
 %   construct frag histogram
 %
 if exist(fragFile,'file')
-fragInfo=fastaread(fragFile);
+    fileInfo=dir(fragFile);
+    if fileInfo.bytes>0
+        fragInfo=fastaread(fragFile);
+    else
+        fragInfo=[];
+    end
 else
     fragInfo=[];
 end
@@ -28,7 +33,11 @@ for iFrag=1:nFrags
         currRefSeq=thisRefSeq;
     end
 end
-currFrags=kFrags(1:nRefSeqF);
+if nRefSeqF>0
+    currFrags=kFrags(1:nRefSeqF);
+else
+    currFrags=[];
+end
 %
 %   construct snv histogram
 %

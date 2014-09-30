@@ -40,11 +40,27 @@
                                      %      the track pair in the ref sequence
                                      %    - second track start offset is roaSize/4, chopped.
                                      %
+%   fragMakerThresh=0.01;            % threshold used for assembling frags (default 0.01 if not provided)
+if exist('fragMakerThresh')==0
+    fragMakerThresh=0.01;
+end
+%   fragThresh=0.1                  % threshold used for assembling frags using unverified cores (default 0.1)
+if exist('fragThresh')==0
+    fragThresh=0.1;
+end
+%  SNVthresh = 0.000750;            % threshold used for keeping words for SNV calling (default is 750ppm)
+if exist('SNVthresh')==0
+    SNVthresh=0.000750;
+end
+%  SNVtype2thresh = 0.003000;            % threshold used for keeping words for SNV calling (default is 750ppm)
+if exist('SNVtype2thresh')==0
+    SNVtype2thresh=0.003000;
+end
 %
 %   environment stuff
 %
-scriptPath='/home/jspence/DDiMAPscripts';
-DDiMAPpath='/home/jspence/DDiMAP/bin/DDiMAP';
+scriptPath='/home/jspence/DDiMAPscripts';    % location of the shell scripts used to run the aligners
+DDiMAPpath='/home/jspence/DDiMAP/bin/DDiMAP';   % the place where the DDiMAP software lines (executable in bin subdirectory)
 %
 %  do the work - set up for the iteration
 %
@@ -59,7 +75,11 @@ end
 %
 %  set up the loop
 %
-thisFastqFile=fullfile(inputDir,fastqFile);
+nFastq=size(fastqFile,1);  %  accomodates use of paired ends
+thisFastqFile=' ';
+for iFastq=1:nFastq
+    thisFastqFile=[thisFastqFile ' ' fullfile(inputDir,fastqFile(iFastq,:))];
+end
 switch lower(readType(1))
     case 'c'
         alignerReadType='CS';
@@ -70,11 +90,17 @@ converged=false;
 prevFrags=[];
 prevSNVs=[];
 thisIter=firstIter-1;
+%
+%  allows restart
+%
 if thisIter==0
     prevWorkingDir=inputDir;
 else
     prevWorkingDir=sprintf(workingDirPattern,alignerOrder,thisIter);
 end
+%
+%
+%
 while ~converged && thisIter<iterMax
     thisIter=thisIter+1;
     %
@@ -86,12 +112,12 @@ while ~converged && thisIter<iterMax
     end
     %
     %  sequence preparation - reads original fasta files (private and public), creates junctions if
-    %  concatenated used, adds privaate seq or alternativer seqs, adds frags if present
+    %  concatenated used, adds private seq or alternative seqs, adds frags if present
     %
     basicSeqs=fastaread(fullfile(inputDir,publicRefSeqFile));
     formattedBasicSeqs=addRefTag(basicSeqs);
     enhancedFastaFile=fullfile(thisWorkingDir,'refSeqEnhanced.fa');
-    if exist(enhancedFastaFile,'file')  %  see if one is already here - need to zap it
+    if exist(enhancedFastaFile,'file')==2  %  see if one is already here - need to zap it
         delete(enhancedFastaFile)   %  remove if present because fastawrite appends to existing files
     end
     fastawriteNN(enhancedFastaFile,formattedBasicSeqs);  % modified fastawrite to not put in extra newlines
@@ -99,7 +125,7 @@ while ~converged && thisIter<iterMax
     %  check for existence of private sequences that are to be used for
     %  junction making and optionally added to ref seq file for alignment
     %
-    if exist(fullfile(inputDir,privateRefSeqFile),'file')  %  add to sequences used for junction making
+    if exist(fullfile(inputDir,privateRefSeqFile),'file')==2  %  add to sequences used for junction making
         privateSeqs=fastaread(fullfile(inputDir,privateRefSeqFile));
         formattedPrivateSeqs=addRefTag(privateSeqs);
         if privateMapped  % add to mapping targets
@@ -113,7 +139,7 @@ while ~converged && thisIter<iterMax
     %  only if the private sequences are not being used.  Add to ref seq
     %  file in this case.
     %
-    if ~privateMapped && exist(fullfile(inputDir,germlineRefSeqFile),'file')  %  add to sequences used for mapping
+    if ~privateMapped && exist(fullfile(inputDir,germlineRefSeqFile),'file')==2  %  add to sequences used for mapping
         germlineSeqs=fastaread(fullfile(inputDir,germlineRefSeqFile));
         formattedGermlineSeqs=addRefTag(germlineSeqs);
         fastawriteNN(enhancedFastaFile,formattedGermlineSeqs)
@@ -133,8 +159,11 @@ while ~converged && thisIter<iterMax
     %
     prevFragFile=fullfile(prevWorkingDir,'fasta.fa')
     if exist(prevFragFile,'file')
-        fragSeqs=fastaread(prevFragFile);
-        fastawriteNN(enhancedFastaFile,fragSeqs)
+        fileInfo=dir(prevFragFile);
+        if fileInfo.bytes>0
+            fragSeqs=fastaread(prevFragFile);
+            fastawriteNN(enhancedFastaFile,fragSeqs)
+        end
     end
     prevWorkingDir=thisWorkingDir;
     %
@@ -158,6 +187,10 @@ while ~converged && thisIter<iterMax
             alignerProgram='BFAST'
         case 'S' % use SHRiMP2
             alignerProgram='SHRiMP'
+        case 'W' % use BWA
+            alignerProgram='BWAmem'
+        case 'N' % use Novoalign
+            alignerProgram='Novoalign'
     end
     unixCmd=sprintf('%s/run%sforDDiMAP_%s.sh',scriptPath,alignerProgram,alignerReadType)
     %
@@ -177,7 +210,7 @@ while ~converged && thisIter<iterMax
     %  this should be changed to some code that constructs the command line
     %  according to the parameters set in the calling script or UI
     %
-    DDiMAPcmd=sprintf('%s -r %d -f %s -b %s -n %f -o %s\n',DDiMAPpath,roaSize,enhancedFastaFile,thisAlignedFile,fragThresh,thisWorkingDir)
+    DDiMAPcmd=sprintf('%s -k -r %d -f %s -b %s -n %f -a %f -p %f -s %f -o %s\n',DDiMAPpath,roaSize,enhancedFastaFile,thisAlignedFile,fragThresh,fragMakerThresh,SNVthresh,SNVtype2thresh,thisWorkingDir)
     [status,DDiMAPresult]=unix(DDiMAPcmd,'-echo');
     logFile=fullfile(thisWorkingDir,'DDiMAP.log');
     fid=fopen(logFile,'w');
@@ -200,7 +233,7 @@ while ~converged && thisIter<iterMax
     %  convergence based on stabilized SNV calls (this may be driven by a
     %  UI/calling script parameter)
     %
-    converged=snvsConverged;
+    converged=snvsConverged&&fragsConverged;
 end
 %
 %  put final results into outputDir
@@ -210,6 +243,7 @@ if ~isdir(outputDir)
 end
 %
 copyfile(fullfile(thisWorkingDir,'fasta.fa'),fullfile(outputDir,sprintf('convergedFrags%s.fa',specimenID)));
+copyfile(fullfile(thisWorkingDir,'dictionary.csv'),fullfile(outputDir,sprintf('convergedDictionary%s.csv',specimenID)));
 copyfile(fullfile(thisWorkingDir,'snv.csv'),fullfile(outputDir,sprintf('convergedSNVs%s.csv',specimenID)));
 copyfile(fullfile(thisWorkingDir,'coverage.csv'),fullfile(outputDir,sprintf('convergedCoverage%s.csv',specimenID)));
 copyfile(fullfile(thisWorkingDir,'refSeqEnhanced.fa'),fullfile(outputDir,sprintf('convergedEnhancedRefSeqs%s.fa',specimenID)));
