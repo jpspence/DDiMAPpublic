@@ -212,20 +212,30 @@ listOfWords createWordString(BamAlignment &ba, int length, int &position, int tr
 	}
 
 
-	int to_roa    = ( length/2 - ba.Position ) % (length/2);
+	int to_roa    = ( length/2 - ba.Position) % (length/2);
 	if(to_roa < 0) to_roa+=length/2;
 
-	int offset    = (ba.IsReverseStrand()) ? read.length() - ( (ba.Position + read.length())%(length/2)) - length  : to_roa ;
+	int offset    = (ba.IsReverseStrand()) ? ( read.length() - (ba.Position + read.length())%(length/2))%length  : to_roa ;  // changed offset computation for reverse strand
 
 	if(ba.IsReverseStrand() )
+		{
 		offset+=track;
+                }
 	else
+		{
 		offset-=(length/2-track);
+	}
 
 	if(offset < 0) offset+=length/2;
 	if( offset + length > read.length()) offset-=length/2;
 
 	position = ba.Position + offset;
+
+	//if(ba.IsReverseStrand() )
+	//	{
+	//	 cout << "reverseStrand position= "<< ba.Position << " track= " << track << " readLength= " << read.length() << " offset= " << offset << " loop limit = " << read.length() - offset - length << endl;
+        //        }
+	
 
 	if(offset < 0 || offset + length > read.length())
 		return words;
@@ -395,7 +405,7 @@ int readFile(string file, string fasta, int roa_length, bool dropID, Read (*f)(s
 
 		int loc = (seq_name.find_first_of("_") == -1) ? seq_name.length() : seq_name.find_first_of("_");
 
-		// If this includes NCBI
+		// If this is not a fragment or junction sequence add to references
 		if(seq_name.find("Frag") == -1 && seq_name.find("Junction") == -1){
 			seq_name = seq_name.substr(0, loc);
 			map<int, std::bitset<Read::half_length> > reference;

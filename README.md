@@ -1,6 +1,6 @@
 High Performance DDiMAP
 =======================
-DDiMAP in C and CUDA.
+DDiMAP in C and CUDA.  The CUDA iplementation has not been recently tested so may not work.
 
 ### Prerequisites
 You'll need the following tools : `git` `gcc` `make` `cmake` `cuda`
@@ -28,19 +28,19 @@ usage : DDiMAP [-f <fasta> -b <bam> <args>] [--help] [--test]
 
 Basic Parameters:
    --bam              | -b   This specifies the path to the bam file
-   --fasta            | -f   This specifies the path to the fasta file
+   --fasta            | -f   This specifies the path to the fasta file - NOTE FASTA FILE MUST NOT HAVE MULTIPLE NEWLINES BETWEEN SEQUENCES
    --keepID           | -k   Keep reads that have both an insert and delete in CIGAR string
    --verify-threshold | -v   Minimum number of reads to see in each direction (default : 2)
    --roa-size         | -r   Number of base pairs for a Region of Analysis    (default : 34)
+   --ppm              | -p   Minimum Fraction of reads to see in each direction   (default : 0.00075)
 
 Frag Making Parameters
-   --ppm              | -p   Minimum level of reads to consider for DDiMAP    (default : 0.00075)
    --frag-threshold   | -a   Minimum verified coverage required to be considered for frags (default : 0.01)
    --nv-threshold     | -n   Minimum non-verified coverage required to be considered for frags (default : 0.1)
 
 SNV Calling Parameters
-   --snv-verified     | -s   Minimum level of nucleotide variation in verified words to call an SNV (default : 0.003)
-   --snv-total        | -l   Minimum level of nucleotide variation in total to call an SNV (default : 0.1)
+   --snv-verified     | -s   Minimum level of nucleotide variation in verified words to call a type 2 SNV (default : 0.003)
+   --snv-total        | -l   Minimum level of nucleotide variation in total to call a type 3 SNV (default : 0.1)
 
 Output Parameters
    --output           | -o   Directory to store output (default : ./output/)
