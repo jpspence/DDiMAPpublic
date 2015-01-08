@@ -16,8 +16,7 @@
 #include <sys/stat.h>
 
 #include "DDiMAP-lib.h"
-#include "DDiMAP-test.h"
-#include "../include/gnuplot_i/gnuplot_i.h"
+//#include "../include/gnuplot_i/gnuplot_i.h"
 
 #define SLEEP_LGTH  1
 
@@ -27,12 +26,12 @@ string fasta = "/Users/androwis/Dropbox/documents/DataExchangeUR/128_Gen7_CUSHAW
 string output = "./output/";
 
 // Default values
-int ROA_SIZE 		   = 34;
-int  VERIFY_THRESHOLD  =  2;
+int ROA_SIZE 	= 34;
+int  MIN_COUNT_THRESH  =  2;
 bool DROPID = true;
 
 // Frag making thresholds
-double PPM = 0.00075;
+double MIN_FREQ_THRESH = 0.00075;
 double FRAG_THRESHOLD = .01;
 double NON_VERIFIED_THRESHOLD = .1;
 
@@ -42,7 +41,7 @@ double SNV_TOTAL_THRESHOLD = .1;
 
 
 // Output Parameters
-int DICTIONARY_LEVEL = 0;
+int DICTIONARY_LEVEL = 1;
 
 void usage()
 {
@@ -52,35 +51,30 @@ void usage()
 	cout << "   --bam              | -b   This specifies the path to the bam file" << endl;
 	cout << "   --fasta            | -f   This specifies the path to the fasta file" << endl;
 	cout << "   --keepID           | -k   Keep reads that have both an insert and delete in CIGAR string" << endl;
-	cout << "   --verify-threshold | -v   Minimum number of reads to see in each direction (default : " << VERIFY_THRESHOLD<< ")" << endl;
 	cout << "   --roa-size         | -r   Number of base pairs for a Region of Analysis    (default : " << ROA_SIZE << ")" << endl;
+	cout << "   --min-count-thresh | -c   Minimum count of reads to see in each direction (default : " << MIN_COUNT_THRESH<< ")" << endl;
+	cout << "   --min-freq-thresh  | -p   Minimum frequency of reads to see in each direction (default : "<< MIN_FREQ_THRESH << ")" << endl;
 
 	cout << endl << "Frag Making Parameters" << endl;
-	cout << "   --ppm              | -p   Minimum level of reads to consider for DDiMAP    (default : "<< PPM << ")" << endl;
-	cout << "   --frag-threshold   | -a   Minimum verified coverage required to be considered for frags (default : "<< FRAG_THRESHOLD <<")" << endl;
-	cout << "   --nv-threshold     | -n   Minimum non-verified coverage required to be considered for frags (default : "<< NON_VERIFIED_THRESHOLD <<")" << endl;
+	cout << "   --frag-threshold   | -a   Minimum verified word frequency threshold for use in fragment assembly (default : "<< FRAG_THRESHOLD <<")" << endl;
+	cout << "   --nv-threshold     | -n   Minimum non-verified word coverage for use in fragment assembly (default : "<< NON_VERIFIED_THRESHOLD <<")" << endl;
 
-	cout << endl << "SNV Calling Parameters" << endl;
-	cout << "   --snv-verified     | -s   Minimum level of nucleotide variation in verified words to call an SNV (default : " << SNV_VERIFIED_THRESHOLD<<")" << endl;
-	cout << "   --snv-total        | -l   Minimum level of nucleotide variation in total to call an SNV (default : " << SNV_TOTAL_THRESHOLD<< ")" << endl;
+	cout << endl << "SNV Call Reason Parameters" << endl;
+	cout << "   --snv-verified     | -s   Minimum observed variant frequency in verified words for a CallReason 2 SNV (default : " << SNV_VERIFIED_THRESHOLD<<")" << endl;
+	cout << "   --snv-total        | -l   Minimum observed variant frequency in all words for a CallReason 3 SNV (default : " << SNV_TOTAL_THRESHOLD<< ")" << endl;
 
 	cout << endl << "Output Parameters" << endl;
 	cout << "   --output           | -o   Directory to store output (default : "<< output <<")" << endl;
-	cout << "   --dictionary-level | -d   Dictionary verbosity : 0 = fwd/rev counts | 1 = in/del data | 2 = frag mappings (default : "<<DICTIONARY_LEVEL<<")" << endl;
-
-	cout << endl << "Testing Parameters" << endl;
-	cout << "   --test             | -t   Run the test suite" << endl;
+	cout << "   --dictionary-level | -d   Dictionary verbosity : 0 = fwd/rev counts only | 1 = add full read in/del counts | 2 = add frag counts (default : "<<DICTIONARY_LEVEL<<")" << endl;
 
 	cout <<endl;
-	cout << "Future Parameters (works in progress):"<<endl;
-	cout << "   --length-of-snv-ref| -l   Number of base pairs you'd like to see in SNV" << endl;
 
 }
 
-void test()
-{
-
-}
+//void test()
+//{
+//   not doing anything so comment out here and at place called from
+//}
 
 int main (int argc, char **argv)
 {
@@ -92,20 +86,19 @@ int main (int argc, char **argv)
 	// Parameter Parsing
 	// ------------------------------------------------------------------------
 	static struct option long_options[] = {
-			{"test", 0,0, 't'},
 			{"bam", 0,0, 'b'},
 			{"dictionary_level", 0,0, 'd'},
 			{"fasta", 	0, 0, 'f'},
 			{"keepID", 0,0, 'k'},
-			{"verify-threshold", 	0, 0, 'v'},
+			{"min-count-thresh", 	0, 0, 'c'},
 			{"roa-size", 	0, 0, 'r'},
 			{"output", 0,0, 'o'},
 
-			{"ppm", 	0, 0, 'p'},
+			{"min-freq-thresh", 	0, 0, 'p'},
 			{"frag-threshold", 	0, 0, 'a'},
 			{"nv-threshold", 	0, 0, 'n'},
 
-			{"snv-threshold", 	0, 0, 's'},
+			{"snv-verified", 	0, 0, 's'},
 			{"snv-total", 	0, 0, 'l'},
 
 			{"help", 	0, 0, 'h'},
@@ -113,7 +106,7 @@ int main (int argc, char **argv)
 	};
 
 	int option_index = 0;
-	while ((c = getopt_long(argc, argv, "d:o:b:f:t:s:v:p:a:n:r:l:kht", long_options, &option_index)) != -1) {
+	while ((c = getopt_long(argc, argv, "d:o:b:f:s:c:p:a:n:r:l:kh", long_options, &option_index)) != -1) {
 
 		switch (c) {
 
@@ -142,44 +135,44 @@ int main (int argc, char **argv)
 			printf ("Setting the ROA size to :  %dbps \n", ROA_SIZE);
 			break;
 
-		case 'v':
-			VERIFY_THRESHOLD = atoi(optarg);
-			printf ("Setting the Verify Threshold to :  %d \n",VERIFY_THRESHOLD);
+		case 'c':
+			MIN_COUNT_THRESH = atoi(optarg);
+			printf ("Setting the minimum directional count filter threshold to :  %d \n",MIN_COUNT_THRESH);
+			break;
+		case 'p':
+			MIN_FREQ_THRESH = atof(optarg);
+			printf ("Setting the minimum directional frequency filter threshold to :  %f \n",MIN_FREQ_THRESH);
 			break;
 		case 'd':
 			DICTIONARY_LEVEL = atoi(optarg);
-			printf ("Setting the Dictionary Verbosity to :  %d \n",DICTIONARY_LEVEL);
+			printf ("Setting the dictionary verbosity to :  %d \n",DICTIONARY_LEVEL);
 			break;
 
 			// Frag making thresholds
-		case 'p':
-			PPM = atof(optarg);
-			printf ("Setting the PPM threshold to :  %f \n",PPM);
-			break;
 		case 'a':
 			FRAG_THRESHOLD = atof(optarg);
-			printf ("Setting the frag threshold to :  %f \n",FRAG_THRESHOLD);
+			printf ("Setting the verified word frequency threshold for fragment assembly to :  %f \n",FRAG_THRESHOLD);
 			break;
 		case 'n':
 			NON_VERIFIED_THRESHOLD = atof(optarg);
-			printf ("Setting the non-verified threshold to :  %f \n",NON_VERIFIED_THRESHOLD);
+			printf ("Setting the non-verified word frequency threshold for fragment assembly to :  %f \n",NON_VERIFIED_THRESHOLD);
 			break;
 
 			// SNV Calling parameters
 		case 's':
 			SNV_VERIFIED_THRESHOLD = atof(optarg);
-			printf ("Setting the SNV Verified Threshold to :  %f \n",SNV_VERIFIED_THRESHOLD);
+			printf ("Setting the SNV Verified Call Reason 2 Threshold to :  %f \n",SNV_VERIFIED_THRESHOLD);
 			break;
 		case 'l':
 			SNV_TOTAL_THRESHOLD = atof(optarg);
-			printf ("Setting the SNV Total Threshold to :  %f \n",SNV_TOTAL_THRESHOLD);
+			printf ("Setting the SNV Total Call Reason 3 Threshold to :  %f \n",SNV_TOTAL_THRESHOLD);
 			break;
 
 
 			// Process Flags
-		case 't':
-			test();
-			return EXIT_SUCCESS;
+		//case 't':
+		//	test();
+		//	return EXIT_SUCCESS;
 		case 'h':
 			usage();
 			return EXIT_SUCCESS;
@@ -219,7 +212,7 @@ int main (int argc, char **argv)
 			t, ((float)t)/CLOCKS_PER_SEC, unique, total);
 
 	t = clock();
-	sequential(VERIFY_THRESHOLD, PPM, FRAG_THRESHOLD, NON_VERIFIED_THRESHOLD);
+	sequential(MIN_COUNT_THRESH, MIN_FREQ_THRESH, FRAG_THRESHOLD, NON_VERIFIED_THRESHOLD);
 	int verified = printFasta(output);
 	t = clock() - t;
 	printf ("It took me %lu ticks (%f seconds) to verify %d | %d.\n",
@@ -232,11 +225,12 @@ int main (int argc, char **argv)
 	printf ("It took me %lu ticks (%f seconds) to build the histogram.\n",
 			t, ((float)t)/CLOCKS_PER_SEC);
 
-	t = clock();
-	printHistograms( output );
-	t = clock() - t;
-	printf ("It took me %lu ticks (%f seconds) to print the histogram.\n",
-			t, ((float)t)/CLOCKS_PER_SEC);
+	//  this code wrote files used for plotting during debugging and is not needed
+        //t = clock();
+	//printHistograms( output );
+	//t = clock() - t;
+	//printf ("It took me %lu ticks (%f seconds) to print the histogram.\n",
+	//		t, ((float)t)/CLOCKS_PER_SEC);
 
 
 	t = clock();
@@ -253,26 +247,26 @@ int main (int argc, char **argv)
 			t, ((float)t)/CLOCKS_PER_SEC);
 
 	printDicitonaries(output, DICTIONARY_LEVEL);
-	//	gnuplot_ctrl    *   h1;
-	//	h1 = gnuplot_init() ;
-	//	gnuplot_resetplot(h1) ;
-	//	gnuplot_cmd(h1, "set xrange [0:1200]");
-	//	gnuplot_cmd(h1, "set yrange [0.0001:0.9999]");
-	//	gnuplot_cmd(h1, "set multiplot title \"GC Content for different genes\" layout 3,4");
-	//	gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/Bcl2CG.txt\"     with points ls 1 title \"Bcl2\"");
-	//	gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/Bcl6CG.txt\"     with points ls 1 title \"Bcl6\"");
-	//	gnuplot_cmd(h1, "plot \"/Users/pa/Desktop/CD83CG.txt\"     with points ls 1 title \"CD83\"");
-	//	gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/EmuCG.txt\"      with points ls 1 title \"Emu\"");
-	//	gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/J6-J4CG.txt\"    with points ls 1 title \"j6-j4\"");
-	//	gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/KSCG.txt\"       with points ls 1 title \"KSCG\"");
-	//	gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/Pax5CG.txt\"     with points ls 1 title \"Pax5\"");
-	//	gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/Pim1CG.txt\"     with points ls 1 title \"Pim1\"");
-	//	gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/RhoHCG.txt\"     with points ls 1 title \"RhoH\"");
-	//	gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/Vh1-18CG.txt\" with points ls 1 title \"vh1\"");
-	//	gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/myc-1CG.txt\"    with points ls 1 title \"myc-1\"");
-	//	gnuplot_cmd(h1, "plot \"/Users/androwis/Desktop/myc-2CG.txt\" with points ls 1 title \"myc-2\"");
-	//	gnuplot_cmd(h1, "unset multiplot") ;
-	//
+//		gnuplot_ctrl    *   h1;
+//		h1 = gnuplot_init() ;
+//		gnuplot_resetplot(h1) ;
+//		gnuplot_cmd(h1, "set xrange [0:1200]");
+//		gnuplot_cmd(h1, "set yrange [0.0001:0.9999]");
+//		gnuplot_cmd(h1, "set multiplot title \"GC Content for different genes\" layout 3,4");
+//		gnuplot_cmd(h1, "plot \"output/Bcl2CG.txt\"     with points ls 1 title \"Bcl2\"");
+//		gnuplot_cmd(h1, "plot \"output/Bcl6CG.txt\"     with points ls 1 title \"Bcl6\"");
+//		gnuplot_cmd(h1, "plot \"output/CD83CG.txt\"     with points ls 1 title \"CD83\"");
+//		gnuplot_cmd(h1, "plot \"output/EmuCG.txt\"      with points ls 1 title \"Emu\"");
+//		gnuplot_cmd(h1, "plot \"output/J6-J4CG.txt\"    with points ls 1 title \"j6-j4\"");
+//		gnuplot_cmd(h1, "plot \"output/KSCG.txt\"       with points ls 1 title \"KSCG\"");
+//		gnuplot_cmd(h1, "plot \"output/Pax5CG.txt\"     with points ls 1 title \"Pax5\"");
+//		gnuplot_cmd(h1, "plot \"output/Pim1CG.txt\"     with points ls 1 title \"Pim1\"");
+//		gnuplot_cmd(h1, "plot \"output/RhoHCG.txt\"     with points ls 1 title \"RhoH\"");
+//		gnuplot_cmd(h1, "plot \"output/Vh1-18CG.txt\" with points ls 1 title \"vh1\"");
+//		gnuplot_cmd(h1, "plot \"output/myc-1CG.txt\"    with points ls 1 title \"myc-1\"");
+//		gnuplot_cmd(h1, "plot \"output/myc-2CG.txt\" with points ls 1 title \"myc-2\"");
+//		gnuplot_cmd(h1, "unset multiplot") ;
+
 
 	//	test(fasta);
 

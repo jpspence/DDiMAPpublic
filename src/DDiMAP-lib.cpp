@@ -8,7 +8,6 @@
 //============================================================================
 
 #include "DDiMAP-lib.h"
-#include "DDiMAP-test.h"
 #include <bitset>
 #include <math.h>
 #include <cctype>
@@ -485,7 +484,7 @@ int iterate ( int (*f)(string, int, string, Read&) )
 
 int count (string gene, int position, string seq, Read& read)
 {
-	if( TEST && position > 990 && read.is_right_left_verified()){
+	if( TEST && read.is_right_left_verified()){
 		cout << gene << "  " <<  position <<" ";
 		cout << BitsetToStringCompare<Read::half_length>(read.left_sequence_half, references[gene][position]) ;
 		cout << BitsetToStringCompare<Read::half_length>(read.right_sequence_half, references[gene][position+(ROA_LENGTH/2)]) ;
@@ -782,7 +781,7 @@ int buildHistograms(string gene, int position, string seq, Read& read)
 		ppm = &ppm_histogram_1;
 	}
 
-	if( read.is_right_left_verified() || read.is_above_ppm() )
+	if( read.is_right_left_verified() || read.is_above_ppm() || read.matches_reference())
 	{
 
 		// Create a histogram for the left half
@@ -791,9 +790,9 @@ int buildHistograms(string gene, int position, string seq, Read& read)
 		while(s.count())
 		{
 
-			if( read.is_right_left_verified() )
+			if( read.is_right_left_verified() || read.matches_reference())
 				(*verified)[gene][position + i][ (s & mask).to_ullong()] += read.total_count();
-			if( read.is_above_ppm() )
+			if( read.is_above_ppm() || read.matches_reference())
 				(*ppm)[gene][position + i][ (s & mask).to_ulong()] += read.total_count();
 			s = s>>3;i++;
 		}
@@ -802,9 +801,9 @@ int buildHistograms(string gene, int position, string seq, Read& read)
 		s = read.right_sequence_half;
 		while(s.count())
 		{
-			if( read.is_right_left_verified() )
+			if( read.is_right_left_verified() || read.matches_reference())
 				(*verified)[gene][position + i][ (s & mask).to_ulong()] += read.total_count();
-			if( read.is_above_ppm() )
+			if( read.is_above_ppm() || read.matches_reference())
 				(*ppm)[gene][position + i][ (s & mask).to_ulong()] += read.total_count();
 			s=s>>3;i++;
 		}
@@ -840,10 +839,10 @@ void callSNVs(double snv_verified_threshold, double snv_total_threshold, string 
 	int snvs = 0;
 
 	snv_file.open (output+"snv.csv");
-	snv_file << "Gene, CallReason, Loc, RefBase, CallBase, Freq, LocalSeq, Coverage"<< endl;
+	snv_file << "RefSeqID, CallReason, Loc, RefBase, CallBase, Freq, LocalSeq, Coverage"<< endl;
 
 	coverage_file.open (output+"coverage.csv");
-	coverage_file << "Gene, Loc, Coverage "<< endl;
+	coverage_file << "RefSeqID, Loc, Coverage "<< endl;
 
 	auto genes = ppm_histogram_1.begin();
 	auto genes1= ppm_histogram_0.begin();
@@ -878,7 +877,7 @@ void callSNVs(double snv_verified_threshold, double snv_total_threshold, string 
 			double verified = verified_total + verified_total2;
 			double ppm = ppm_total + ppm_total2;
 
-			coverage_file << (*genes).first <<","<< position << ","<< (ppm / 2) << endl;
+			coverage_file << (*genes).first <<","<< position+1 << ","<< (ppm / 2) << endl;
 
 			bitset<Read::half_length> ref       = references[(*genes).first][position];
 			bitset<Read::half_length> ref_left  = references[(*genes).first][position-ROA_LENGTH/2];
@@ -946,7 +945,7 @@ int printDictionaries (string gene, int position, string seq, Read& read)
 {
 	ofstream * dict;
 
-	if(read.is_above_ppm())
+	if(read.is_above_ppm() || read.matches_reference())
 	{
 
 		if(DICTIONARY_LEVELS > 1)
@@ -1004,18 +1003,19 @@ void printDicitonaries(string output, int level)
 			}
 
 		for(auto files = dictionaries.begin(); files != dictionaries.end(); ++files)
-			(*files).second << "Gene, ROAstart, Sequence, ROAcover, Ndiffs, LVerPct, RVerPct, LVerPPM, RVerPPM, Total, Fwd, Rev ";
+			(*files).second << "RefSeqID, ROAstart, Sequence, ROAcover, EditDist, LVerFrag, RVerFrag, LVerSNV, RVerSNV, WordCover, FwdCover, RevCover ";
 	}
 	else
-		dictionary_file << "Gene, ROAstart, Sequence, ROAcover, Ndiffs, LVerPct, RVerPct, LVerPPM, RVerPPM, Total, Fwd, Rev ";
+		dictionary_file << "RefSeqID, ROAstart, Sequence, ROAcover, EditDist, LVerFrag, RVerFrag, LVerSNV, RVerSNV, WordCover, FwdCover, RevCover ";
 
 	if(DICTIONARY_LEVELS > 0)
 	{
 		if(DICTIONARY_LEVELS > 1)
 			for(auto files = dictionaries.begin(); files != dictionaries.end(); ++files)
-				(*files).second << ", NoIndel, DelOnly, InsOnly, InsAndDel";
-	}else
-		dictionary_file << ", NoIndel, DelOnly, InsOnly, InsAndDel";
+				(*files).second << ", #NoIndel, #DelOnly, #InsOnly, #InsAndDel";
+		else
+		dictionary_file << ", #NoIndel, #DelOnly, #InsOnly, #InsAndDel";
+	}
 
 	if(DICTIONARY_LEVELS > 1)
 		for(int i = 0; i < FASTA_ENTRIES; i++)

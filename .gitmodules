@@ -2,13 +2,7 @@
 	path = include/bamtools
 	url = git@github.com:pezmaster31/bamtools.git
 	ignore = dirty
-[submodule "include/cu"]
-	path = include/cu
-	url = git@github.com:danfis/cu.git
-	ignore = dirty
 [submodule "include/readfq"]
 	path = include/readfq
 	url = git@github.com:lh3/readfq.git
-[submodule "include/gnuplot-iostream"]
-	path = include/gnuplot-iostream
-	url = git://gitorious.org/gnuplot-iostream/gnuplot-iostream.git
+
