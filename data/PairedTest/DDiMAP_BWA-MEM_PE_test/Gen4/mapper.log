@@ -1,0 +1,23 @@
+[bwa_index] Pack FASTA... 0.00 sec
+[bwa_index] Construct BWT for the packed sequence...
+[bwa_index] 0.00 seconds elapse.
+[bwa_index] Update BWT... 0.00 sec
+[bwa_index] Pack forward-only FASTA... 0.00 sec
+[bwa_index] Construct SA from BWT and Occ... 0.00 sec
+[main] Version: 0.7.10-r789
+[main] CMD: bwa index /home/jan/DDiMAP/data/PairedTest/DDiMAP_BWA-MEM_PE_test/Gen4/refSeqEnhanced.fa
+[main] Real time: 0.293 sec; CPU: 0.004 sec
+[M::main_mem] read 367200 sequences (36720000 bp)...
+[M::mem_pestat] # candidate unique pairs for (FF, FR, RF, RR): (0, 5667, 0, 0)
+[M::mem_pestat] skip orientation FF as there are not enough pairs
+[M::mem_pestat] analyzing insert size distribution for orientation FR...
+[M::mem_pestat] (25, 50, 75) percentile: (322, 348, 375)
+[M::mem_pestat] low and high boundaries for computing mean and std.dev: (216, 481)
+[M::mem_pestat] mean and std.dev: (347.61, 31.44)
+[M::mem_pestat] low and high boundaries for proper pairs: (163, 534)
+[M::mem_pestat] skip orientation RF as there are not enough pairs
+[M::mem_pestat] skip orientation RR as there are not enough pairs
+[M::mem_process_seqs] Processed 367200 reads in 29.595 CPU sec, 4.811 real sec
+[main] Version: 0.7.10-r789
+[main] CMD: bwa mem -t 8 /home/jan/DDiMAP/data/PairedTest/DDiMAP_BWA-MEM_PE_test/Gen4/refSeqEnhanced.fa /home/jan/DDiMAP/data/PairedTest/synthseq100PE_end1.fq /home/jan/DDiMAP/data/PairedTest/synthseq100PE_end2.fq
+[main] Real time: 6.215 sec; CPU: 30.151 sec

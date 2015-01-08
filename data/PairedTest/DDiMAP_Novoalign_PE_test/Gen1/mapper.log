@@ -1,0 +1,104 @@
+# novoindex (3.2) - Universal k-mer index constructor.
+# (C) 2008 - 2011 NovoCraft Technologies Sdn Bhd
+# novoindex DDiMAP_N.nix /home/jan/DDiMAP/data/PairedTest/DDiMAP_Novoalign_PE_test/Gen1/refSeqEnhanced.fa 
+# Creating 8 indexing threads.
+# Building with 6-mer and step of 1 bp.
+# novoindex construction dT = 0.0s
+# Index memory size   0.000Gbyte.
+# Done.
+# novoalign (V3.02.05 - Build Apr 16 2014 @ 13:24:29 - A short read aligner with qualities.
+# (C) 2008,2009,2010,2011 NovoCraft Technologies Sdn Bhd.
+# License file not found.
+# Licensed for evaluation, educational, and not-for-profit use only.
+#  novoalign -r Random -n 100 -o SAM -d DDiMAP_N.nix -f /home/jan/DDiMAP/data/PairedTest/synthseq100PE_end1.fq /home/jan/DDiMAP/data/PairedTest/synthseq100PE_end2.fq 
+# Starting at Tue Jan  6 13:32:26 2015
+# Interpreting input files as Sanger FASTQ.
+# Index Build Version: 3.2
+# Hash length: 6
+# Step size: 1
+#       Paired Reads:   183600
+#      Pairs Aligned:   177675
+#     Read Sequences:   367200
+#            Aligned:   360035
+#   Unique Alignment:   360017
+#   Gapped Alignment:    98675
+#     Quality Filter:      726
+# Homopolymer Filter:        0
+#       Elapsed Time: 78.701 (secs.)
+#           CPU Time: 1.31 (min.)
+# Fragment Length Distribution
+#	From	To	Count
+#	30	44	1
+#	45	59	0
+#	60	74	0
+#	75	89	0
+#	90	104	1
+#	105	119	7
+#	120	134	13
+#	135	149	35
+#	150	164	96
+#	165	179	255
+#	180	194	546
+#	195	209	1020
+#	210	224	1772
+#	225	239	2808
+#	240	254	4006
+#	255	269	5401
+#	270	284	7079
+#	285	299	8539
+#	300	314	8851
+#	315	329	9930
+#	330	344	10986
+#	345	359	11287
+#	360	374	11724
+#	375	389	11493
+#	390	404	10811
+#	405	419	9548
+#	420	434	8755
+#	435	449	7988
+#	450	464	7088
+#	465	479	6184
+#	480	494	5233
+#	495	509	4504
+#	510	524	3754
+#	525	539	3038
+#	540	554	2558
+#	555	569	2070
+#	570	584	1686
+#	585	599	1323
+#	600	614	1053
+#	615	629	825
+#	630	644	620
+#	645	659	532
+#	660	674	371
+#	675	689	265
+#	690	704	227
+#	705	719	165
+#	720	734	135
+#	735	749	104
+#	750	764	84
+#	765	779	61
+#	780	794	36
+#	795	809	36
+#	810	824	25
+#	825	839	23
+#	840	854	11
+#	855	869	13
+#	870	884	6
+#	885	899	5
+#	900	914	7
+#	915	929	5
+#	930	944	5
+#	945	959	2
+#	960	974	3
+#	975	989	2
+#	990	1004	1
+#	1005	1019	0
+#	1020	1034	0
+#	1035	1049	0
+#	1050	1064	1
+#	1065	1079	0
+#	1080	1094	0
+#	1095	1109	1
+# Mean   388, Std Dev  96.4
+# Done at Tue Jan  6 13:33:45 2015

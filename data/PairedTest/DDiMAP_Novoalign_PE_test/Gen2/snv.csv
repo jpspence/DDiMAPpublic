@@ -1,0 +1,21 @@
+Gene, CallReason, Loc, RefBase, CallBase, Freq, LocalSeq, Coverage
+    VH1-69 , 2 ,  465 , T , A ,          1 , tacgcacagaagttccagggcagagtcacgatAaccgcggacgaatccacgagcacagcctacat , 11025
+    VH1-69 , 2 ,  475 , G , A ,          1 , agttccagggcagagtcacgattaccgcggacAaatccacgagcacagcctacatggagctgagc , 11025
+    VH1-69 , 2 ,  476 , A , C ,          1 , gttccagggcagagtcacgattaccgcggacgCatccacgagcacagcctacatggagctgagca , 11025
+    VH1-69 , 2 ,  477 , A , G ,          1 , ttccagggcagagtcacgattaccgcggacgaGtccacgagcacagcctacatggagctgagcag , 11025
+    VH1-69 , 2 ,  480 , C , T ,          1 , cagggcagagtcacgattaccgcggacgaatcTacgagcacagcctacatggagctgagcagcct , 11025
+    VH1-69 , 1 ,  483 , G , A ,          1 , ggcagagtcacgattaccgcggacgaatccacAagcacagcctacatggagctgagcagcctgag , 11219.5
+    VH1-69 , 1 ,  484 , A , G ,   0.998529 , gcagagtcacgattaccgcggacgaatccacgGgcacagcctacatggagctgagcagcctgaga , 11219.5
+    VH1-69 , 2 ,  484 , A , T , 0.00289119 , gcagagtcacgattaccgcggacgaatccacgTgcacagcctacatggagctgagcagcctgaga , 11414
+    VH1-69 , 1 ,  485 , G , A ,          1 , cagagtcacgattaccgcggacgaatccacgaAcacagcctacatggagctgagcagcctgagat , 11219.5
+    VH1-69 , 1 ,  490 , G , A ,   0.999109 , tcacgattaccgcggacgaatccacgagcacaAcctacatggagctgagcagcctgagatctgag , 11219.5
+    VH1-69 , 2 ,  490 , G , T , 0.00175223 , tcacgattaccgcggacgaatccacgagcacaTcctacatggagctgagcagcctgagatctgag , 11414
+    VH1-69 , 1 ,  492 , C , G ,          1 , acgattaccgcggacgaatccacgagcacagcGtacatggagctgagcagcctgagatctgagga , 11219.5
+    VH1-69 , 1 ,  510 , C , T ,   0.999583 , tccacgagcacagcctacatggagctgagcagTctgagatctgaggacacggccgtgtattactg , 16804
+    VH1-69 , 1 ,  533 , T , G ,          1 , gctgagcagcctgagatctgaggacacggccgGgtattactgtgcgagagagagatccactgtcc , 22164.5
+    VH1-69 , 1 ,  534 , G , C ,          1 , ctgagcagcctgagatctgaggacacggccgtCtattactgtgcgagagagagatccactgtccc , 22164.5
+    VH1-69 , 2 ,  588 , C , A , 0.00166996 , tccactgtcccagacagcacctcagggtccccAgtcctgcctggaaccctgtaggaaactccaca , 22755
+    VH1-69 , 1 ,  622 , A , T , 0.00148966 , tcctgcctggaaccctgtaggaaactccacaaTccgccgccattctgtccacacccctacaggag , 22824
+    VH1-69 , 1 ,  686 , T , A , 0.00134935 , gccccaaccctctccccacatccaggcttcccAcccagacccctcatccctgcccgcacggtgcc , 22603.5
+    VH1-69 , 2 ,  813 , A , C , 0.00162146 , acacaggccccctttccacccagcctcaggaaCccacctgtgtcctccaacgacaggtcccagcc , 20352
+    VH1-69 , 2 ,  935 , C , A ,  0.0016513 , ccccagcaagcccgcagggcacctcccctgccAccagacaccctgtgcccatcagttcatcccca , 14534

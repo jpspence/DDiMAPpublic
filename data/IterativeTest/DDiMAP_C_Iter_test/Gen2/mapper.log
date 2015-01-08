@@ -1,0 +1,13 @@
+[cushaw3 index] Pack FASTA... 0.00 sec
+[cushaw3 index] Reverse the packed sequence... 0.00 sec
+[cushaw3 index] Concatenated reference length: 9224
+[cushaw3 index] Construct BWT for the reverse packed sequence...
+[cushaw3 index] 0.00 seconds elapse.
+[cushaw3 index] Update reverse BWT... 0.00 sec
+[cushaw3 index] Construct SA from reverse BWT and Occ... 0.00 sec
+[cushaw3 index] Build a bitmap for unknown bases... 0.00 sec
+Command: align -r bwtindex -f /home/jan/DDiMAPrelease/data/IterativeTest/synthseq50SE.fq -t 8 -multi 1 -o DDiMAP_C.sam 
+Suffix array memory size: 0.00440216 MB
+FASTQ format identified
+#Reads aligned: 220139 / 244800 (89.93%)
+Overall time: 2.09 seconds

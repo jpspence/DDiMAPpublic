@@ -1,0 +1,18 @@
+Setting the ROA size to :  32bps 
+Parsing fasta file :  /home/jan/DDiMAP/data/CStest/DDiMAP_sm_BSBSB_germ_test/Gen5/refSeqEnhanced.fa 
+Using bam file :  /home/jan/DDiMAP/data/CStest/DDiMAP_sm_BSBSB_germ_test/Gen5/DDiMAP_B.bam 
+Setting the minimum directional count filter threshold to :  2 
+Setting the non-verified word frequency threshold for fragment assembly to :  0.100000 
+Setting the verified word frequency threshold for fragment assembly to :  0.010000 
+Setting the minimum directional frequency filter threshold to :  0.000750 
+Setting the SNV Verified Call Reason 2 Threshold to :  0.003000 
+Setting the SNV Total Call Reason 3 Threshold to :  1.000000 
+saving output to :  /home/jan/DDiMAP/data/CStest/DDiMAP_sm_BSBSB_germ_test/Gen5/ 
+non-option ARGV-elements:  
+Setting tracks[1]= 8
+It took me 470346 ticks (0.470346 seconds) to read 14112 | 0 reads from BAM file.
+It took me 48093 ticks (0.048093 seconds) to verify 1924 | 14112.
+It took me 15600 ticks (0.015600 seconds) to build the histogram.
+It took me 1625 ticks (0.001625 seconds) to count.
+ I read 185 SNVs 
+It took me 82564 ticks (0.082564 seconds) to call SNVs.

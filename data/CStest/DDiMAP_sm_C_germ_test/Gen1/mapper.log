@@ -1,0 +1,14 @@
+[cushaw3 index] Pack nucleotide FASTA... 0.00 sec
+[cushaw3 index] Convert nucleotide PAC to color PAC... 0.00 sec
+[cushaw3 index] Reverse the packed sequence... 0.00 sec
+[cushaw3 index] Concatenated reference length: 27362
+[cushaw3 index] Construct BWT for the reverse packed sequence...
+[cushaw3 index] 0.00 seconds elapse.
+[cushaw3 index] Update reverse BWT... 0.00 sec
+[cushaw3 index] Construct SA from reverse BWT and Occ... 0.00 sec
+[cushaw3 index] Build a bitmap for unknown bases... 0.00 sec
+Command: calign -r bwtindex -f /home/jan/DDiMAP/data/CStest/Burack_128/Burack_128sm.fastq -t 8 -multi 1 -o DDiMAP_C.sam 
+Suffix array memory size: 0.0130501 MB
+FASTQ format identified
+#Reads aligned: 80471 / 100898 (79.75%)
+Overall time: 1.79 seconds

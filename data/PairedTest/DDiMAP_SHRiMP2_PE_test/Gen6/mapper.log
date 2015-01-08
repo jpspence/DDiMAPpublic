@@ -1,0 +1,161 @@
+--------------------------------------------------------------------------------
+gmapper: LETTER SPACE (454,Illumina/Solexa,etc.).
+SHRiMP 2.2.3
+[ICC Intel(R) C++ g++ 4.1 mode; CXXFLAGS="-O3 -DNDEBUG -Kc++ -wd383,981,1572 -axP -ipo -openmp -static-intel -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -DGIT_VERSION=04238a0"]
+--------------------------------------------------------------------------------
+Settings:
+    Spaced Seeds (weight/span)              11110111101111 (12/14)
+                                            1111011100100001111 (12/19)
+                                            1111000011001101111 (12/19)
+
+    Number of threads:                      8
+    Thread chunk size:                      1000
+    Window length:                          140.00%
+    Hash filter calls:                      yes
+    Anchor width:                           8
+    Indel taboo Len:                        0 (disabled)
+    Gapless mode:                           no
+    Global alignment:                       yes
+    Region filter:                          yes
+    Region size:                            2048
+    Region overlap:                         50
+    Ignore QVs:                             no
+    Minimum average qv:                     10
+    Compute mapping qualities:              yes
+    All contigs:                            yes
+    Single best mapping:                    no
+
+    SW Match Score:                         10        
+    SW Mismatch Score [Prob]:               -15       	[1.0e-02]
+    SW Del Open Score [Prob]:               -33       	[5.4e-04]
+    SW Ins Open Score [Prob]:               -33       	[5.4e-04]
+    SW Del Extend Score [Prob]:             -7        	[2.0e-01]
+    SW Ins Extend Score [Prob]:             -3        	[2.1e-01]
+
+Unpaired mapping options, set [0]
+[
+  regions:
+    recompute:true
+  anchor_list:
+    recompute:true
+    collapse:true
+    use_region_counts:true
+    use_mp_region_counts:0
+  hit_list:
+    recompute:true
+    gapless:false
+    match_mode:2
+    threshold:55.00%
+  pass1:
+    recompute:true
+    threshold:50.00%
+    window_overlap:90.00%
+    min_matches:2
+    gapless:false
+    num_outputs:21
+  pass2:
+    threshold:50.00%
+    strata:true
+    save_outputs:false
+    num_outputs:1
+  stop:
+    stop_count:0
+]
+
+- Processing genome file [/home/jan/DDiMAP/data/PairedTest/DDiMAP_SHRiMP2_PE_test/Gen6/refSeqEnhanced.fa]
+- Processing contig VH1-69_01_J1_Ref
+- Processing contig VH1-69_Frag_129_1
+- Processing contig VH1-69_Frag_145_2
+- Processing contig VH1-69_Frag_161_3
+- Processing contig VH1-69_Frag_177_4
+- Processing contig VH1-69_Frag_193_5
+- Processing contig VH1-69_Frag_209_6
+- Processing contig VH1-69_Frag_225_7
+- Processing contig VH1-69_Frag_241_8
+- Processing contig VH1-69_Frag_257_9
+- Processing contig VH1-69_Frag_273_10
+- Processing contig VH1-69_Frag_289_11
+- Processing contig VH1-69_Frag_305_12
+- Processing contig VH1-69_Frag_369_13
+- Processing contig VH1-69_Frag_385_14
+- Processing contig VH1-69_Frag_401_15
+- Processing contig VH1-69_Frag_417_16
+- Processing contig VH1-69_Frag_433_17
+- Processing contig VH1-69_Frag_449_18
+- Processing contig VH1-69_Frag_465_19
+- Processing contig VH1-69_Frag_481_20
+- Processing contig VH1-69_Frag_497_21
+- Processing contig VH1-69_Frag_513_22
+- Processing contig VH1-69_Frag_529_23
+- Processing contig VH1-69_Frag_545_24
+- Processing contig VH1-69_Frag_561_25
+- Processing contig VH1-69_Frag_577_26
+- Processing contig VH1-69_Frag_593_27
+- Processing contig VH1-69_Frag_609_28
+- Processing contig VH1-69_Frag_625_29
+- Processing contig VH1-69_Frag_641_30
+- Processing contig VH1-69_Frag_657_31
+- Processing contig VH1-69_Frag_673_32
+- Processing contig VH1-69_Frag_689_33
+- Processing contig VH1-69_Frag_705_34
+- Processing contig VH1-69_Frag_721_35
+- Processing contig VH1-69_Frag_737_36
+- Processing contig VH1-69_Frag_753_37
+- Processing contig VH1-69_Frag_769_38
+- Processing contig VH1-69_Frag_785_39
+- Processing contig VH1-69_Frag_801_40
+- Processing contig VH1-69_Frag_817_41
+- Processing contig VH1-69_Frag_833_42
+- Processing contig VH1-69_Frag_849_43
+- Processing contig VH1-69_Frag_865_44
+- Processing contig VH1-69_Frag_881_45
+- Processing contig VH1-69_Frag_897_46
+- Processing contig VH1-69_Frag_913_47
+- Processing contig VH1-69_Frag_929_48
+- Processing contig VH1-69_Frag_945_49
+- Processing contig VH1-69_Frag_961_50
+Loaded Genome
+note: detected fastq format in input file [/home/jan/DDiMAP/data/PairedTest/synthseq100PE_end1.fq]
+- Processing read files [/home/jan/DDiMAP/data/PairedTest/synthseq100PE_end1.fq , /home/jan/DDiMAP/data/PairedTest/synthseq100PE_end2.fq]
+note: quality value format set to PHRED+33
+done r/hr r/core-hr
+100000 32937464 4117183.200000 31797184 3974648.300000 31488801 3936100.
+
+Statistics:
+    Overall:
+        Load Genome Time:       0.05 seconds
+        Read Mapping Time:      42.06 seconds
+        Reads per hour:         31,429,679
+        Reads per core-hour:    3,928,709
+
+    Spaced Seed Scan:
+        Run-time:               138.26 seconds
+
+    Vector Smith-Waterman:
+        Run-time:               82.46 seconds
+        Invocations:            4,766,524
+        Bypassed Calls:         0
+        Cells Computed:         61792.22 million
+        Cells per Second:       749.37 million
+
+    Scalar Smith-Waterman:
+        Run-time:               111.21 seconds
+        Invocations:            2,353,372
+        Cells Computed:         3907.79 million
+        Cells per Second:       35.14 million
+
+    Miscellaneous Totals:
+        Fasta Lib Time:         1.68 seconds
+        Read Load Time:         4.22 seconds
+        Wait Time:              0.33 seconds
+
+    General:
+        Reads Matched:          361,017    (98.3162%)
+        ... with QV >= 10:      361,017    (98.3162%)
+        Reads Dropped:          2,331    (0.6348%)
+        Total Matches:          361,017
+        Avg Hits/Matched Read:  1.00
+        Duplicate Hits Pruned:  49
+
+    Memory usage:
+        Genomemap:              0

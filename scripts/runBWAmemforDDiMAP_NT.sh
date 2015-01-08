@@ -1,0 +1,38 @@
+#!/bin/bash
+#this program expects Fastq and .fa file to exist
+
+cd $myWorkingDir
+pwd
+
+/home/jan/bwa-0.7.10/bwa index $myFasta
+echo ${myAligned}.sam
+#/home/jan/bwa-0.7.10/bwa mem -t 8 -B 2 -O 5 -E 2 -T 0 $myFasta $myFastq > ${myAligned}.sam
+/home/jan/bwa-0.7.10/bwa mem -t 8 $myFasta $myFastq > ${myAligned}.sam
+#
+#  define files to read or create to make an indexed bam file from a sam file
+#
+#
+#  change the lines below to match how your files are named for this reference file and sam file combo
+#
+export sam_file=${myAligned}.sam
+#
+#  change the lines below to match how you would like the output file names to look 
+# 
+export bam_file=${myAligned}.bam
+export bamsorted_prefix=${myAligned}_sorted
+export bamsorted_file=$bamsorted_prefix.bam
+#
+#  view converts sam to bam
+#
+echo "Making unsorted bam file"
+/home/jan/samtools-0.1.19/samtools view -b -S -o $bam_file $sam_file
+#  sam file no longer needed
+rm $sam_file
+#  sort sorts them along chromsomes to make index work
+#echo "Making sorted bam file"
+#samtools sort $bam_file $bamsorted_prefix
+#  bam file no longer needed
+#rm $bam_file
+#  now make the index
+#echo "Indexing sorted bam file"
+#samtools index $bamsorted_file

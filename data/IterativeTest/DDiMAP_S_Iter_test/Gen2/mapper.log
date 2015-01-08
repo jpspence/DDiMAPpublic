@@ -1,0 +1,247 @@
+--------------------------------------------------------------------------------
+gmapper: LETTER SPACE (454,Illumina/Solexa,etc.).
+SHRiMP 2.2.3
+[ICC Intel(R) C++ g++ 4.1 mode; CXXFLAGS="-O3 -DNDEBUG -Kc++ -wd383,981,1572 -axP -ipo -openmp -static-intel -D__STDC_FORMAT_MACROS -D__STDC_LIMIT_MACROS -DGIT_VERSION=04238a0"]
+--------------------------------------------------------------------------------
+Settings:
+    Spaced Seeds (weight/span)              11110111101111 (12/14)
+                                            1111011100100001111 (12/19)
+                                            1111000011001101111 (12/19)
+
+    Number of threads:                      8
+    Thread chunk size:                      1000
+    Window length:                          140.00%
+    Hash filter calls:                      yes
+    Anchor width:                           8
+    Indel taboo Len:                        0 (disabled)
+    Gapless mode:                           no
+    Global alignment:                       yes
+    Region filter:                          yes
+    Region size:                            2048
+    Region overlap:                         50
+    Ignore QVs:                             no
+    Minimum average qv:                     10
+    Compute mapping qualities:              yes
+    All contigs:                            yes
+    Single best mapping:                    no
+
+    SW Match Score:                         10        
+    SW Mismatch Score [Prob]:               -15       	[1.0e-02]
+    SW Del Open Score [Prob]:               -33       	[5.4e-04]
+    SW Ins Open Score [Prob]:               -33       	[5.4e-04]
+    SW Del Extend Score [Prob]:             -7        	[2.0e-01]
+    SW Ins Extend Score [Prob]:             -3        	[2.1e-01]
+
+Unpaired mapping options, set [0]
+[
+  regions:
+    recompute:true
+  anchor_list:
+    recompute:true
+    collapse:true
+    use_region_counts:true
+    use_mp_region_counts:0
+  hit_list:
+    recompute:true
+    gapless:false
+    match_mode:2
+    threshold:55.00%
+  pass1:
+    recompute:true
+    threshold:50.00%
+    window_overlap:90.00%
+    min_matches:2
+    gapless:false
+    num_outputs:21
+  pass2:
+    threshold:50.00%
+    strata:true
+    save_outputs:false
+    num_outputs:1
+  stop:
+    stop_count:0
+]
+
+- Processing genome file [/home/jan/DDiMAPrelease/data/IterativeTest/DDiMAP_S_Iter_test/Gen2/refSeqEnhanced.fa]
+- Processing contig VH1-69-01-J1_Ref
+- Processing contig VH1-69-01-J1_Frag_1_1
+- Processing contig VH1-69-01-J1_Frag_9_2
+- Processing contig VH1-69-01-J1_Frag_17_3
+- Processing contig VH1-69-01-J1_Frag_25_4
+- Processing contig VH1-69-01-J1_Frag_33_5
+- Processing contig VH1-69-01-J1_Frag_41_6
+- Processing contig VH1-69-01-J1_Frag_49_7
+- Processing contig VH1-69-01-J1_Frag_57_8
+- Processing contig VH1-69-01-J1_Frag_65_9
+- Processing contig VH1-69-01-J1_Frag_73_10
+- Processing contig VH1-69-01-J1_Frag_81_11
+- Processing contig VH1-69-01-J1_Frag_89_12
+- Processing contig VH1-69-01-J1_Frag_97_13
+- Processing contig VH1-69-01-J1_Frag_105_14
+- Processing contig VH1-69-01-J1_Frag_113_15
+- Processing contig VH1-69-01-J1_Frag_121_16
+- Processing contig VH1-69-01-J1_Frag_129_17
+- Processing contig VH1-69-01-J1_Frag_137_18
+- Processing contig VH1-69-01-J1_Frag_145_19
+- Processing contig VH1-69-01-J1_Frag_153_20
+- Processing contig VH1-69-01-J1_Frag_161_21
+- Processing contig VH1-69-01-J1_Frag_169_22
+- Processing contig VH1-69-01-J1_Frag_177_23
+- Processing contig VH1-69-01-J1_Frag_185_24
+- Processing contig VH1-69-01-J1_Frag_193_25
+- Processing contig VH1-69-01-J1_Frag_201_26
+- Processing contig VH1-69-01-J1_Frag_209_27
+- Processing contig VH1-69-01-J1_Frag_217_28
+- Processing contig VH1-69-01-J1_Frag_225_29
+- Processing contig VH1-69-01-J1_Frag_233_30
+- Processing contig VH1-69-01-J1_Frag_241_31
+- Processing contig VH1-69-01-J1_Frag_249_32
+- Processing contig VH1-69-01-J1_Frag_257_33
+- Processing contig VH1-69-01-J1_Frag_265_34
+- Processing contig VH1-69-01-J1_Frag_273_35
+- Processing contig VH1-69-01-J1_Frag_281_36
+- Processing contig VH1-69-01-J1_Frag_337_37
+- Processing contig VH1-69-01-J1_Frag_337_38
+- Processing contig VH1-69-01-J1_Frag_345_39
+- Processing contig VH1-69-01-J1_Frag_353_40
+- Processing contig VH1-69-01-J1_Frag_361_41
+- Processing contig VH1-69-01-J1_Frag_361_42
+- Processing contig VH1-69-01-J1_Frag_409_43
+- Processing contig VH1-69-01-J1_Frag_417_44
+- Processing contig VH1-69-01-J1_Frag_425_45
+- Processing contig VH1-69-01-J1_Frag_433_46
+- Processing contig VH1-69-01-J1_Frag_441_47
+- Processing contig VH1-69-01-J1_Frag_457_48
+- Processing contig VH1-69-01-J1_Frag_465_49
+- Processing contig VH1-69-01-J1_Frag_465_50
+- Processing contig VH1-69-01-J1_Frag_473_51
+- Processing contig VH1-69-01-J1_Frag_481_52
+- Processing contig VH1-69-01-J1_Frag_489_53
+- Processing contig VH1-69-01-J1_Frag_497_54
+- Processing contig VH1-69-01-J1_Frag_505_55
+- Processing contig VH1-69-01-J1_Frag_513_56
+- Processing contig VH1-69-01-J1_Frag_521_57
+- Processing contig VH1-69-01-J1_Frag_529_58
+- Processing contig VH1-69-01-J1_Frag_537_59
+- Processing contig VH1-69-01-J1_Frag_545_60
+- Processing contig VH1-69-01-J1_Frag_553_61
+- Processing contig VH1-69-01-J1_Frag_561_62
+- Processing contig VH1-69-01-J1_Frag_569_63
+- Processing contig VH1-69-01-J1_Frag_577_64
+- Processing contig VH1-69-01-J1_Frag_585_65
+- Processing contig VH1-69-01-J1_Frag_593_66
+- Processing contig VH1-69-01-J1_Frag_601_67
+- Processing contig VH1-69-01-J1_Frag_609_68
+- Processing contig VH1-69-01-J1_Frag_617_69
+- Processing contig VH1-69-01-J1_Frag_625_70
+- Processing contig VH1-69-01-J1_Frag_633_71
+- Processing contig VH1-69-01-J1_Frag_641_72
+- Processing contig VH1-69-01-J1_Frag_649_73
+- Processing contig VH1-69-01-J1_Frag_657_74
+- Processing contig VH1-69-01-J1_Frag_665_75
+- Processing contig VH1-69-01-J1_Frag_673_76
+- Processing contig VH1-69-01-J1_Frag_681_77
+- Processing contig VH1-69-01-J1_Frag_689_78
+- Processing contig VH1-69-01-J1_Frag_697_79
+- Processing contig VH1-69-01-J1_Frag_705_80
+- Processing contig VH1-69-01-J1_Frag_713_81
+- Processing contig VH1-69-01-J1_Frag_721_82
+- Processing contig VH1-69-01-J1_Frag_729_83
+- Processing contig VH1-69-01-J1_Frag_737_84
+- Processing contig VH1-69-01-J1_Frag_745_85
+- Processing contig VH1-69-01-J1_Frag_753_86
+- Processing contig VH1-69-01-J1_Frag_761_87
+- Processing contig VH1-69-01-J1_Frag_769_88
+- Processing contig VH1-69-01-J1_Frag_777_89
+- Processing contig VH1-69-01-J1_Frag_785_90
+- Processing contig VH1-69-01-J1_Frag_793_91
+- Processing contig VH1-69-01-J1_Frag_801_92
+- Processing contig VH1-69-01-J1_Frag_809_93
+- Processing contig VH1-69-01-J1_Frag_817_94
+- Processing contig VH1-69-01-J1_Frag_825_95
+- Processing contig VH1-69-01-J1_Frag_833_96
+- Processing contig VH1-69-01-J1_Frag_841_97
+- Processing contig VH1-69-01-J1_Frag_849_98
+- Processing contig VH1-69-01-J1_Frag_857_99
+- Processing contig VH1-69-01-J1_Frag_865_100
+- Processing contig VH1-69-01-J1_Frag_873_101
+- Processing contig VH1-69-01-J1_Frag_881_102
+- Processing contig VH1-69-01-J1_Frag_889_103
+- Processing contig VH1-69-01-J1_Frag_897_104
+- Processing contig VH1-69-01-J1_Frag_905_105
+- Processing contig VH1-69-01-J1_Frag_913_106
+- Processing contig VH1-69-01-J1_Frag_921_107
+- Processing contig VH1-69-01-J1_Frag_929_108
+- Processing contig VH1-69-01-J1_Frag_937_109
+- Processing contig VH1-69-01-J1_Frag_945_110
+- Processing contig VH1-69-01-J1_Frag_953_111
+- Processing contig VH1-69-01-J1_Frag_961_112
+- Processing contig VH1-69-01-J1_Frag_969_113
+- Processing contig VH1-69-01-J1_Frag_977_114
+- Processing contig VH1-69-01-J1_Frag_985_115
+- Processing contig VH1-69-01-J1_Frag_993_116
+- Processing contig VH1-69-01-J1_Frag_1001_117
+- Processing contig VH1-69-01-J1_Frag_1009_118
+- Processing contig VH1-69-01-J1_Frag_1017_119
+- Processing contig VH1-69-01-J1_Frag_1025_120
+- Processing contig VH1-69-01-J1_Frag_1033_121
+- Processing contig VH1-69-01-J1_Frag_1041_122
+- Processing contig VH1-69-01-J1_Frag_1049_123
+- Processing contig VH1-69-01-J1_Frag_1057_124
+- Processing contig VH1-69-01-J1_Frag_1065_125
+- Processing contig VH1-69-01-J1_Frag_1073_126
+- Processing contig VH1-69-01-J1_Frag_1081_127
+- Processing contig VH1-69-01-J1_Frag_1089_128
+- Processing contig VH1-69-01-J1_Frag_1097_129
+- Processing contig VH1-69-01-J1_Frag_1105_130
+- Processing contig VH1-69-01-J1_Frag_1113_131
+- Processing contig VH1-69-01-J1_Frag_1121_132
+- Processing contig VH1-69-01-J1_Frag_1129_133
+- Processing contig VH1-69-01-J1_Frag_1137_134
+- Processing contig VH1-69-01-J1_Frag_1145_135
+- Processing contig VH1-69-01-J1_Frag_1153_136
+Loaded Genome
+note: detected fastq format in input file [/home/jan/DDiMAPrelease/data/IterativeTest/synthseq50SE.fq]
+- Processing read file [/home/jan/DDiMAPrelease/data/IterativeTest/synthseq50SE.fq]
+note: quality value format set to PHRED+33
+done r/hr r/core-hr
+100000 70828231 8853528.200000 67715389 8464423.
+
+Statistics:
+    Overall:
+        Load Genome Time:       0.05 seconds
+        Read Mapping Time:      13.03 seconds
+        Reads per hour:         67,628,865
+        Reads per core-hour:    8,453,608
+
+    Spaced Seed Scan:
+        Run-time:               37.40 seconds
+
+    Vector Smith-Waterman:
+        Run-time:               19.81 seconds
+        Invocations:            3,638,288
+        Bypassed Calls:         0
+        Cells Computed:         11774.08 million
+        Cells per Second:       594.23 million
+
+    Scalar Smith-Waterman:
+        Run-time:               45.04 seconds
+        Invocations:            1,815,584
+        Cells Computed:         1445.92 million
+        Cells per Second:       32.11 million
+
+    Miscellaneous Totals:
+        Fasta Lib Time:         0.74 seconds
+        Read Load Time:         1.82 seconds
+        Wait Time:              0.18 seconds
+
+    General:
+        Reads Matched:          231,252    (94.4657%)
+        ... with QV >= 10:      231,252    (94.4657%)
+        Reads Dropped:          946    (0.3864%)
+        Total Matches:          231,252
+        Avg Hits/Matched Read:  1.00
+        Duplicate Hits Pruned:  13
+
+    Memory usage:
+        Genomemap:              0

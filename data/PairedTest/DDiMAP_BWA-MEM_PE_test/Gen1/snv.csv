@@ -1,0 +1,18 @@
+Gene, CallReason, Loc, RefBase, CallBase, Freq, LocalSeq, Coverage
+    VH1-69 , 2 ,  465 , T , A ,          1 , tacgcacagaagttccagggcagagtcacgatAaccgcggacgaatccacgagcacagcctacat , 9
+    VH1-69 , 2 ,  475 , G , A ,          1 , agttccagggcagagtcacgattaccgcggacAaatccacgagcacagcctacatggagctgagc , 9
+    VH1-69 , 2 ,  477 , A , G ,          1 , ttccagggcagagtcacgattaccgcggacgaGtccacgagcacagcctacatggagctgagcag , 9
+    VH1-69 , 2 ,  480 , C , T ,          1 , cagggcagagtcacgattaccgcggacgaatcTacgagcacagcctacatggagctgagcagcct , 9
+    VH1-69 , 2 ,  483 , G , A ,          1 , ggcagagtcacgattaccgcggacgaatccacAagcacagcctacatggagctgagcagcctgag , 9
+    VH1-69 , 2 ,  484 , A , G ,          1 , gcagagtcacgattaccgcggacgaatccacgGgcacagcctacatggagctgagcagcctgaga , 9
+    VH1-69 , 2 ,  485 , G , A ,          1 , cagagtcacgattaccgcggacgaatccacgaAcacagcctacatggagctgagcagcctgagat , 9
+    VH1-69 , 2 ,  490 , G , A ,          1 , tcacgattaccgcggacgaatccacgagcacaAcctacatggagctgagcagcctgagatctgag , 9
+    VH1-69 , 2 ,  492 , C , G ,          1 , acgattaccgcggacgaatccacgagcacagcGtacatggagctgagcagcctgagatctgagga , 9
+    VH1-69 , 2 ,  510 , C , T ,          1 , tccacgagcacagcctacatggagctgagcagTctgagatctgaggacacggccgtgtattactg , 9283
+    VH1-69 , 2 ,  533 , T , G ,          1 , gctgagcagcctgagatctgaggacacggccgGgtattactgtgcgagagagagatccactgtcc , 20461
+    VH1-69 , 2 ,  534 , G , C ,          1 , ctgagcagcctgagatctgaggacacggccgtCtattactgtgcgagagagagatccactgtccc , 20461
+    VH1-69 , 2 ,  588 , C , A ,  0.0016704 , tccactgtcccagacagcacctcagggtccccAgtcctgcctggaaccctgtaggaaactccaca , 22749
+    VH1-69 , 1 ,  622 , A , T , 0.00148217 , tcctgcctggaaccctgtaggaaactccacaaTccgccgccattctgtccacacccctacaggag , 22602
+    VH1-69 , 1 ,  686 , T , A , 0.00134944 , gccccaaccctctccccacatccaggcttcccAcccagacccctcatccctgcccgcacggtgcc , 22602
+    VH1-69 , 2 ,  813 , A , C , 0.00162146 , acacaggccccctttccacccagcctcaggaaCccacctgtgtcctccaacgacaggtcccagcc , 20352
+    VH1-69 , 2 ,  935 , C , A , 0.00165153 , ccccagcaagcccgcagggcacctcccctgccAccagacaccctgtgcccatcagttcatcccca , 14532
